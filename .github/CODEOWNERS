@@ -1,0 +1,15 @@
+# Replace the placeholders with real GitHub usernames.
+/backend/app/agent/            @ROHIT_GITHUB
+/frontend/src/modules/agent/   @ROHIT_GITHUB
+
+/backend/app/crm/              @DEV_GITHUB
+/frontend/src/modules/crm/     @DEV_GITHUB
+
+/backend/app/intel/            @GURU_GITHUB
+/frontend/src/modules/intel/   @GURU_GITHUB
+
+/backend/app/scheduling/            @RIYA_GITHUB
+/frontend/src/modules/channels/     @RIYA_GITHUB
+
+# Shared contracts need everyone
+/backend/app/contracts/        @ROHIT_GITHUB @DEV_GITHUB @GURU_GITHUB @RIYA_GITHUB
