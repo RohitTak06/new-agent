@@ -1,7 +1,7 @@
 """CRM service layer.
 
 Public functions match the stub signatures in contracts/stubs.py exactly:
-    upsert_lead(data: LeadProfile) -> Lead
+    upsert_lead(data: LeadProfile, lead_id: int | None = None) -> Lead
     get_lead(lead_id: int) -> Lead
     request_approval(action: str, payload: dict) -> ApprovalRequest
 
@@ -91,6 +91,8 @@ def log_event(
     reasoning_step: Optional[str],
     request_id: Optional[str],
     approval_id: Optional[int] = None,
+    lead_id: Optional[int] = None,
+    session_id: Optional[str] = None,
 ) -> None:
     """Append one row to audit_log. Never updates or deletes."""
     db: Session = SessionLocal()
@@ -104,6 +106,8 @@ def log_event(
             reasoning_step=reasoning_step,
             request_id=request_id,
             approval_id=approval_id,
+            lead_id=lead_id,
+            session_id=session_id,
         )
         db.add(entry)
         db.commit()
@@ -142,10 +146,12 @@ def _row_to_lead(row: LeadRow) -> Lead:
 # Public: upsert_lead  — stub-compatible signature
 # ---------------------------------------------------------------------------
 
-def upsert_lead(data: LeadProfile) -> Lead:
+def upsert_lead(data: LeadProfile, lead_id: Optional[int] = None) -> Lead:
     """Insert or update a lead row from a LeadProfile.
 
-    Matching priority: email first; phone second; insert only if neither matches.
+    Matching priority: lead_id (when given, e.g. the agent's current chat lead);
+    then email; then phone; insert only if nothing matches.
+    Raises ValueError if lead_id is given but does not exist.
     Only fields explicitly sent in the request (model_fields_set) are written
     on update — defaults like channel="web" or asked_scholarship=False are
     never allowed to silently overwrite real stored values.
@@ -156,8 +162,13 @@ def upsert_lead(data: LeadProfile) -> Lead:
     try:
         row: Optional[LeadRow] = None
 
+        if lead_id is not None:
+            row = db.get(LeadRow, lead_id)
+            if row is None:
+                raise ValueError(f"Lead {lead_id} not found")
+
         # Match by email, then by phone
-        if data.email:
+        if row is None and data.email:
             row = db.scalars(
                 select(LeadRow).where(LeadRow.email == data.email)
             ).first()

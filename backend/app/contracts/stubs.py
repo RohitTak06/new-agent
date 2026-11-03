@@ -27,8 +27,8 @@ def score_lead(profile: LeadProfile) -> LeadScore:
 
 
 # ---- Dev: crm ----
-def upsert_lead(data: LeadProfile) -> Lead:
-    return Lead(id=1, profile=data, status="new")
+def upsert_lead(data: LeadProfile, lead_id: int | None = None) -> Lead:
+    return Lead(id=lead_id or 1, profile=data, status="new")
 
 
 def get_lead(lead_id: int) -> Lead:

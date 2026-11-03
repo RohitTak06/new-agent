@@ -214,6 +214,8 @@ class AuditLog(Base):
     __table_args__ = (
         Index("ix_audit_log_created_at", "created_at"),
         Index("ix_audit_log_request_id", "request_id"),
+        Index("ix_audit_log_lead_id", "lead_id"),
+        Index("ix_audit_log_session_id", "session_id"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
@@ -230,6 +232,10 @@ class AuditLog(Base):
         Integer, ForeignKey("approvals.id"), nullable=True             # INTEGER matches approvals.id
     )
     request_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    lead_id: Mapped[Optional[int]] = mapped_column(
+        Integer, ForeignKey("leads.id"), nullable=True                 # migration 0002
+    )
+    session_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
 
     # relationships
     approval: Mapped[Optional["Approval"]] = relationship(

@@ -1,5 +1,4 @@
-"""Unit and benchmark tests for Knowledge and Lead Intelligence (Guru's module)."""
-import os
+"""Unit and benchmark tests for Knowledge and Lead Intelligence."""
 import pytest
 
 from app.contracts.models import LeadProfile
@@ -64,13 +63,13 @@ def test_lead_scoring_cold():
     assert score.score < 50
 
 
-def test_tool_contract_switch():
-    os.environ["USE_REAL_INTEL"] = "1"
+def test_tool_contract_switch(monkeypatch):
+    monkeypatch.setenv("USE_REAL_INTEL", "1")
     res = tools.search_knowledge("B.Tech scholarship 95 percentile")
     assert res.answer_found is True
     assert len(res.chunks) > 0
 
-    os.environ["USE_REAL_INTEL"] = "0"
+    monkeypatch.setenv("USE_REAL_INTEL", "0")
     stub_res = tools.search_knowledge("B.Tech scholarship")
     assert "stub" in stub_res.chunks[0].source
 
