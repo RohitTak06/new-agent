@@ -25,6 +25,8 @@ MAX_REPLANS = 1
 MAX_RETRIES = 2
 BACKOFF_SECONDS = (0.5, 1.5)
 TOOL_TIMEOUT_SECONDS = 15
+LLM_TIMEOUT_SECONDS = 40       # hard wall-clock cap per model call, whatever the SDK does
+TURN_BUDGET_SECONDS = 90       # no new retries once a turn has used this much time
 CHUNK_CHARS = 40
 
 ESCALATED_MSG = ("I don't have verified information on that, so I won't guess. "
@@ -47,6 +49,7 @@ class TurnContext:
     channel: str = "web"
     history: list[dict] = field(default_factory=list)   # [{"role": "student"|"agent", "text": str}]
     lead_profile: dict = field(default_factory=dict)
+    now_ist: str = ""                                    # virtual clock, for dates in tool calls
 
 
 Events = Generator[dict, None, Any]
@@ -57,11 +60,13 @@ class AgentLoop:
         self.llm = llm
         self.sleep = sleep
         self.step = 0
+        self.deadline = float("inf")
 
     # ----- public -------------------------------------------------------
     def run(self, ctx: TurnContext) -> Iterator[dict]:
         """Yield events for one turn. Always ends with a `final` event."""
         self.step = 0
+        self.deadline = time.monotonic() + TURN_BUDGET_SECONDS
         try:
             yield from self._turn(ctx)
         except Exception as exc:  # last-resort guard: the chat must never crash
@@ -80,8 +85,8 @@ class AgentLoop:
         replans = 0
         draft = ""
         while True:
-            result = yield from self._retry("llm.act", lambda: self.llm.act(
-                convo, SYSTEM_PROMPT, tools_schema.DECLARATIONS))
+            result = yield from self._retry("llm.act", lambda: self._with_timeout(
+                self.llm.act, convo, SYSTEM_PROMPT, tools_schema.DECLARATIONS, seconds=LLM_TIMEOUT_SECONDS))
             if result is None:
                 yield from self._respond(FALLBACK_MSG, intent, escalation=None)
                 return
@@ -123,7 +128,8 @@ class AgentLoop:
 
     def _plan(self, context: str) -> Events:
         prompt = PLAN_PROMPT.format(intents=INTENTS, tools=tools_schema.TOOL_NAMES, context=context)
-        raw = yield from self._retry("llm.plan", lambda: self.llm.plan(SYSTEM_PROMPT, prompt))
+        raw = yield from self._retry("llm.plan", lambda: self._with_timeout(
+            self.llm.plan, SYSTEM_PROMPT, prompt, seconds=LLM_TIMEOUT_SECONDS))
         raw = raw if isinstance(raw, dict) else {}
         intent = raw.get("intent") if raw.get("intent") in INTENTS else "unknown"
         steps = [s for s in raw.get("steps", []) if isinstance(s, dict)][:MAX_TOOL_STEPS]
@@ -176,7 +182,7 @@ class AgentLoop:
             try:
                 return fn()
             except Exception as exc:
-                if attempt == MAX_RETRIES:
+                if attempt == MAX_RETRIES or time.monotonic() >= self.deadline:
                     yield self._event("error", {"error": "retries_exhausted", "target": label,
                                                 "detail": f"{type(exc).__name__}: {exc}"[:300]})
                     return None
@@ -185,10 +191,10 @@ class AgentLoop:
                 self.sleep(BACKOFF_SECONDS[min(attempt, len(BACKOFF_SECONDS) - 1)])
 
     @staticmethod
-    def _with_timeout(fn, *args):
+    def _with_timeout(fn, *args, seconds: float = TOOL_TIMEOUT_SECONDS):
         pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         try:
-            return pool.submit(fn, *args).result(timeout=TOOL_TIMEOUT_SECONDS)
+            return pool.submit(fn, *args).result(timeout=seconds)
         finally:
             pool.shutdown(wait=False)
 
@@ -201,7 +207,8 @@ class AgentLoop:
     @staticmethod
     def _context_block(ctx: TurnContext) -> str:
         known = {k: v for k, v in ctx.lead_profile.items() if v not in (None, "", False)}
-        lines = [f"Channel: {ctx.channel}", f"Known student profile: {known or 'nothing yet'}"]
+        lines = [f"Current date and time (IST): {ctx.now_ist or 'unknown'}",
+                 f"Channel: {ctx.channel}", f"Known student profile: {known or 'nothing yet'}"]
         if ctx.history:
             lines.append("Conversation so far:")
             lines += [f"{'Student' if h['role'] == 'student' else 'Assistant'}: {h['text']}"

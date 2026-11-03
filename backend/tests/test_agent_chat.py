@@ -3,6 +3,8 @@
 Tools are real (intel KB + CRM on the test database); only Gemini is faked.
 """
 import json
+import uuid
+from datetime import timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,9 +14,15 @@ from app.agent import loop as agent_loop
 from app.agent import router as agent_router
 from app.agent import tools_schema
 from app.agent.loop import ESCALATED_MSG, FALLBACK_MSG, MAX_TOOL_STEPS, SENSITIVE_NOTE
+from app.contracts.models import LeadProfile
+from app.crm import service as crm_service
 from app.crm.db.base import SessionLocal
 from app.crm.db.models import Approval, AuditLog, Interaction
 from app.main import app
+from app.scheduling import clock
+from app.scheduling import service as sched_service
+from app.scheduling.models import SlotRow
+from app.scheduling.seed import seed_slots
 from fakes import FakeLLM, calls, says
 
 FEES = "programs_and_fees.md#bachelor-of-technology-b-tech"
@@ -196,6 +204,31 @@ def test_llm_down_gives_graceful_fallback(client, monkeypatch):
     assert events[-1]["data"]["text"] == FALLBACK_MSG
 
 
+def test_hanging_llm_is_cut_off_and_the_turn_still_ends(client, monkeypatch):
+    """A model call that never returns (e.g. an SDK sleeping on Retry-After) must not hang the chat."""
+    import time as _time
+
+    class HangingLLM(FakeLLM):
+        def plan(self, system, prompt):
+            _time.sleep(5)
+            return {"intent": "chitchat", "steps": []}
+
+    monkeypatch.setattr(agent_loop, "LLM_TIMEOUT_SECONDS", 0.2)
+    llm = HangingLLM({}, [says("never reached")])
+    llm.act = lambda *a: _time.sleep(5)
+    started = _time.monotonic()
+    events = chat(client, monkeypatch, llm, "hello?")
+    assert _time.monotonic() - started < 4
+    assert len(by_type(events, "retry")) == 4 and events[-1]["data"]["text"] == FALLBACK_MSG
+
+
+def test_turn_budget_stops_further_retries(client, monkeypatch):
+    monkeypatch.setattr(agent_loop, "TURN_BUDGET_SECONDS", 0)
+    llm = FakeLLM(ConnectionError("down"), [ConnectionError("down")])
+    events = chat(client, monkeypatch, llm, "hello?")
+    assert by_type(events, "retry") == [] and events[-1]["data"]["text"] == FALLBACK_MSG
+
+
 def test_step_limit_stops_runaway_tool_calls(client, monkeypatch):
     llm = FakeLLM({"intent": "unknown", "steps": []}, [calls(("search_knowledge", {"query": "fees"}))])
     events = chat(client, monkeypatch, llm, "loop forever")
@@ -215,3 +248,48 @@ def test_missing_llm_config_streams_an_error(client, monkeypatch):
 
 def test_unknown_lead_is_404(client):
     assert client.post("/agent/chat", json={"message": "hi", "lead_id": 999999}).status_code == 404
+
+
+# ---------------------------------------------------------------- sessions
+def test_session_id_alone_continues_the_same_lead(client, monkeypatch):
+    first = chat(client, monkeypatch, FakeLLM({"intent": "chitchat", "steps": []}, [says("Hi!")]), "Hello")[-1]["data"]
+    again = chat(client, monkeypatch, FakeLLM({"intent": "chitchat", "steps": []}, [says("Sure.")]), "More",
+                 session_id=first["session_id"])[-1]["data"]
+    assert again["lead_id"] == first["lead_id"]
+
+
+def test_session_of_another_lead_is_rejected(client, monkeypatch):
+    first = chat(client, monkeypatch, FakeLLM({"intent": "chitchat", "steps": []}, [says("Hi!")]), "Hello")[-1]["data"]
+    other = crm_service.upsert_lead(LeadProfile(email=f"{uuid.uuid4().hex[:8]}@example.test")).id
+    res = client.post("/agent/chat", json={"message": "hi", "session_id": first["session_id"], "lead_id": other})
+    assert res.status_code == 409
+
+
+# ---------------------------------------------------------------- S4 via the agent
+def test_booking_clash_offers_real_alternatives_and_never_claims_booking(client, monkeypatch):
+    seed_slots()
+    now = clock.now().astimezone(clock.IST)
+    slot = sched_service.get_slots(now.date().isoformat(), (now + timedelta(days=7)).date().isoformat())[0]
+    rival = crm_service.upsert_lead(LeadProfile(email=f"{uuid.uuid4().hex[:8]}@example.test")).id
+    assert sched_service.book_slot(rival, slot.slot_id).ok
+
+    def offer_alternatives(convo):
+        booking = next(r for name, r, _ in llm.tool_results if name == "book_slot")
+        times = ", ".join(f"{a['start']} with {a['counsellor']}" for a in booking["alternatives"])
+        return says(f"Sorry, that slot was just taken. Free slots nearby: {times}. Which one suits you?")
+
+    llm = FakeLLM({"intent": "booking", "steps": [{"goal": "book", "tool": "book_slot"}]},
+                  [calls(("book_slot", {"slot_id": slot.slot_id})),
+                   says("Great news, you're booked!"),          # wrong: verifier must reject this
+                   offer_alternatives])
+    events = chat(client, monkeypatch, llm, f"Book slot {slot.slot_id} for me")
+
+    result = by_type(events, "tool_result")[0]["data"]["result"]
+    assert result["ok"] is False and result["reason"] == "slot_taken" and len(result["alternatives"]) == 3
+    booking_checks = [v["data"] for v in by_type(events, "verify") if v["data"]["check"] == "booking"]
+    assert booking_checks[0]["ok"] is False and booking_checks[0]["action"] == "replan"
+    assert booking_checks[-1]["ok"] is True
+    final = events[-1]["data"]["text"]
+    assert "booked" not in final and all(a["start"] in final for a in result["alternatives"])
+    with SessionLocal() as db:
+        assert db.scalars(select(SlotRow).where(SlotRow.lead_id == events[-1]["data"]["lead_id"])).all() == []

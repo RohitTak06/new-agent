@@ -62,14 +62,20 @@ class GeminiLLM:
 
     _OUTPUT_STEPS = {"thought", "model_output", "function_call"}
 
-    def __init__(self, api_key: str | None = None, model: str | None = None, timeout: float = 60.0):
+    def __init__(self, api_key: str | None = None, model: str | None = None, timeout: float = 30.0):
         from google import genai
+        from google.genai import types
 
         api_key = api_key or os.getenv("LLM_API_KEY")
         self.model = model or os.getenv("LLM_MODEL")
         if not api_key or not self.model:
             raise LLMConfigError("Set LLM_API_KEY and LLM_MODEL in .env")
-        self.client = genai.Client(api_key=api_key)
+        # The SDK honours Retry-After before retrying; for a quota 429 that is hours. So it may
+        # retry once, only on transient 5xx; a 429 fails at once and the agent loop handles it
+        # with its own visible retries (`retry` events) under a hard per-turn time budget.
+        self.client = genai.Client(api_key=api_key, http_options=types.HttpOptions(
+            timeout=int(timeout * 1000),
+            retry_options=types.HttpRetryOptions(attempts=1, http_status_codes=[500, 502, 503, 504])))
         self.timeout = timeout
 
     def plan(self, system: str, prompt: str) -> dict:
