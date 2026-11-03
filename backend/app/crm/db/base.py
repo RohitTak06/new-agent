@@ -5,12 +5,15 @@ A fallback is provided for local dev convenience only; never commit .env.
 """
 import os
 
+from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
+load_dotenv()  # repo-root .env; real env vars still win
+
 DATABASE_URL: str = os.environ.get(
     "DATABASE_URL",
-    "postgresql+psycopg://postgres:postgres@localhost:5432/jklu_admission",
+    "postgresql+psycopg://buildathon:buildathon@localhost:5432/admissions",
 )
 
 engine = create_engine(DATABASE_URL, pool_pre_ping=True)

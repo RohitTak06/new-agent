@@ -1,15 +1,14 @@
-You are working on the CRM, Security and Audit module of a hackathon project
-(JKLU AI-Buildathon, PS-04 admission agent). Owner: Dev.
+# Project rules (CRM, security, audit)
 
-Rules:
-- Edit only backend/app/crm/ and frontend/src/modules/crm/.
-- Never change backend/app/contracts/ without asking me first.
-- Real functions must keep the exact signatures and return types of the stubs.
-- Every write must call log_event.
-- Sensitive actions (fee waiver, scholarship promise, bulk messages, booking
-  override, reversing an opt-out) go through the approval gate. Never skip the
-  status == "approved" check.
+Short version of the non-negotiables in the root `CLAUDE.md`; that file wins on any conflict.
+
+- Never invent institutional facts. No KB answer -> say so and escalate.
+- Synthetic data and mock integrations only. No real PII.
+- Real service functions keep the exact signatures and return types of `contracts/stubs.py`.
+- Every write calls `log_event`. `audit_log` is append-only: no update or delete helpers.
+- Sensitive actions (fee waiver, scholarship promise, bulk messages, booking override,
+  reversing an opt-out) go through `request_approval` and run only when `status == "approved"`.
 - A lead's opt-out applies immediately and is always logged.
-- Synthetic data only. No real student data. Never commit .env.
-- On Windows, write all files as UTF-8 without BOM.
-- Commit messages start with "crm:".
+- RBAC is enforced on the server.
+- Secrets come from the environment (`.env`, never committed). Never hardcode connection strings.
+- On Windows, write files as UTF-8 without BOM.
