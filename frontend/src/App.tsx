@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from "react-router-dom";
 import { KnowledgeAdmin } from "./modules/intel";
 import { ChannelsDashboard } from "./modules/channels";
+import { ChatPage } from "./modules/agent";
 import { MessageSquare, Database, BookOpen, Bot, Sparkles } from "lucide-react";
 
 export function App() {
@@ -96,18 +97,7 @@ export function App() {
             <Route path="/" element={<Navigate to="/channels" replace />} />
             <Route path="/channels" element={<ChannelsDashboard />} />
             <Route path="/intel" element={<KnowledgeAdmin />} />
-            <Route
-              path="/agent"
-              element={
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center py-16">
-                  <Bot className="w-12 h-12 text-blue-600 mx-auto mb-3" />
-                  <h2 className="text-xl font-bold text-slate-800">Agent Brain & Reasoning Trace</h2>
-                  <p className="text-sm text-slate-500 max-w-md mx-auto mt-1">
-                    Chat screen with live streaming thought process and tool execution panel.
-                  </p>
-                </div>
-              }
-            />
+            <Route path="/agent" element={<ChatPage />} />
             <Route
               path="/crm"
               element={
