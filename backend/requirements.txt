@@ -12,3 +12,4 @@ scikit-learn>=1.4.0
 pytest>=8.0.0
 PyJWT>=2.8
 alembic
+python-multipart
