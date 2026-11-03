@@ -41,7 +41,7 @@ export function App() {
                   }
                 >
                   <MessageSquare className="w-4 h-4" />
-                  <span>Channels & Slots (Riya)</span>
+                  <span>Channels & Slots</span>
                 </NavLink>
 
                 <NavLink
@@ -55,7 +55,7 @@ export function App() {
                   }
                 >
                   <BookOpen className="w-4 h-4" />
-                  <span>Knowledge & Scoring (Guru)</span>
+                  <span>Knowledge & Scoring</span>
                 </NavLink>
 
                 <NavLink
@@ -69,7 +69,7 @@ export function App() {
                   }
                 >
                   <Bot className="w-4 h-4" />
-                  <span>Agent Brain (Rohit)</span>
+                  <span>Agent Brain</span>
                 </NavLink>
 
                 <NavLink
@@ -83,7 +83,7 @@ export function App() {
                   }
                 >
                   <Database className="w-4 h-4" />
-                  <span>CRM & Audit (Dev)</span>
+                  <span>CRM & Audit</span>
                 </NavLink>
               </nav>
             </div>
@@ -103,7 +103,7 @@ export function App() {
                   <Bot className="w-12 h-12 text-blue-600 mx-auto mb-3" />
                   <h2 className="text-xl font-bold text-slate-800">Agent Brain & Reasoning Trace</h2>
                   <p className="text-sm text-slate-500 max-w-md mx-auto mt-1">
-                    Rohit's chat screen with live streaming thought process and tool execution panel.
+                    Chat screen with live streaming thought process and tool execution panel.
                   </p>
                 </div>
               }
@@ -115,7 +115,7 @@ export function App() {
                   <Database className="w-12 h-12 text-indigo-600 mx-auto mb-3" />
                   <h2 className="text-xl font-bold text-slate-800">CRM, RBAC & Approvals</h2>
                   <p className="text-sm text-slate-500 max-w-md mx-auto mt-1">
-                    Dev's lead database, approval inbox (fee waivers, bulk touches), and action audit log.
+                    Lead database, approval inbox (fee waivers, bulk touches), and action audit log.
                   </p>
                 </div>
               }

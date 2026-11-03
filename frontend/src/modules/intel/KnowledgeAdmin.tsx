@@ -118,7 +118,7 @@ export const KnowledgeAdmin: React.FC = () => {
             Admissions Knowledge & Lead Intelligence
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Institutional RAG retrieval, zero-hallucination guard, and lead qualification engine (Owner: Guru)
+            Institutional RAG retrieval, zero-hallucination guard, and lead qualification engine
           </p>
         </div>
         <div className="flex gap-2">

@@ -14,7 +14,6 @@ export const ChannelsDashboard: React.FC = () => {
               <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
                 Module 4: Scheduling & Channels
               </span>
-              <span className="text-xs text-slate-500 font-mono">Owner: Riya</span>
             </div>
             <h1 className="text-2xl font-bold text-slate-900 mt-2">
               Multi-Channel Simulator & Appointment Engine
