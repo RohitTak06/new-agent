@@ -22,7 +22,8 @@ TEST_DB = "admissions_test"
 os.environ["DATABASE_URL"] = f"{_BASE}/{TEST_DB}"
 os.environ["USE_REAL_INTEL"] = "1"
 os.environ["USE_REAL_CRM"] = "1"
-os.environ["USE_REAL_SCHEDULING"] = "0"
+os.environ["USE_REAL_SCHEDULING"] = "1"
+os.environ["SCHEDULER_ENABLED"] = "0"   # tests call dispatch_due directly
 
 
 def _recreate_test_db() -> None:

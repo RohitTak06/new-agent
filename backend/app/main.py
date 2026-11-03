@@ -2,15 +2,26 @@ from dotenv import load_dotenv
 
 load_dotenv()  # before app imports: modules read env vars at import time
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.agent.router import router as agent_router
 from app.crm.router import router as crm_router
 from app.intel.router import router as intel_router
+from app.scheduling import scheduler
 from app.scheduling.router import router as scheduling_router
 
-app = FastAPI(title="JKLU Admission Agent (PS-04)")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    scheduler.start()          # follow-up dispatcher; SCHEDULER_ENABLED=0 turns it off
+    yield
+    scheduler.stop()
+
+
+app = FastAPI(title="JKLU Admission Agent (PS-04)", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

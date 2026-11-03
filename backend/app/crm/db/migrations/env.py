@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
 from app.crm.db.base import Base  # noqa: E402
 import app.crm.db.models  # noqa: F401, E402 — registers all models on Base.metadata
+import app.scheduling.models  # noqa: F401, E402
 
 # ---------------------------------------------------------------------------
 # Alembic config object
