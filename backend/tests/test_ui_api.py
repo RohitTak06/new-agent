@@ -12,7 +12,7 @@ from app.crm import service as crm
 from app.main import app
 from app.scheduling import faults, seed
 from app.scheduling import service as sched
-from fakes import FakeLLM, says
+from fakes import FakeLLM, calls, says
 
 CHIT = {"intent": "chitchat", "needs_clarification": False, "clarifying_question": None, "steps": []}
 
@@ -132,3 +132,16 @@ def test_channel_messages_are_audited(client, monkeypatch, users):
     rows = client.get("/crm/audit", params={"lead_id": lead, "type": "channel_message"},
                       headers=users.admin.headers).json()
     assert {r["input"]["direction"] for r in rows} == {"inbound", "outbound"}
+
+
+# ---------------------------------------------------------------- "Book this" and spoken slot ids
+@pytest.mark.parametrize("spoken", ["{}", "slot_{}", "slot {}", "Slot-{}"])
+def test_book_slot_accepts_the_id_however_the_model_echoes_it(client, monkeypatch, spoken):
+    slot = free_slot()
+    plan = {**CHIT, "intent": "booking"}
+    llm = FakeLLM(plan, [calls(("book_slot", {"slot_id": spoken.format(slot)})), says("Your session is booked.")])
+    monkeypatch.setattr(agent_router, "get_llm", lambda: llm)
+    res = client.post("/agent/chat", json={"message": f"Please book slot {slot}"})
+    events = [json.loads(line[6:]) for line in res.text.splitlines() if line.startswith("data: ")]
+    result = next(e["data"]["result"] for e in events if e["type"] == "tool_result" and e["data"]["name"] == "book_slot")
+    assert result["ok"] and result["slot"]["slot_id"] == slot

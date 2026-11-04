@@ -18,6 +18,11 @@ const STYLE: Record<string, string> = {
 
 const TIER_TONE: Record<string, Tone> = { hot: "red", warm: "amber", cold: "blue" };
 
+/** Provider errors run long; the first sentence says what happened. */
+function firstSentence(text: string): string {
+  return String(text).split(". ")[0];
+}
+
 function toolSummary(name: string, r: any): string {
   if (r && "answer_found" in r) {
     const sources = Array.from(new Set(r.chunks.map((c: any) => c.source))).join(", ");
@@ -43,13 +48,13 @@ function summary(e: AgentEvent): string {
       return `${d.check}: ${d.ok ? "pass" : `fail → ${d.action}`} · ${d.reason}` +
         (d.ungrounded_numbers ? ` (${d.ungrounded_numbers.join(", ")})` : "");
     case "retry":
-      return `${d.target} attempt ${d.attempt}: ${d.error}`;
+      return `${d.target} attempt ${d.attempt}: ${firstSentence(d.error)}`;
     case "escalation":
       return d.recorded ? `Escalated to a counsellor · approval #${d.approval_id} (${d.status})` : "Escalation not recorded";
     case "approval_pending":
       return `Approval #${d.approval_id} requested: ${d.action} (${d.status}). Nothing runs until a counsellor decides.`;
     case "error":
-      return `${d.error}${d.detail ? `: ${d.detail}` : ""}`;
+      return `${d.error}${d.detail ? `: ${firstSentence(d.detail)}` : ""}`;
     case "final":
       return `Done · ${d.citations?.length ?? 0} citation(s)${d.escalated ? " · escalated" : ""}`;
     default:
