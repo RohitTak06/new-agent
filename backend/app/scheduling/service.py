@@ -73,7 +73,8 @@ def book_slot(lead_id: int, slot_id: str) -> BookingResult:
     result = _book(lead_id, slot_id)
     log_event(actor="system", event_type="tool_call", tool_name="book_slot",
               input={"lead_id": lead_id, "slot_id": slot_id},
-              output=result.model_dump(), reasoning_step=result.reason, request_id=None, lead_id=None)
+              output=result.model_dump(), reasoning_step=result.reason, request_id=None,
+              lead_id=None if result.reason == "lead_not_found" else lead_id)
     return result
 
 
@@ -183,7 +184,8 @@ def send_message(channel: str, lead_id: int, text: str) -> MessageResult:
     result = MessageResult(ok=error is None, message_id=message_id, error=error)
     log_event(actor="system", event_type="tool_call", tool_name="send_message",
               input={"channel": channel, "lead_id": lead_id, "text": text[:MAX_TEXT]},
-              output=result.model_dump(), reasoning_step=error, request_id=None, lead_id=None)
+              output=result.model_dump(), reasoning_step=error, request_id=None,
+              lead_id=None if error in ("lead_not_found", "invalid_channel", "invalid_text") else lead_id)
     return result
 
 
@@ -211,7 +213,8 @@ def schedule_followup(lead_id: int, when: str, template: str) -> dict:
                     result = {"ok": True, "followup_id": row.id, "when": clock.to_ist(due), "template": template}
     log_event(actor="system", event_type="tool_call", tool_name="schedule_followup",
               input={"lead_id": lead_id, "when": when, "template": template},
-              output=result, reasoning_step=result.get("error"), request_id=None, lead_id=None)
+              output=result, reasoning_step=result.get("error"), request_id=None,
+              lead_id=lead_id if result["ok"] or result.get("error") == "opted_out" else None)
     return result
 
 

@@ -245,6 +245,22 @@ def test_s7_fee_waiver_runs_only_after_approval(client, users):
     assert decision.actor == users.counsellor.email and decision.lead_id == lead
 
 
+def test_s7_audit_by_lead_shows_the_whole_story(client, users):
+    lead = new_lead()
+    req = tools.request_approval("fee_waiver", {"lead_id": lead})
+    client.post(f"/crm/approvals/{req.approval_id}/approve", json={}, headers=users.counsellor.headers)
+    rows = client.get(f"/crm/audit?lead_id={lead}", headers=users.counsellor.headers).json()
+    assert {"approval_requested", "approval_decision"} <= {r["event_type"] for r in rows}
+    assert {"upsert_lead", "request_approval", "add_interaction", "send_message"} <= {r["tool_name"] for r in rows}
+
+
+def test_failed_tool_calls_on_unknown_leads_are_still_audited():
+    """A refused call names a lead that doesn't exist, so it must log without the lead_id foreign key."""
+    assert sched.send_message("email", 999999, "hi").error == "lead_not_found"
+    assert sched.book_slot(999999, "1").reason == "lead_not_found"
+    assert sched.schedule_followup(999999, clock.to_ist(clock.now()), "hot_reminder")["error"] == "lead_not_found"
+
+
 def test_two_counsellors_approving_together_run_it_once(users):
     lead = new_lead()
     req = tools.request_approval("fee_waiver", {"lead_id": lead})
@@ -383,7 +399,8 @@ def test_audit_filters(client, users):
     crm.log_event(actor="agent", event_type="final", tool_name=None, input=None, output=None, reasoning_step=None,
                   request_id=None, lead_id=lead, session_id="sess-filter")
     h = users.counsellor.headers
-    assert [r["event_type"] for r in client.get(f"/crm/audit?lead_id={lead}", headers=h).json()] == ["final", "plan"]
+    by_lead = [r["event_type"] for r in client.get(f"/crm/audit?lead_id={lead}", headers=h).json()]
+    assert by_lead[:2] == ["final", "plan"] and "approval_requested" in by_lead      # newest first
     assert [r["event_type"] for r in client.get("/crm/audit?session_id=sess-filter&type=plan", headers=h).json()] == ["plan"]
     assert len(client.get("/crm/audit?limit=1", headers=h).json()) == 1
     assert client.get("/crm/audit?from=2099-01-01T00:00:00Z", headers=h).json() == []

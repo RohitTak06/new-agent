@@ -221,6 +221,7 @@ def upsert_lead(data: LeadProfile, lead_id: Optional[int] = None) -> Lead:
         output={"id": result.id, "action": action, "status": result.status},
         reasoning_step=None,
         request_id=None,
+        lead_id=result.id,
     )
     return result
 
@@ -251,6 +252,7 @@ def get_lead(lead_id: int) -> Lead:
         output={"id": result.id, "status": result.status},
         reasoning_step=None,
         request_id=None,
+        lead_id=result.id,
     )
     return result
 
@@ -320,6 +322,7 @@ def request_approval(action: str, payload: dict) -> ApprovalRequest:
         output={"approval_id": approval_id, "status": "pending"},
         reasoning_step=None,
         request_id=None,
+        lead_id=payload.get("lead_id"),
         approval_id=approval_id,
     )
     return result
@@ -387,6 +390,7 @@ def opt_out_lead(lead_id: int) -> Lead:
         output={"id": result.id, "opted_out": True},
         reasoning_step=None,
         request_id=None,
+        lead_id=result.id,
     )
     return result
 
@@ -442,6 +446,7 @@ def add_interaction(
         output={"interaction_id": result["id"]},
         reasoning_step=None,
         request_id=None,
+        lead_id=lead_id,
     )
     return result
 
