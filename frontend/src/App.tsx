@@ -1,126 +1,109 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, NavLink, Navigate } from "react-router-dom";
-import { KnowledgeAdmin } from "./modules/intel";
-import { ChannelsDashboard } from "./modules/channels";
+import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { LogIn, LogOut, MessageSquare, type LucideIcon } from "lucide-react";
+import { AuthProvider, homeFor, useAuth } from "./lib/auth";
+import { ErrorBoundary } from "./lib/ErrorBoundary";
+import { Button, Loading } from "./lib/ui";
+import type { Role } from "./lib/types";
 import { ChatPage } from "./modules/agent";
-import { MessageSquare, Database, BookOpen, Bot, Sparkles } from "lucide-react";
+import { LoginPage } from "./modules/crm";
+
+type Viewer = Role | "anonymous";
+const STAFF: Viewer[] = ["admin", "counsellor"];
+
+interface NavItem {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+  viewers: Viewer[];
+}
+
+const NAV: NavItem[] = [
+  { to: "/chat", label: "Chat", icon: MessageSquare, viewers: ["anonymous", "student"] },
+  { to: "/chat", label: "Test chat", icon: MessageSquare, viewers: STAFF },
+];
+
+/** Hides a screen from roles that can't use it. The server still refuses them on every request. */
+const RequireRole: React.FC<{ roles: Viewer[]; children: React.ReactElement }> = ({ roles, children }) => {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  return roles.includes(user.role) ? children : <Navigate to={homeFor(user)} replace />;
+};
+
+const Header: React.FC = () => {
+  const { user, logout } = useAuth();
+  const viewer: Viewer = user?.role ?? "anonymous";
+  return (
+    <header className="bg-jklu-blue text-white sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center gap-x-6 gap-y-1 py-2 min-h-14">
+        <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
+          <span className="w-8 h-8 rounded-md bg-jklu-gold text-jklu-blue font-black text-sm flex items-center justify-center">JK</span>
+          <span className="font-semibold text-sm">JKLU Admissions</span>
+        </NavLink>
+
+        <nav aria-label="Main" className="flex items-center gap-1 order-3 sm:order-none w-full sm:w-auto sm:flex-1 overflow-x-auto">
+          {NAV.filter((item) => item.viewers.includes(viewer)).map((item) => (
+            <NavLink key={item.to} to={item.to} className={({ isActive }) =>
+              `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition-colors ${
+                isActive ? "bg-white/15 text-white font-medium" : "text-slate-300 hover:text-white hover:bg-white/10"}`}>
+              <item.icon className="w-4 h-4" /> {item.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-3 text-sm">
+          {user ? (
+            <>
+              <span className="hidden md:block text-right leading-tight">
+                <span className="block text-xs font-medium">{user.full_name}</span>
+                <span className="block text-[11px] text-jklu-gold capitalize">{user.role}</span>
+              </span>
+              <button type="button" onClick={logout} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-slate-300 hover:text-white hover:bg-white/10">
+                <LogOut className="w-4 h-4" /> Log out
+              </button>
+            </>
+          ) : (
+            <NavLink to="/login" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-slate-300 hover:text-white hover:bg-white/10">
+              <LogIn className="w-4 h-4" /> Log in
+            </NavLink>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+};
+
+const AppRoutes: React.FC = () => {
+  const { user, ready } = useAuth();
+  if (!ready) return <Loading />;
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to={homeFor(user)} replace />} />
+      <Route path="/login" element={user ? <Navigate to={homeFor(user)} replace /> : <LoginPage />} />
+      {/* Remounts on login and logout, so one person's conversation never shows for the next. */}
+      <Route path="/chat" element={<ChatPage key={user?.id ?? "anonymous"} />} />
+      <Route path="/pipeline" element={<RequireRole roles={STAFF}><Navigate to="/chat" replace /></RequireRole>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+};
 
 export function App() {
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-        {/* Top Navbar */}
-        <header className="bg-slate-900 text-white shadow-md sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              {/* Branding */}
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center font-bold text-white shadow-sm">
-                  JK
-                </div>
-                <div>
-                  <div className="font-bold text-base flex items-center gap-2">
-                    JKLU Admissions AI Agent
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 font-mono border border-blue-400/30">
-                      PS-04
-                    </span>
-                  </div>
-                  <div className="text-xs text-slate-400">Autonomous Student Recruitment & Nurturing</div>
-                </div>
-              </div>
-
-              {/* Navigation Links for 4 Modules */}
-              <nav className="flex items-center gap-1 sm:gap-2">
-                <NavLink
-                  to="/channels"
-                  className={({ isActive }) =>
-                    `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                      isActive
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-slate-300 hover:text-white hover:bg-slate-800"
-                    }`
-                  }
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  <span>Channels & Slots</span>
-                </NavLink>
-
-                <NavLink
-                  to="/intel"
-                  className={({ isActive }) =>
-                    `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                      isActive
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-slate-300 hover:text-white hover:bg-slate-800"
-                    }`
-                  }
-                >
-                  <BookOpen className="w-4 h-4" />
-                  <span>Knowledge & Scoring</span>
-                </NavLink>
-
-                <NavLink
-                  to="/agent"
-                  className={({ isActive }) =>
-                    `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                      isActive
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-slate-300 hover:text-white hover:bg-slate-800"
-                    }`
-                  }
-                >
-                  <Bot className="w-4 h-4" />
-                  <span>Agent Brain</span>
-                </NavLink>
-
-                <NavLink
-                  to="/crm"
-                  className={({ isActive }) =>
-                    `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                      isActive
-                        ? "bg-blue-600 text-white shadow-sm"
-                        : "text-slate-300 hover:text-white hover:bg-slate-800"
-                    }`
-                  }
-                >
-                  <Database className="w-4 h-4" />
-                  <span>CRM & Audit</span>
-                </NavLink>
-              </nav>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content Area */}
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <Routes>
-            <Route path="/" element={<Navigate to="/channels" replace />} />
-            <Route path="/channels" element={<ChannelsDashboard />} />
-            <Route path="/intel" element={<KnowledgeAdmin />} />
-            <Route path="/agent" element={<ChatPage />} />
-            <Route
-              path="/crm"
-              element={
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center py-16">
-                  <Database className="w-12 h-12 text-indigo-600 mx-auto mb-3" />
-                  <h2 className="text-xl font-bold text-slate-800">CRM, RBAC & Approvals</h2>
-                  <p className="text-sm text-slate-500 max-w-md mx-auto mt-1">
-                    Lead database, approval inbox (fee waivers, bulk touches), and action audit log.
-                  </p>
-                </div>
-              }
-            />
-          </Routes>
-        </main>
-
-        {/* Global Footer */}
-        <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-          JKLU AI-Buildathon 1.0 &bull; PS-04 Intelligent Admission Enquiry &amp; Lead Nurturing Agent
-        </footer>
-      </div>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <AuthProvider>
+        <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
+          <Header />
+          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-4">
+            <ErrorBoundary>
+              <AppRoutes />
+            </ErrorBoundary>
+          </main>
+        </div>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
 
 export default App;
-

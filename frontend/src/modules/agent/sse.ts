@@ -1,4 +1,4 @@
-export const API_BASE: string = import.meta.env.VITE_API_BASE ?? "http://localhost:8000";
+import { authHeaders, errorFrom, send } from "../../lib/api";
 
 export type AgentEventType =
   | "plan" | "tool_call" | "tool_result" | "verify" | "retry" | "escalation"
@@ -20,13 +20,14 @@ export interface ChatBody {
 
 /** POST /agent/chat and call onEvent for each SSE event. EventSource can't POST, so parse the stream by hand. */
 export async function streamChat(body: ChatBody, onEvent: (e: AgentEvent) => void, signal?: AbortSignal) {
-  const res = await fetch(`${API_BASE}/agent/chat`, {
+  const res = await send("/agent/chat", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: JSON.stringify(body),
     signal,
   });
-  if (!res.ok || !res.body) throw new Error(`Chat failed: HTTP ${res.status}`);
+  if (!res.ok) throw await errorFrom(res);
+  if (!res.body) throw new Error("The server sent an empty reply.");
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();

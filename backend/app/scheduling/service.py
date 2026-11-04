@@ -241,7 +241,8 @@ def list_messages(lead_id: int) -> list[dict]:
         rows = db.scalars(select(MessageRow).where(MessageRow.lead_id == lead_id)
                           .order_by(MessageRow.sent_at, MessageRow.id)).all()
         return [{"id": r.id, "lead_id": r.lead_id, "channel": r.channel, "direction": r.direction,
-                 "text": r.text, "sent_at": clock.to_ist(r.sent_at), "meta": r.meta} for r in rows]
+                 "text": r.text, "sent_at": clock.to_ist(r.sent_at), "created_at": r.created_at.isoformat(),
+                 "meta": r.meta} for r in rows]
 
 
 def list_bookings(lead_id: Optional[int] = None) -> list[dict]:
