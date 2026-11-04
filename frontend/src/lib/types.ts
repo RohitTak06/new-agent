@@ -78,3 +78,27 @@ export interface Lead {
   status: string;
   opted_out: boolean;
 }
+
+export interface Approval {
+  id: number;
+  action: string;
+  payload: Record<string, any>;
+  status: "pending" | "approved" | "rejected";
+  lead_id: number | null;
+  reason: string | null;
+  requested_by_actor: string;
+  resolved_by: number | null;
+  resolved_at: string | null;
+  created_at: string;
+}
+
+export interface Followup {
+  id: number;
+  lead_id: number;
+  due_at: string;
+  template: string;
+  status: "pending" | "sent" | "skipped" | "failed";
+  payload: Record<string, any> | null;
+  sent_message_id: number | null;
+  processed_at: string | null;
+}

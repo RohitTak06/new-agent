@@ -1,22 +1,25 @@
 import React from "react";
 
-const CITATION = /\[([^\[\]\s]+\.md(?:#[^\[\]\s]*)?)\]/;
-const INLINE = /(\*\*[^*]+\*\*|\[[^\[\]\s]+\.md(?:#[^\[\]\s]*)?\])/g;
+const SOURCE = String.raw`[^\[\]\s,;]+\.md(?:#[^\[\]\s,;]*)?`;
+const GROUP = String.raw`\[\s*${SOURCE}(?:\s*[,;]\s*${SOURCE})*\s*\]`;
+const CITATION = new RegExp(`^${GROUP}$`);
+const INLINE = new RegExp(String.raw`(\*\*[^*]+\*\*|${GROUP})`, "g");
 const BULLET = /^\s*(?:[-*•]\s+|\d+[.)]\s+)/;
 
 /** Bold and numbered citation marks. Everything else stays plain text, so model output can't inject markup. */
 function inline(text: string, citations: string[]): React.ReactNode[] {
   return text.split(INLINE).filter(Boolean).map((part, i) => {
     if (part.startsWith("**") && part.endsWith("**")) return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>;
-    const cited = part.match(CITATION);
-    if (cited) {
-      const n = citations.indexOf(cited[1]) + 1;
-      return (
-        <sup key={i} title={cited[1]}
-          className="ml-0.5 px-1 rounded bg-blue-100 text-blue-800 text-[10px] font-semibold cursor-help">
-          {n > 0 ? n : "src"}
-        </sup>
-      );
+    if (CITATION.test(part)) {
+      return part.slice(1, -1).split(/[,;]/).map((source) => source.trim()).map((source) => {
+        const n = citations.indexOf(source) + 1;
+        return (
+          <sup key={`${i}-${source}`} title={source}
+            className="ml-0.5 px-1 rounded bg-blue-100 text-blue-800 text-[10px] font-semibold cursor-help">
+            {n > 0 ? n : "src"}
+          </sup>
+        );
+      });
     }
     return <React.Fragment key={i}>{part}</React.Fragment>;
   });

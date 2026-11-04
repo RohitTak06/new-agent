@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import { AlertTriangle, CheckCircle2, ListChecks, Loader2, RotateCw, ShieldAlert, Wrench, XCircle } from "lucide-react";
-import { Badge, type Tone } from "../../lib/ui";
+import { TIER_TONE } from "../../lib/leads";
+import { Badge } from "../../lib/ui";
+import type { Tier } from "../../lib/types";
 import type { AgentEvent } from "./sse";
 
 const STYLE: Record<string, string> = {
@@ -15,8 +17,6 @@ const STYLE: Record<string, string> = {
   error: "border-red-200 bg-red-50 text-red-900",
   final: "border-blue-200 bg-blue-50 text-blue-900",
 };
-
-const TIER_TONE: Record<string, Tone> = { hot: "red", warm: "amber", cold: "blue" };
 
 /** Provider errors run long; the first sentence says what happened. */
 function firstSentence(text: string): string {
@@ -102,7 +102,7 @@ const LeadState: React.FC<{ final?: AgentEvent }> = ({ final }) => {
   if (!score && missing.length === 0) return null;
   return (
     <div className="px-4 py-2 border-b border-slate-100 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
-      {score && <Badge tone={TIER_TONE[score.tier]}>{score.tier} lead · {score.score}/100</Badge>}
+      {score && <Badge tone={TIER_TONE[score.tier as Tier]}>{score.tier} lead · {score.score}/100</Badge>}
       {missing.length > 0 && <span>Still needed: {missing.join(", ").replace(/_/g, " ")}</span>}
     </div>
   );

@@ -7,8 +7,7 @@ import { RichText } from "../agent/RichText";
 interface Props {
   messages: ChannelMessage[];
   title: string;
-  /** Leave out for a read-only view (staff looking at a lead). */
-  onSend?: (text: string) => void;
+  onSend: (text: string) => void;
   pendingText?: string | null;
   status?: string | null;
   busy?: boolean;
@@ -27,7 +26,7 @@ export const PhoneView: React.FC<Props> = ({ messages, title, onSend, pendingTex
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const text = draft.trim();
-    if (!text || !onSend) return;
+    if (!text) return;
     setDraft("");
     onSend(text);
   }
@@ -49,7 +48,7 @@ export const PhoneView: React.FC<Props> = ({ messages, title, onSend, pendingTex
           {messages.length === 0 && !pendingText && (
             <div className="mt-16 text-center text-xs text-slate-600 px-6">
               <Smartphone className="w-6 h-6 mx-auto mb-1.5 text-slate-500" />
-              No WhatsApp messages yet.{onSend ? " Send one to talk to the admissions agent." : ""}
+              No WhatsApp messages yet. Send one to talk to the admissions agent.
             </div>
           )}
           {messages.map((m) => (
@@ -82,18 +81,16 @@ export const PhoneView: React.FC<Props> = ({ messages, title, onSend, pendingTex
           )}
         </div>
 
-        {onSend && (
-          <form onSubmit={submit} className="p-2 flex items-center gap-1.5">
-            <label htmlFor="whatsapp-input" className="sr-only">WhatsApp message</label>
-            <input id="whatsapp-input" value={draft} onChange={(e) => setDraft(e.target.value)} disabled={disabled} maxLength={2000} autoComplete="off"
-              placeholder="Type a message"
-              className="flex-1 min-w-0 rounded-full bg-white px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#075e54] disabled:opacity-60" />
-            <button type="submit" aria-label="Send WhatsApp message" disabled={disabled || !draft.trim()}
-              className="w-9 h-9 rounded-full bg-[#075e54] text-white flex items-center justify-center shrink-0 disabled:opacity-50">
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
-        )}
+        <form onSubmit={submit} className="p-2 flex items-center gap-1.5">
+          <label htmlFor="whatsapp-input" className="sr-only">WhatsApp message</label>
+          <input id="whatsapp-input" value={draft} onChange={(e) => setDraft(e.target.value)} disabled={disabled} maxLength={2000} autoComplete="off"
+            placeholder="Type a message"
+            className="flex-1 min-w-0 rounded-full bg-white px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#075e54] disabled:opacity-60" />
+          <button type="submit" aria-label="Send WhatsApp message" disabled={disabled || !draft.trim()}
+            className="w-9 h-9 rounded-full bg-[#075e54] text-white flex items-center justify-center shrink-0 disabled:opacity-50">
+            <Send className="w-4 h-4" />
+          </button>
+        </form>
       </div>
     </div>
   );

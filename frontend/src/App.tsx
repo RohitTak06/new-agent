@@ -1,13 +1,13 @@
 import React from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { Inbox, LogIn, LogOut, MessageSquare, type LucideIcon } from "lucide-react";
+import { Inbox, KanbanSquare, LogIn, LogOut, MessageSquare, type LucideIcon } from "lucide-react";
 import { AuthProvider, homeFor, useAuth } from "./lib/auth";
 import { ErrorBoundary } from "./lib/ErrorBoundary";
-import { Button, Loading } from "./lib/ui";
+import { ErrorBanner, Loading } from "./lib/ui";
 import type { Role } from "./lib/types";
 import { ChatPage } from "./modules/agent";
 import { MessagesPage } from "./modules/channels";
-import { LoginPage } from "./modules/crm";
+import { LeadDetailPage, LoginPage, PipelinePage } from "./modules/crm";
 
 type Viewer = Role | "anonymous";
 const STAFF: Viewer[] = ["admin", "counsellor"];
@@ -22,6 +22,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: "/chat", label: "Chat", icon: MessageSquare, viewers: ["anonymous", "student"] },
   { to: "/messages", label: "My messages", icon: Inbox, viewers: ["student"] },
+  { to: "/pipeline", label: "Pipeline", icon: KanbanSquare, viewers: STAFF },
   { to: "/chat", label: "Test chat", icon: MessageSquare, viewers: STAFF },
 ];
 
@@ -77,8 +78,11 @@ const Header: React.FC = () => {
 };
 
 const AppRoutes: React.FC = () => {
-  const { user, ready } = useAuth();
+  const { user, ready, unreachable, refresh } = useAuth();
   if (!ready) return <Loading />;
+  if (unreachable && !user) {
+    return <ErrorBanner message="Can't reach the server, so we can't check your login. Check that the API is running." onRetry={() => void refresh()} />;
+  }
   return (
     <Routes>
       <Route path="/" element={<Navigate to={homeFor(user)} replace />} />
@@ -86,7 +90,8 @@ const AppRoutes: React.FC = () => {
       {/* Remounts on login and logout, so one person's conversation never shows for the next. */}
       <Route path="/chat" element={<ChatPage key={user?.id ?? "anonymous"} />} />
       <Route path="/messages" element={<RequireRole roles={["student"]}><MessagesPage /></RequireRole>} />
-      <Route path="/pipeline" element={<RequireRole roles={STAFF}><Navigate to="/chat" replace /></RequireRole>} />
+      <Route path="/pipeline" element={<RequireRole roles={STAFF}><PipelinePage /></RequireRole>} />
+      <Route path="/leads/:id" element={<RequireRole roles={STAFF}><LeadDetailPage /></RequireRole>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

@@ -5,6 +5,8 @@ import type { User } from "./types";
 interface AuthValue {
   user: User | null;
   ready: boolean;
+  /** A token exists but the server couldn't be reached to check it, so we don't know who this is yet. */
+  unreachable: boolean;
   login: (email: string, password: string) => Promise<User>;
   logout: () => void;
   refresh: () => Promise<void>;
@@ -20,6 +22,7 @@ const AuthContext = createContext<AuthValue | null>(null);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
+  const [unreachable, setUnreachable] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!getToken()) {
@@ -28,8 +31,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     try {
       setUser(await api<User>("/crm/auth/me"));
+      setUnreachable(false);
     } catch (err) {
-      if (!(err instanceof ApiError) || err.status !== 0) setUser(null);
+      const offline = err instanceof ApiError && err.status === 0;
+      setUnreachable(offline);
+      if (!offline) setUser(null);
     }
   }, []);
 
@@ -55,9 +61,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
+    setUnreachable(false);
   }, []);
 
-  const value = useMemo(() => ({ user, ready, login, logout, refresh }), [user, ready, login, logout, refresh]);
+  const value = useMemo(() => ({ user, ready, unreachable, login, logout, refresh }),
+    [user, ready, unreachable, login, logout, refresh]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 

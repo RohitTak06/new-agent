@@ -8,8 +8,7 @@ import { RichText } from "../agent/RichText";
 interface Props {
   messages: ChannelMessage[];
   address: string | null;
-  /** Leave out for a read-only view (staff looking at a lead). */
-  onSend?: (text: string) => void;
+  onSend: (text: string) => void;
   pendingText?: string | null;
   status?: string | null;
   busy?: boolean;
@@ -43,7 +42,7 @@ export const EmailInbox: React.FC<Props> = ({ messages, address, onSend, pending
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const text = draft.trim();
-    if (!text || !onSend) return;
+    if (!text) return;
     setDraft("");
     onSend(text);
   }
@@ -93,7 +92,7 @@ export const EmailInbox: React.FC<Props> = ({ messages, address, onSend, pending
                 )}
               </article>
             ) : (
-              !pendingText && <EmptyState title="No emails yet" hint={onSend ? "Write below to email the admissions agent." : undefined} />
+              !pendingText && <EmptyState title="No emails yet" hint="Write below to email the admissions agent." />
             )}
             {busy && (
               <p className="mt-4 flex items-center gap-1.5 text-xs text-slate-500">
@@ -102,16 +101,14 @@ export const EmailInbox: React.FC<Props> = ({ messages, address, onSend, pending
             )}
           </div>
 
-          {onSend && (
-            <form onSubmit={submit} className="p-3 border-t border-slate-100 space-y-2">
-              <label htmlFor="email-input" className="block text-xs font-medium text-slate-600">Email JKLU Admissions</label>
-              <textarea id="email-input" value={draft} onChange={(e) => setDraft(e.target.value)} disabled={disabled} maxLength={2000} rows={2}
-                className="w-full text-sm rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50" />
-              <div className="flex justify-end">
-                <Button type="submit" small disabled={disabled || !draft.trim()}>Send email</Button>
-              </div>
-            </form>
-          )}
+          <form onSubmit={submit} className="p-3 border-t border-slate-100 space-y-2">
+            <label htmlFor="email-input" className="block text-xs font-medium text-slate-600">Email JKLU Admissions</label>
+            <textarea id="email-input" value={draft} onChange={(e) => setDraft(e.target.value)} disabled={disabled} maxLength={2000} rows={2}
+              className="w-full text-sm rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50" />
+            <div className="flex justify-end">
+              <Button type="submit" small disabled={disabled || !draft.trim()}>Send email</Button>
+            </div>
+          </form>
         </div>
       </div>
     </Card>
