@@ -20,6 +20,8 @@ GROUNDED_INTENTS = {"institutional_question", "sensitive_request"}
 _SOURCE = r"[^\[\]\s,;]+\.md(?:#[^\[\]\s,;]*)?"
 _CITATION = re.compile(rf"\[\s*({_SOURCE}(?:\s*[,;]\s*{_SOURCE})*)\s*\]")
 _NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+_FEE_GRANT = re.compile(r"\b(?:waiver|discount|concession)\b", re.IGNORECASE)
+GRANTING_ACTIONS = {"fee_waiver", "booking_override"}
 _BOOKING_CLAIM = re.compile(r"\b(booked|confirmed|reserved|scheduled)\b", re.IGNORECASE)
 _NEGATION = re.compile(r"\b(not|n't|unable|couldn't|could not|cannot|can't|no longer)\b", re.IGNORECASE)
 _GRANT = re.compile(
@@ -142,13 +144,20 @@ def check_booking(answer: str, evidence: TurnEvidence) -> Verdict:
                    {"claims": claims})
 
 
-def check_no_false_grant(answer: str, already_approved: bool = False) -> Verdict:
-    """Only counsellors grant things. Reject any draft that promises a waiver, seat or approval."""
-    if already_approved:
-        return Verdict("no_false_grant", True, "a counsellor has approved a request for this lead")
+def _approved_by_counsellor(claim: str, approved_actions: set[str]) -> bool:
+    """Is this claim backed by an approval of that kind? Answering a question grants nothing, and seats never come from here."""
+    if _FEE_GRANT.search(claim):
+        return "fee_waiver" in approved_actions
+    if re.search(r"\brequest\b", claim, re.IGNORECASE):
+        return bool(approved_actions & GRANTING_ACTIONS)
+    return False
+
+
+def check_no_false_grant(answer: str, approved_actions: Optional[set[str]] = None) -> Verdict:
+    """Only counsellors grant things. Reject a draft that promises something no counsellor approved for this lead."""
     claims = []
     for m in _GRANT.finditer(answer):
-        if not _GRANT_NEGATION.search(answer[max(0, m.start() - 25):m.start()]):
+        if not _GRANT_NEGATION.search(answer[max(0, m.start() - 25):m.start()])                 and not _approved_by_counsellor(m.group(0), approved_actions or set()):
             claims.append(m.group(0))
     if claims:
         return Verdict("no_false_grant", False, "answer promises something only a counsellor can grant", "replan",
@@ -184,7 +193,7 @@ def check_outbound(text: str, evidence: TurnEvidence) -> Verdict:
 
 
 def verify_answer(answer: str, evidence: TurnEvidence, intent: str, question: str = "",
-                  known_text: str = "", already_approved: bool = False) -> list[Verdict]:
+                  known_text: str = "", approved_actions: Optional[set[str]] = None) -> list[Verdict]:
     """Run every verifier; the loop acts on the first failure."""
     return [check_grounding(answer, evidence, intent, question), check_booking(answer, evidence),
-            check_no_false_grant(answer, already_approved), check_figures(answer, evidence, known_text or question)]
+            check_no_false_grant(answer, approved_actions), check_figures(answer, evidence, known_text or question)]

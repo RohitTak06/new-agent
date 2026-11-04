@@ -100,7 +100,7 @@ class AgentLoop:
         yield self._event("plan", {**plan, "session_id": ctx.session_id, "lead_id": ctx.lead_id})
 
         env = ToolEnv(lead_id=ctx.lead_id, role=ctx.role, session_id=ctx.session_id)
-        already_approved = any(r["status"] == "approved" for r in ctx.requests)
+        approved_actions = {r["action"] for r in ctx.requests if r["status"] == "approved"}
         convo = self.llm.start(context)
         replans = 0
         while True:
@@ -122,7 +122,7 @@ class AgentLoop:
 
             draft = result.text.strip()
             failed = None
-            for verdict in verify_answer(draft, env.evidence, intent, ctx.message, context, already_approved):
+            for verdict in verify_answer(draft, env.evidence, intent, ctx.message, context, approved_actions):
                 yield self._event("verify", verdict.as_event())
                 if not verdict.ok and failed is None:
                     failed = verdict

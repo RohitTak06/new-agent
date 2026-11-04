@@ -93,7 +93,7 @@ def test_honest_wording_is_not_a_false_grant():
                  "Your request is pending counsellor approval.", "JKLU is UGC approved.",
                  "Your fee waiver has not been approved yet."):
         assert check_no_false_grant(text).ok, text
-    assert check_no_false_grant("Your fee waiver has been approved.", already_approved=True).ok
+    assert check_no_false_grant("Your fee waiver has been approved.", {"fee_waiver"}).ok
 
 
 def test_figures_need_a_source():
@@ -123,3 +123,21 @@ def test_citations_reads_several_sources_in_one_bracket():
 
 def test_bracketed_text_that_is_not_a_source_is_not_a_citation():
     assert citations("See [note, a.md#x] and [the fees]") == []
+
+
+# ---------------------------------------------------------------- an earlier approval only covers its own kind (seen live)
+def test_answered_question_does_not_unlock_a_waiver_claim():
+    assert not check_no_false_grant("Your fee waiver has been approved.", {"escalate_question"}).ok
+
+
+def test_booking_override_does_not_unlock_a_waiver_claim():
+    assert not check_no_false_grant("Your fee waiver has been approved.", {"booking_override"}).ok
+
+
+def test_an_approved_waiver_does_not_unlock_a_seat_claim():
+    assert not check_no_false_grant("Your seat has been confirmed.", {"fee_waiver"}).ok
+
+
+def test_answered_question_does_not_unlock_request_approved():
+    assert not check_no_false_grant("Your request has been approved.", {"escalate_question"}).ok
+    assert check_no_false_grant("Your request has been approved.", {"fee_waiver"}).ok
