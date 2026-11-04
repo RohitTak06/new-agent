@@ -45,13 +45,18 @@ def get_slots(date_from: str, date_to: str):
         return service.get_slots(date_from, date_to)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+    except faults.CalendarUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
 
 
 @router.post("/book", response_model=BookingResult)
 def book(req: BookRequest, request: Request, user: CurrentUser = Depends(current_user)):
     """Book a slot (students: only for their own lead). A clash returns 200 with ok=false and alternatives."""
     ensure_lead_access(user, req.lead_id, request)
-    result = service.book_slot(req.lead_id, req.slot_id)
+    try:
+        result = service.book_slot(req.lead_id, req.slot_id)
+    except faults.CalendarUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
     audit_action(user, "book_slot", req.model_dump(), {"ok": result.ok, "reason": result.reason},
                  None if result.reason == "lead_not_found" else req.lead_id)
     return result

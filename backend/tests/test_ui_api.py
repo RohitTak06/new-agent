@@ -145,3 +145,15 @@ def test_book_slot_accepts_the_id_however_the_model_echoes_it(client, monkeypatc
     events = [json.loads(line[6:]) for line in res.text.splitlines() if line.startswith("data: ")]
     result = next(e["data"]["result"] for e in events if e["type"] == "tool_result" and e["data"]["name"] == "book_slot")
     assert result["ok"] and result["slot"]["slot_id"] == slot
+
+
+# ---------------------------------------------------------------- calendar outage over HTTP
+def test_calendar_outage_is_a_503_not_a_crash(client, users):
+    faults.arm("get_slots", 1)
+    res = client.get("/scheduling/slots", params={"date_from": "2020-01-01", "date_to": "2099-12-31"},
+                     headers=users.counsellor.headers)
+    assert res.status_code == 503 and "calendar unavailable" in res.json()["detail"]
+    faults.arm("book_slot", 1)
+    res = client.post("/scheduling/book", json={"lead_id": users.student.lead_id, "slot_id": "1"},
+                      headers=users.student.headers)
+    assert res.status_code == 503
