@@ -1,5 +1,8 @@
 """Lead Qualification and Scoring Engine for JKLU Admissions.
-Evaluates profile completeness, academic eligibility, scholarship tier match, budget fit, and engagement signals.
+Evaluates profile completeness, academics, budget and engagement signals.
+
+Reasons describe the student's profile only. They never state institutional facts
+(scholarship bands, costs, cutoffs): those come from the knowledge base, with citations.
 """
 import re
 from typing import List
@@ -16,22 +19,22 @@ def score_lead(profile: LeadProfile) -> LeadScore:
         pct = profile.twelfth_percent
         if pct >= 95.0:
             score += 35
-            reasons.append(f"Outstanding 12th marks ({pct:.1f}%): qualifies for top 50% merit scholarship band")
+            reasons.append(f"Outstanding 12th marks ({pct:.1f}%)")
         elif pct >= 90.0:
             score += 30
-            reasons.append(f"High 12th marks ({pct:.1f}%): qualifies for 30% scholarship tier")
+            reasons.append(f"High 12th marks ({pct:.1f}%)")
         elif pct >= 80.0:
             score += 24
-            reasons.append(f"Strong 12th marks ({pct:.1f}%): qualifies for 10%-20% scholarship tier")
+            reasons.append(f"Strong 12th marks ({pct:.1f}%)")
         elif pct >= 65.0:
             score += 18
-            reasons.append(f"Eligible 12th marks ({pct:.1f}%): meets core university admission criteria")
+            reasons.append(f"Good 12th marks ({pct:.1f}%)")
         elif pct >= 55.0:
             score += 12
-            reasons.append(f"12th marks ({pct:.1f}%): eligible for BBA/B.Des, marginal for B.Tech")
+            reasons.append(f"Moderate 12th marks ({pct:.1f}%)")
         else:
             score += 5
-            reasons.append(f"12th marks ({pct:.1f}%): below standard cutoffs; requires admission committee review")
+            reasons.append(f"Lower 12th marks ({pct:.1f}%): eligibility needs checking")
     else:
         reasons.append("Academic 12th percentage not yet disclosed")
 
@@ -39,10 +42,11 @@ def score_lead(profile: LeadProfile) -> LeadScore:
     if profile.entrance_exam:
         ee = profile.entrance_exam.lower()
         # Look for numbers/percentiles
-        nums = [float(n) for n in re.findall(r"\d+(?:\.\d+)?", ee)]
+        # Scores only: a percentile is at most 100, so "JEE Main 2026" is not a score
+        nums = [n for n in map(float, re.findall(r"\d+(?:\.\d+)?", ee)) if n <= 100]
         if "jee" in ee and any(n >= 90 for n in nums):
             score += 10
-            reasons.append(f"High JEE Main score ({profile.entrance_exam}): qualifies for 75%-100% scholarship")
+            reasons.append(f"High JEE Main score ({profile.entrance_exam})")
         elif "jee" in ee or "cuet" in ee or "jk-det" in ee or "uceed" in ee:
             score += 8
             reasons.append(f"Entrance exam reported ({profile.entrance_exam}): candidate ready for counselling")
@@ -76,13 +80,13 @@ def score_lead(profile: LeadProfile) -> LeadScore:
         b = profile.budget_lakh
         if b >= 8.0:
             score += 15
-            reasons.append(f"Comfortable budget ({b:.1f} Lakhs): fully covers degree tuition and living costs")
+            reasons.append(f"Higher stated budget ({b:.1f} lakh)")
         elif b >= 4.0:
             score += 12
-            reasons.append(f"Moderate budget ({b:.1f} Lakhs): feasible with merit scholarship assistance")
+            reasons.append(f"Moderate stated budget ({b:.1f} lakh)")
         else:
             score += 6
-            reasons.append(f"Constrained budget ({b:.1f} Lakhs): depends heavily on scholarships or financial aid")
+            reasons.append(f"Lower stated budget ({b:.1f} lakh)")
     else:
         score += 8  # Neutral baseline
         reasons.append("Budget not disclosed; neutral assessment")

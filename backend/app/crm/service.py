@@ -3,7 +3,11 @@
 Public functions match the stub signatures in contracts/stubs.py exactly:
     upsert_lead(data: LeadProfile, lead_id: int | None = None) -> Lead
     get_lead(lead_id: int) -> Lead
+    update_lead_score(lead_id, score, tier, reasons=None) -> None
+    opt_out_lead(lead_id) -> Lead
     request_approval(action: str, payload: dict) -> ApprovalRequest
+    request_fee_waiver / request_booking_override / request_bulk_message -> ApprovalRequest
+    lead_requests(lead_id) -> list[dict]
 
 Internal helpers (not exported via tools.py):
     log_event(...)  -> None   append-only audit write
@@ -137,7 +141,7 @@ def _row_to_lead(row: LeadRow) -> Lead:
         score_obj = LeadScore(
             score=row.score,
             tier=row.score_tier,
-            reasons=["stored score"],
+            reasons=row.score_reasons or ["stored score"],
         )
     return Lead(id=row.id, profile=profile, score=score_obj, status=row.status)
 
@@ -328,11 +332,55 @@ def request_approval(action: str, payload: dict) -> ApprovalRequest:
     return result
 
 
+def _pending(action: str, lead_id: Optional[int], same_payload: Optional[dict] = None) -> Optional[ApprovalRequest]:
+    """An identical request still awaiting a counsellor, if there is one."""
+    db: Session = SessionLocal()
+    try:
+        rows = db.scalars(select(Approval).where(Approval.action == action, Approval.lead_id == lead_id,
+                                                 Approval.status == "pending").order_by(Approval.id)).all()
+    finally:
+        db.close()
+    for row in rows:
+        if all(row.payload.get(k) == v for k, v in (same_payload or {}).items()):
+            return ApprovalRequest(approval_id=row.id, status="pending", action=action)
+    return None
+
+
+def request_fee_waiver(lead_id: int, reason: str, session_id: Optional[str] = None) -> ApprovalRequest:
+    """Ask a counsellor to consider a fee waiver. Nothing is granted here; repeats return the same request."""
+    return _pending("fee_waiver", lead_id) or request_approval(
+        "fee_waiver", {"lead_id": lead_id, "reason": reason, "session_id": session_id})
+
+
+def request_booking_override(lead_id: int, slot_id: str, reason: str,
+                             session_id: Optional[str] = None) -> ApprovalRequest:
+    """Ask a counsellor to force-book a slot. Nothing moves until it is approved."""
+    return _pending("booking_override", lead_id, {"slot_id": slot_id}) or request_approval(
+        "booking_override", {"lead_id": lead_id, "slot_id": slot_id, "reason": reason, "session_id": session_id})
+
+
+def request_bulk_message(lead_ids: list[int], channel: str, text: str,
+                         session_id: Optional[str] = None) -> ApprovalRequest:
+    """Ask a counsellor to approve a bulk message. Nothing is sent until it is approved."""
+    return request_approval("bulk_message", {"lead_ids": lead_ids, "channel": channel, "text": text,
+                                             "session_id": session_id})
+
+
+def lead_requests(lead_id: int) -> list[dict]:
+    """This lead's approval requests and where they stand, oldest first."""
+    db: Session = SessionLocal()
+    try:
+        rows = db.scalars(select(Approval).where(Approval.lead_id == lead_id).order_by(Approval.id)).all()
+        return [{"approval_id": r.id, "action": r.action, "status": r.status, "reason": r.reason} for r in rows]
+    finally:
+        db.close()
+
+
 # ---------------------------------------------------------------------------
 # Internal: update_lead_score
 # ---------------------------------------------------------------------------
 
-def update_lead_score(lead_id: int, score: int, tier: str) -> None:
+def update_lead_score(lead_id: int, score: int, tier: str, reasons: Optional[list[str]] = None) -> None:
     """Store a pre-computed score and tier on a lead row.
 
     Does NOT compute anything — the caller (e.g. the intel service) provides
@@ -345,6 +393,7 @@ def update_lead_score(lead_id: int, score: int, tier: str) -> None:
             raise ValueError(f"Lead {lead_id} not found")
         row.score = score
         row.score_tier = tier
+        row.score_reasons = reasons
         db.commit()
     finally:
         db.close()
@@ -353,10 +402,11 @@ def update_lead_score(lead_id: int, score: int, tier: str) -> None:
         actor="system",
         event_type="tool_call",
         tool_name="update_lead_score",
-        input={"lead_id": lead_id, "score": score, "tier": tier},
+        input={"lead_id": lead_id, "score": score, "tier": tier, "reasons": reasons},
         output={"ok": True},
         reasoning_step=None,
         request_id=None,
+        lead_id=lead_id,
     )
 
 

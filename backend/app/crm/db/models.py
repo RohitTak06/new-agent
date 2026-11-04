@@ -103,6 +103,7 @@ class Lead(Base):
     )
     score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     score_tier: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)   # hot | warm | cold
+    score_reasons: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)     # migration 0005
     opted_out: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     assigned_to: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True

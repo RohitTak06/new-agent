@@ -39,6 +39,30 @@ def request_approval(action: str, payload: dict) -> ApprovalRequest:
     return ApprovalRequest(approval_id=1, status="pending", action=action)
 
 
+def update_lead_score(lead_id: int, score: int, tier: str, reasons: list[str] | None = None) -> None:
+    return None
+
+
+def opt_out_lead(lead_id: int) -> Lead:
+    return Lead(id=lead_id, profile=LeadProfile(name="Stub Student"), status="new")
+
+
+def request_fee_waiver(lead_id: int, reason: str, session_id: str | None = None) -> ApprovalRequest:
+    return ApprovalRequest(approval_id=1, status="pending", action="fee_waiver")
+
+
+def request_booking_override(lead_id: int, slot_id: str, reason: str, session_id: str | None = None) -> ApprovalRequest:
+    return ApprovalRequest(approval_id=1, status="pending", action="booking_override")
+
+
+def request_bulk_message(lead_ids: list[int], channel: str, text: str, session_id: str | None = None) -> ApprovalRequest:
+    return ApprovalRequest(approval_id=1, status="pending", action="bulk_message")
+
+
+def lead_requests(lead_id: int) -> list[dict]:
+    return []
+
+
 # ---- Riya: scheduling ----
 def get_slots(date_from: str, date_to: str) -> list[Slot]:
     return _SLOTS
@@ -57,3 +81,7 @@ def send_message(channel: str, lead_id: int, text: str) -> MessageResult:
 
 def schedule_followup(lead_id: int, when: str, template: str) -> dict:
     return {"ok": True, "followup_id": 1, "when": when, "template": template}
+
+
+def plan_followup(lead_id: int, objection: str | None = None) -> dict:
+    return {"ok": True, "planned": None, "reason": "stub"}
