@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { Inbox, KanbanSquare, LogIn, LogOut, MessageSquare, ScrollText, ShieldCheck, type LucideIcon } from "lucide-react";
+import { BarChart3, BookOpen, CalendarClock, Inbox, KanbanSquare, LogIn, LogOut, MessageSquare, ScrollText, ShieldCheck, type LucideIcon } from "lucide-react";
 import { AuthProvider, homeFor, useAuth } from "./lib/auth";
 import { ErrorBoundary } from "./lib/ErrorBoundary";
 import { ErrorBanner, Loading } from "./lib/ui";
@@ -8,7 +8,8 @@ import { useApi } from "./lib/useApi";
 import type { Approval, Role } from "./lib/types";
 import { ChatPage } from "./modules/agent";
 import { MessagesPage } from "./modules/channels";
-import { APPROVALS_CHANGED, ApprovalsPage, AuditPage, LeadDetailPage, LoginPage, PipelinePage } from "./modules/crm";
+import { AnalyticsPage, APPROVALS_CHANGED, ApprovalsPage, AuditPage, LeadDetailPage, LoginPage, PipelinePage, SchedulingPage } from "./modules/crm";
+import { KnowledgeAdmin } from "./modules/intel";
 
 type Viewer = Role | "anonymous";
 const STAFF: Viewer[] = ["admin", "counsellor"];
@@ -25,7 +26,10 @@ const NAV: NavItem[] = [
   { to: "/messages", label: "My messages", icon: Inbox, viewers: ["student"] },
   { to: "/pipeline", label: "Pipeline", icon: KanbanSquare, viewers: STAFF },
   { to: "/approvals", label: "Approvals", icon: ShieldCheck, viewers: STAFF },
+  { to: "/scheduling", label: "Scheduling", icon: CalendarClock, viewers: STAFF },
   { to: "/audit", label: "Audit", icon: ScrollText, viewers: STAFF },
+  { to: "/analytics", label: "Analytics", icon: BarChart3, viewers: STAFF },
+  { to: "/knowledge", label: "Knowledge", icon: BookOpen, viewers: STAFF },
   { to: "/chat", label: "Test chat", icon: MessageSquare, viewers: STAFF },
 ];
 
@@ -112,6 +116,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/pipeline" element={<RequireRole roles={STAFF}><PipelinePage /></RequireRole>} />
       <Route path="/approvals" element={<RequireRole roles={STAFF}><ApprovalsPage /></RequireRole>} />
       <Route path="/audit" element={<RequireRole roles={STAFF}><AuditPage /></RequireRole>} />
+      <Route path="/scheduling" element={<RequireRole roles={STAFF}><SchedulingPage /></RequireRole>} />
+      <Route path="/analytics" element={<RequireRole roles={STAFF}><AnalyticsPage /></RequireRole>} />
+      <Route path="/knowledge" element={<RequireRole roles={STAFF}><KnowledgeAdmin /></RequireRole>} />
       <Route path="/leads/:id" element={<RequireRole roles={STAFF}><LeadDetailPage /></RequireRole>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

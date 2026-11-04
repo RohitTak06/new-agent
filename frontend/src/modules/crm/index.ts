@@ -3,3 +3,5 @@ export * from "./PipelinePage";
 export * from "./LeadDetailPage";
 export * from "./ApprovalsPage";
 export * from "./AuditPage";
+export * from "./SchedulingPage";
+export * from "./AnalyticsPage";
