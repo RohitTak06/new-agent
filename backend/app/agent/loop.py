@@ -44,7 +44,7 @@ FALLBACK_MSG = ("Sorry, I couldn't complete that right now. An admissions counse
                 "would you like a callback?")
 FALLBACK_ESCALATED_MSG = ("Sorry, I couldn't complete that right now, so I've passed your request to an admissions "
                           "counsellor, who will get back to you.")
-_RETRY_HINT = re.compile(r"retry in (\d+(?:\.\d+)?)s", re.IGNORECASE)
+_RETRY_HINT = re.compile(r"retry in (\d+(?:\.\d+)?)s\b", re.IGNORECASE)
 
 
 @dataclass
