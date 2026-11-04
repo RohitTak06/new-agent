@@ -21,6 +21,12 @@ def arm(target: str, failures: int) -> None:
         _remaining[target] = failures
 
 
+def remaining() -> dict[str, int]:
+    """Failures still armed, per target."""
+    with _lock:
+        return {target: _remaining.get(target, 0) for target in sorted(TARGETS)}
+
+
 def check(target: str) -> None:
     """Called at the start of each calendar operation."""
     with _lock:

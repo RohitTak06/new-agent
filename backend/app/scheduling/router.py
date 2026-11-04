@@ -45,16 +45,33 @@ def get_slots(date_from: str, date_to: str):
         return service.get_slots(date_from, date_to)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+    except faults.CalendarUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
 
 
 @router.post("/book", response_model=BookingResult)
 def book(req: BookRequest, request: Request, user: CurrentUser = Depends(current_user)):
     """Book a slot (students: only for their own lead). A clash returns 200 with ok=false and alternatives."""
     ensure_lead_access(user, req.lead_id, request)
-    result = service.book_slot(req.lead_id, req.slot_id)
+    try:
+        result = service.book_slot(req.lead_id, req.slot_id)
+    except faults.CalendarUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
     audit_action(user, "book_slot", req.model_dump(), {"ok": result.ok, "reason": result.reason},
                  None if result.reason == "lead_not_found" else req.lead_id)
     return result
+
+
+@router.get("/bookings")
+def bookings(request: Request, lead_id: Optional[int] = None, user: CurrentUser = Depends(current_user)):
+    """Booked sessions. Staff: all, or one lead's. Students: only their own."""
+    if lead_id is not None:
+        ensure_lead_access(user, lead_id, request)
+    elif not user.is_staff:
+        if user.lead_id is None:
+            return []
+        lead_id = user.lead_id
+    return service.list_bookings(lead_id)
 
 
 @router.get("/messages/{lead_id}", dependencies=[Depends(require_lead_access)])
@@ -75,6 +92,12 @@ def create_followup(req: FollowupRequest, user: CurrentUser = Depends(require_st
 def list_followups(lead_id: Optional[int] = None,
                    status: Optional[Literal["pending", "sent", "skipped", "failed"]] = Query(default=None)):
     return service.list_followups(lead_id, status)
+
+
+@router.get("/faults", dependencies=[Depends(require_admin)])
+def fault_status():
+    """Whether the failure demo is available, and how many failures are still armed."""
+    return {"enabled": os.getenv("ENABLE_FAULT_INJECTION") == "1", "remaining": faults.remaining()}
 
 
 @router.post("/faults")

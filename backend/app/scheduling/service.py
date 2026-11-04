@@ -24,6 +24,7 @@ from app.scheduling.models import Counsellor, FollowupRow, MessageRow, SlotRow
 
 CHANNELS = {"web", "whatsapp", "email"}
 MAX_SLOTS = 50
+MAX_BOOKINGS = 200
 ALTERNATIVES = 3
 MAX_TEXT = 2000
 
@@ -157,8 +158,9 @@ def override_booking(lead_id: int, slot_id: str) -> dict:
     return result
 
 
-def _store_message(db: Session, lead_id: int, channel: str, text: str, meta: Optional[dict]) -> MessageRow:
-    row = MessageRow(lead_id=lead_id, channel=channel, direction="outbound", text=text,
+def _store_message(db: Session, lead_id: int, channel: str, text: str, meta: Optional[dict],
+                   direction: str = "outbound") -> MessageRow:
+    row = MessageRow(lead_id=lead_id, channel=channel, direction=direction, text=text,
                      sent_at=clock.now(), meta=meta)
     db.add(row)
     db.flush()
@@ -189,6 +191,19 @@ def send_message(channel: str, lead_id: int, text: str) -> MessageResult:
               output=result.model_dump(), reasoning_step=error, request_id=None,
               lead_id=None if error in ("lead_not_found", "invalid_channel", "invalid_text") else lead_id)
     return result
+
+
+def record_chat_message(lead_id: int, channel: str, direction: str, text: str, meta: Optional[dict] = None) -> None:
+    """Store one turn of a WhatsApp or email conversation, so the channel views show it.
+
+    Not a send, so the opt-out stop doesn't apply: the student wrote to us and is reading the reply.
+    """
+    with SessionLocal() as db:
+        message_id = _store_message(db, lead_id, channel, text, meta, direction).id
+        db.commit()
+    log_event(actor="system", event_type="channel_message", tool_name=None,
+              input={"channel": channel, "direction": direction}, output={"message_id": message_id},
+              reasoning_step=None, request_id=None, lead_id=lead_id)
 
 
 def schedule_followup(lead_id: int, when: str, template: str) -> dict:
@@ -226,7 +241,22 @@ def list_messages(lead_id: int) -> list[dict]:
         rows = db.scalars(select(MessageRow).where(MessageRow.lead_id == lead_id)
                           .order_by(MessageRow.sent_at, MessageRow.id)).all()
         return [{"id": r.id, "lead_id": r.lead_id, "channel": r.channel, "direction": r.direction,
-                 "text": r.text, "sent_at": clock.to_ist(r.sent_at), "meta": r.meta} for r in rows]
+                 "text": r.text, "sent_at": clock.to_ist(r.sent_at), "created_at": r.created_at.isoformat(),
+                 "meta": r.meta} for r in rows]
+
+
+def list_bookings(lead_id: Optional[int] = None) -> list[dict]:
+    """Booked slots with their counsellor and lead, soonest first, optionally for one lead."""
+    stmt = (select(SlotRow, Counsellor.name, LeadRow.name)
+            .join(Counsellor, Counsellor.id == SlotRow.counsellor_id)
+            .join(LeadRow, LeadRow.id == SlotRow.lead_id)
+            .where(SlotRow.status == "booked").order_by(SlotRow.start_at, SlotRow.id).limit(MAX_BOOKINGS))
+    if lead_id is not None:
+        stmt = stmt.where(SlotRow.lead_id == lead_id)
+    now = clock.now()
+    with SessionLocal() as db:
+        return [{**_slot(slot, counsellor).model_dump(), "lead_id": slot.lead_id, "lead_name": lead_name,
+                 "upcoming": slot.start_at > now} for slot, counsellor, lead_name in db.execute(stmt).all()]
 
 
 def list_followups(lead_id: Optional[int] = None, status: Optional[str] = None) -> list[dict]:

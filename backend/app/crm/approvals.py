@@ -40,11 +40,13 @@ def _as_dict(row: Approval) -> dict:
             "created_at": row.created_at.isoformat()}
 
 
-def list_approvals(status: Optional[str] = None, limit: int = 200) -> list[dict]:
-    """Approvals, newest first, optionally filtered by status."""
+def list_approvals(status: Optional[str] = None, limit: int = 200, lead_id: Optional[int] = None) -> list[dict]:
+    """Approvals, newest first, optionally filtered by status and lead."""
     stmt = select(Approval).order_by(Approval.id.desc()).limit(limit)
     if status:
         stmt = stmt.where(Approval.status == status)
+    if lead_id is not None:
+        stmt = stmt.where(Approval.lead_id == lead_id)
     with SessionLocal() as db:
         return [_as_dict(r) for r in db.scalars(stmt).all()]
 

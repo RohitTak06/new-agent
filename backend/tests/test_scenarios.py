@@ -222,6 +222,7 @@ def test_s5_calendar_failure_retries_twice_then_offers_alternatives(client, monk
     result = of(events, "tool_result")[0]
     assert result["ok"] is False and result["result"]["fallback"] == "other_slots_available"
     assert llm.tool_results[0][2] is True and len(result["result"]["alternatives"]) == 3
+    assert slot.slot_id not in {a["slot_id"] for a in result["result"]["alternatives"]}   # not the slot that just failed
     assert "isn't responding" in spoken(events)
     with SessionLocal() as db:
         retries = db.scalars(select(AuditLog).where(AuditLog.session_id == events[-1]["data"]["session_id"],

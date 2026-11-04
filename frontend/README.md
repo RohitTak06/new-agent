@@ -1,15 +1,16 @@
 # Frontend
 
-One person (suggest Riya) runs this once on Day 1 and pushes it, so everyone shares the same setup:
+React 18, Vite, TypeScript, Tailwind. Screens are chosen by role; the API enforces the same roles on every request.
 
 ```bash
-cd frontend
-npm create vite@latest . -- --template react-ts
 npm install
-npm install react-router-dom
-npm run dev    # http://localhost:5173
+npm run dev    # http://localhost:5173 (API at http://localhost:8000, override with VITE_API_BASE)
 ```
 
-Each person builds pages only inside their own folder under `src/modules/`:
-`agent/` (Rohit), `crm/` (Dev), `intel/` (Guru), `channels/` (Riya).
-Each module exports its pages; `src/App.tsx` just adds routes (small edits, so merge conflicts are easy to fix).
+- `src/lib/`: API client, auth, shared UI, data hooks.
+- `src/modules/agent/`: chat, reasoning trace, booking card.
+- `src/modules/crm/`: login and staff screens.
+- `src/modules/intel/`: knowledge and scoring components.
+- `src/modules/channels/`: simulated WhatsApp and email views.
+
+The login page lists the seed accounts in dev builds only. The token is kept in `localStorage`, which is acceptable for this demo; production should use an httpOnly cookie.

@@ -100,7 +100,7 @@ class AgentLoop:
         yield self._event("plan", {**plan, "session_id": ctx.session_id, "lead_id": ctx.lead_id})
 
         env = ToolEnv(lead_id=ctx.lead_id, role=ctx.role, session_id=ctx.session_id)
-        already_approved = any(r["status"] == "approved" for r in ctx.requests)
+        approved_actions = {r["action"] for r in ctx.requests if r["status"] == "approved"}
         convo = self.llm.start(context)
         replans = 0
         while True:
@@ -122,7 +122,7 @@ class AgentLoop:
 
             draft = result.text.strip()
             failed = None
-            for verdict in verify_answer(draft, env.evidence, intent, ctx.message, context, already_approved):
+            for verdict in verify_answer(draft, env.evidence, intent, ctx.message, context, approved_actions):
                 yield self._event("verify", verdict.as_event())
                 if not verdict.ok and failed is None:
                     failed = verdict
@@ -205,7 +205,7 @@ class AgentLoop:
 
         payload = tools_schema.to_jsonable(result) if error is None else {"error": error}
         if error and call.name == "book_slot":
-            payload.update((yield from self._booking_fallback(ctx, env)))
+            payload.update((yield from self._booking_fallback(ctx, env, str(call.args.get("slot_id")))))
         self.llm.add_tool_result(convo, call, payload, is_error=error is not None)
         yield self._event("tool_result", {"id": call.id, "name": call.name, "ok": error is None, "result": payload})
         yield from self._record(call, result, env)
@@ -228,13 +228,14 @@ class AgentLoop:
             yield self._event("approval_pending", {"approval_id": result.approval_id, "action": result.action,
                                                    "status": result.status})
 
-    def _booking_fallback(self, ctx: TurnContext, env: ToolEnv) -> Events:
-        """The calendar failed after retries: find other slots, or arrange a human callback."""
+    def _booking_fallback(self, ctx: TurnContext, env: ToolEnv, failed_slot: str) -> Events:
+        """The calendar failed after retries: find other slots than the one that failed, or arrange a human callback."""
         today = (ctx.now_ist or datetime.now(timezone.utc).isoformat())[:10]
         until = (date.fromisoformat(today) + timedelta(days=7)).isoformat()
         slots = yield from self._retry("get_slots", lambda: self._with_timeout(tools.get_slots, today, until))
-        if slots:
-            alternatives = tools_schema.to_jsonable(slots[:3])
+        others = [s for s in slots or [] if s.slot_id != failed_slot]
+        if others:
+            alternatives = tools_schema.to_jsonable(others[:3])
             env.evidence.tool_text.append(str(alternatives))
             return {"fallback": "other_slots_available", "alternatives": alternatives}
         env.evidence.escalation = yield from self._escalate(ctx, "calendar unavailable: booking failed after retries")

@@ -38,6 +38,7 @@ class Lead(BaseModel):
     profile: LeadProfile
     score: Optional[LeadScore] = None
     status: str = "new"
+    opted_out: bool = False
 
 
 class Slot(BaseModel):
