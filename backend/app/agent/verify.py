@@ -16,7 +16,9 @@ NOT_IN_KB = "[NOT_IN_KB]"
 # Intents whose answers state institutional facts and therefore need KB grounding.
 GROUNDED_INTENTS = {"institutional_question", "sensitive_request"}
 
-_CITATION = re.compile(r"\[([^\[\]\s]+\.md(?:#[^\[\]\s]*)?)\]")
+# One source in brackets, or several separated by commas or semicolons: [a.md#x, b.md#y].
+_SOURCE = r"[^\[\]\s,;]+\.md(?:#[^\[\]\s,;]*)?"
+_CITATION = re.compile(rf"\[\s*({_SOURCE}(?:\s*[,;]\s*{_SOURCE})*)\s*\]")
 _NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
 _BOOKING_CLAIM = re.compile(r"\b(booked|confirmed|reserved|scheduled)\b", re.IGNORECASE)
 _NEGATION = re.compile(r"\b(not|n't|unable|couldn't|could not|cannot|can't|no longer)\b", re.IGNORECASE)
@@ -72,7 +74,8 @@ class Verdict:
 
 def citations(text: str) -> list[str]:
     """Return the `[file.md#anchor]` sources cited in `text`, in order, unique."""
-    return list(dict.fromkeys(_CITATION.findall(text)))
+    sources = (s.strip() for group in _CITATION.findall(text) for s in re.split(r"[,;]", group))
+    return list(dict.fromkeys(sources))
 
 
 def _numbers(text: str) -> set[str]:

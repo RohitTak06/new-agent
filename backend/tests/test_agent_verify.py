@@ -113,3 +113,13 @@ def test_outbound_messages_need_every_number_sourced():
     assert check_outbound("Hello! A counsellor will call you.", ev()).ok
     booked = TurnEvidence(tool_text=["{'start': '2026-11-05T10:00:00+05:30'}"])
     assert check_outbound("Your session is on 2026-11-05 at 10:00", booked).ok
+
+
+# ---------------------------------------------------------------- several sources in one bracket (seen live)
+def test_citations_reads_several_sources_in_one_bracket():
+    text = "A fact [a.md#x, b.md#y]. Another [c.md; d.md#z] and [a.md#x]."
+    assert citations(text) == ["a.md#x", "b.md#y", "c.md", "d.md#z"]
+
+
+def test_bracketed_text_that_is_not_a_source_is_not_a_citation():
+    assert citations("See [note, a.md#x] and [the fees]") == []
