@@ -35,6 +35,7 @@ class Conversation:
 
 class LLM(Protocol):
     def plan(self, system: str, prompt: str) -> dict: ...
+    def write(self, system: str, prompt: str) -> str: ...
     def start(self, user_text: str) -> Conversation: ...
     def act(self, convo: Conversation, system: str, tools: list[dict]) -> ActResult: ...
     def add_tool_result(self, convo: Conversation, call: ToolCall, result: Any, is_error: bool = False) -> None: ...
@@ -88,6 +89,17 @@ class GeminiLLM:
             timeout=self.timeout,
         )
         return parse_json(interaction.output_text or "{}")
+
+    def write(self, system: str, prompt: str) -> str:
+        """One-shot text generation, with no tools."""
+        interaction = self.client.interactions.create(
+            model=self.model,
+            input=prompt,
+            system_instruction=system,
+            store=False,
+            timeout=self.timeout,
+        )
+        return interaction.output_text or ""
 
     def start(self, user_text: str) -> Conversation:
         return Conversation(steps=[_user_step(user_text)])

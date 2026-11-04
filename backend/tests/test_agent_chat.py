@@ -166,7 +166,7 @@ def test_fabricated_fee_never_reaches_the_student(client, monkeypatch):
     )
     events = chat(client, monkeypatch, llm, "Do you offer a fee waiver for children of army personnel?")
 
-    failed = [v["data"] for v in by_type(events, "verify") if not v["data"]["ok"]]
+    failed = [v["data"] for v in by_type(events, "verify") if not v["data"]["ok"] and v["data"]["check"] == "grounding"]
     assert len(failed) == 2 and failed[0]["action"] == "replan"
     assert "145000" in failed[0]["ungrounded_numbers"]
     assert len(llm.feedback) == 1                      # one replan, then escalation

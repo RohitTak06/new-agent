@@ -1,5 +1,6 @@
 """Unit tests for the deterministic answer verifiers."""
-from app.agent.verify import NOT_IN_KB, TurnEvidence, check_booking, check_grounding, citations
+from app.agent.verify import (NOT_IN_KB, TurnEvidence, check_booking, check_figures, check_grounding, check_no_false_grant,
+                              check_outbound, citations)
 from app.contracts.models import BookingResult, Chunk, KnowledgeResult, Slot
 
 SRC = "programs_and_fees.md#bachelor-of-technology-b-tech"
@@ -79,3 +80,36 @@ def test_booking_claim_with_success_passes():
 
 def test_negated_booking_is_not_a_claim():
     assert check_booking("That slot could not be booked; here are alternatives.", ev()).ok
+
+
+def test_false_grants_are_rejected():
+    for text in ("Your fee waiver has been approved.", "I have approved your discount.", "You have been granted a seat.",
+                 "You are guaranteed admission.", "Enjoy your free seat!", "I can waive that for you."):
+        assert not check_no_false_grant(text).ok, text
+
+
+def test_honest_wording_is_not_a_false_grant():
+    for text in ("I can't approve waivers myself.", "I cannot grant that.", "There is no free seat.",
+                 "Your request is pending counsellor approval.", "JKLU is UGC approved.",
+                 "Your fee waiver has not been approved yet."):
+        assert check_no_false_grant(text).ok, text
+    assert check_no_false_grant("Your fee waiver has been approved.", already_approved=True).ok
+
+
+def test_figures_need_a_source():
+    assert not check_figures("It costs INR 5,00,000 a year.", ev()).ok
+    assert not check_figures("You get a 90% scholarship.", ev()).ok
+    assert not check_figures("About 3 lakh a year.", ev()).ok
+    assert check_figures("It costs INR 2,65,000 a year.", ev(KB)).ok
+    assert check_figures("Your 92% and 8 lakh budget are noted.", ev(), "I got 92% and have 8 lakh").ok
+    assert check_figures("We have 3 counsellors free.", ev()).ok            # not money or a percentage
+
+
+def test_outbound_messages_need_every_number_sourced():
+    assert not check_outbound("Your fee is INR 1,000", ev()).ok
+    assert not check_outbound("Details [made_up.md#x]", ev()).ok
+    assert not check_outbound("Your waiver has been approved", ev()).ok
+    assert check_outbound(f"The fee is INR 2,65,000 [{SRC}]", ev(KB)).ok
+    assert check_outbound("Hello! A counsellor will call you.", ev()).ok
+    booked = TurnEvidence(tool_text=["{'start': '2026-11-05T10:00:00+05:30'}"])
+    assert check_outbound("Your session is on 2026-11-05 at 10:00", booked).ok

@@ -19,7 +19,7 @@ from app.contracts.models import BookingResult, MessageResult, Slot
 from app.crm.db.base import SessionLocal
 from app.crm.db.models import Lead as LeadRow
 from app.crm.service import log_event
-from app.scheduling import clock
+from app.scheduling import clock, faults
 from app.scheduling.models import Counsellor, FollowupRow, MessageRow, SlotRow
 
 CHANNELS = {"web", "whatsapp", "email"}
@@ -41,6 +41,7 @@ def _free_slots_query(after: datetime):
 
 def get_slots(date_from: str, date_to: str) -> list[Slot]:
     """Free, future slots starting in [date_from, date_to]. Dates are IST days (date_to inclusive)."""
+    faults.check("get_slots")
     now = clock.now()
     start = max(clock.parse(date_from), now)
     end = clock.parse(date_to, end_of_day=True)
@@ -70,6 +71,7 @@ def book_slot(lead_id: int, slot_id: str) -> BookingResult:
     conditional UPDATE, so two leads can never both get it. Re-booking the
     slot this lead already holds returns ok (safe for agent retries).
     """
+    faults.check("book_slot")
     result = _book(lead_id, slot_id)
     log_event(actor="system", event_type="tool_call", tool_name="book_slot",
               input={"lead_id": lead_id, "slot_id": slot_id},

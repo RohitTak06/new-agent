@@ -25,6 +25,10 @@ os.environ["USE_REAL_CRM"] = "1"
 os.environ["USE_REAL_SCHEDULING"] = "1"
 os.environ["SCHEDULER_ENABLED"] = "0"   # tests call dispatch_due directly
 os.environ["JWT_SECRET"] = "test-only-secret-" + "x" * 32
+os.environ["ENABLE_FAULT_INJECTION"] = "1"
+LIVE_LLM = {k: os.environ.get(k, "") for k in ("LLM_API_KEY", "LLM_MODEL")}     # only @pytest.mark.live uses these
+os.environ["LLM_API_KEY"] = ""     # no test reaches Gemini by accident
+os.environ["LLM_MODEL"] = ""
 
 
 def _recreate_test_db() -> None:

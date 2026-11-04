@@ -1,4 +1,5 @@
 """Scheduling and channels API (SPEC section 4). Roles enforced on every route."""
+import os
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
@@ -6,8 +7,8 @@ from pydantic import BaseModel, Field
 
 from app.contracts.models import BookingResult, Slot
 from app.crm.auth import (CurrentUser, audit_action, current_user, ensure_lead_access, require_lead_access,
-                          require_staff)
-from app.scheduling import clock, followups, service
+                          require_admin, require_staff)
+from app.scheduling import clock, faults, followups, service
 
 router = APIRouter()
 
@@ -25,6 +26,11 @@ class FollowupRequest(BaseModel):
 
 class AdvanceRequest(BaseModel):
     hours: float = Field(gt=0, le=clock.MAX_ADVANCE_HOURS)
+
+
+class FaultRequest(BaseModel):
+    target: Literal["book_slot", "get_slots"] = "book_slot"
+    failures: int = Field(default=3, ge=0, le=20)
 
 
 @router.get("/health")
@@ -69,6 +75,16 @@ def create_followup(req: FollowupRequest, user: CurrentUser = Depends(require_st
 def list_followups(lead_id: Optional[int] = None,
                    status: Optional[Literal["pending", "sent", "skipped", "failed"]] = Query(default=None)):
     return service.list_followups(lead_id, status)
+
+
+@router.post("/faults")
+def inject_fault(req: FaultRequest, user: CurrentUser = Depends(require_admin)):
+    """Failure demo: the next N calendar calls fail. Off unless ENABLE_FAULT_INJECTION=1."""
+    if os.getenv("ENABLE_FAULT_INJECTION") != "1":
+        raise HTTPException(status_code=404, detail="Fault injection is disabled")
+    faults.arm(req.target, req.failures)
+    audit_action(user, "inject_fault", req.model_dump(), None)
+    return {"armed": req.model_dump()}
 
 
 @router.get("/clock", dependencies=[Depends(require_staff)])

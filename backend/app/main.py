@@ -7,11 +7,15 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.agent import followup_writer
 from app.agent.router import router as agent_router
 from app.crm.router import router as crm_router
 from app.intel.router import router as intel_router
-from app.scheduling import scheduler
+from app.scheduling import followups, scheduler
 from app.scheduling.router import router as scheduling_router
+
+
+followups.set_composer(followup_writer.compose)
 
 
 @asynccontextmanager

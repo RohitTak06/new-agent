@@ -7,9 +7,9 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal, Optional
 
-from app.contracts.models import BookingResult, KnowledgeResult
+from app.contracts.models import ApprovalRequest, BookingResult, KnowledgeResult, LeadScore
 
 NOT_IN_KB = "[NOT_IN_KB]"
 
@@ -20,6 +20,18 @@ _CITATION = re.compile(r"\[([^\[\]\s]+\.md(?:#[^\[\]\s]*)?)\]")
 _NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
 _BOOKING_CLAIM = re.compile(r"\b(booked|confirmed|reserved|scheduled)\b", re.IGNORECASE)
 _NEGATION = re.compile(r"\b(not|n't|unable|couldn't|could not|cannot|can't|no longer)\b", re.IGNORECASE)
+_GRANT = re.compile(
+    r"\byour\s+(?:\w+\s+){0,3}(?:waiver|discount|scholarship|exception|seat|admission|request|concession)\s+"
+    r"(?:\w+\s+){0,2}(?:approved|granted|confirmed|waived|accepted)\b"
+    r"|\bi\s+(?:have\s+|'ve\s+|can\s+|will\s+|am\s+going\s+to\s+)(?:\w+\s+)?(?:approved?|grant(?:ed)?|waived?|guarantee[ds]?)\b"
+    r"|\byou\s+(?:have\s+been|'ve\s+been|are|will\s+be)\s+(?:\w+\s+)?(?:approved|granted|awarded|guaranteed|admitted)\b"
+    r"|\bfree\s+seat\b|\bguaranteed\s+(?:an?\s+)?(?:seat|admission|scholarship)\b",
+    re.IGNORECASE,
+)
+_GRANT_NEGATION = re.compile(r"\b(not|no|never|unable|cannot|can't|won't|doesn't|don't)\b", re.IGNORECASE)
+# Money and percentages: the figures a model most easily invents outside an institutional answer.
+_FIGURE = re.compile(r"(?:INR|Rs\.?|₹)\s*\d[\d,]*(?:\.\d+)?|\d[\d,]*(?:\.\d+)?\s*(?:%|(?:lakhs?|lacs?|percent)\b)",
+                     re.IGNORECASE)
 
 
 @dataclass
@@ -28,6 +40,11 @@ class TurnEvidence:
 
     knowledge: list[KnowledgeResult] = field(default_factory=list)
     bookings: list[BookingResult] = field(default_factory=list)
+    approvals: list[ApprovalRequest] = field(default_factory=list)
+    tool_text: list[str] = field(default_factory=list)    # slot/booking results, for outbound message checks
+    profile: Optional[dict] = None                        # lead profile after this turn's upsert_lead
+    score: Optional[LeadScore] = None
+    escalation: Optional[Any] = None                      # approval created by a fallback path
 
     @property
     def found_chunks(self):
@@ -84,6 +101,9 @@ def check_grounding(answer: str, evidence: TurnEvidence, intent: str, question: 
     if not needs_grounding:
         return Verdict("grounding", True, "no institutional claims for this intent")
 
+    if evidence.approvals and not cited and not (_numbers(answer) - _numbers(" ".join(
+            str(a.approval_id) for a in evidence.approvals))):
+        return Verdict("grounding", True, "request submitted for approval; no institutional claims made")
     if not evidence.found_chunks:
         return Verdict("grounding", False, "no knowledge-base result supports this answer", "escalate")
     if not cited:
@@ -119,6 +139,49 @@ def check_booking(answer: str, evidence: TurnEvidence) -> Verdict:
                    {"claims": claims})
 
 
-def verify_answer(answer: str, evidence: TurnEvidence, intent: str, question: str = "") -> list[Verdict]:
+def check_no_false_grant(answer: str, already_approved: bool = False) -> Verdict:
+    """Only counsellors grant things. Reject any draft that promises a waiver, seat or approval."""
+    if already_approved:
+        return Verdict("no_false_grant", True, "a counsellor has approved a request for this lead")
+    claims = []
+    for m in _GRANT.finditer(answer):
+        if not _GRANT_NEGATION.search(answer[max(0, m.start() - 25):m.start()]):
+            claims.append(m.group(0))
+    if claims:
+        return Verdict("no_false_grant", False, "answer promises something only a counsellor can grant", "replan",
+                       {"claims": claims})
+    return Verdict("no_false_grant", True, "no grant promised")
+
+
+def check_figures(answer: str, evidence: TurnEvidence, known_text: str = "") -> Verdict:
+    """Any intent: money and percentages must come from the KB, this conversation or tool results."""
+    known = _numbers(" ".join(c.text for c in evidence.found_chunks)) | _numbers(known_text)
+    unknown = sorted(n for raw in _FIGURE.findall(answer) for n in _numbers(raw) if n not in known)
+    if unknown:
+        return Verdict("figures", False, "answer contains money or percentage figures with no source", "replan",
+                       {"ungrounded_numbers": unknown})
+    return Verdict("figures", True, "all figures have a source")
+
+
+def check_outbound(text: str, evidence: TurnEvidence) -> Verdict:
+    """Text the model wants to send on a channel: citations and numbers must trace to this turn's tool results."""
+    grant = check_no_false_grant(text)
+    if not grant.ok:
+        return grant
+    unknown_sources = [s for s in citations(text) if s not in evidence.sources]
+    if unknown_sources:
+        return Verdict("outbound", False, "message cites sources that were not retrieved", "replan",
+                       {"unknown_sources": unknown_sources})
+    known = _numbers(" ".join(c.text for c in evidence.found_chunks)) | _numbers(" ".join(evidence.tool_text))
+    unknown = sorted(_numbers(_CITATION.sub("", text)) - known)
+    if unknown:
+        return Verdict("outbound", False, "message contains numbers with no source", "replan",
+                       {"ungrounded_numbers": unknown})
+    return Verdict("outbound", True, "message passes checks")
+
+
+def verify_answer(answer: str, evidence: TurnEvidence, intent: str, question: str = "",
+                  known_text: str = "", already_approved: bool = False) -> list[Verdict]:
     """Run every verifier; the loop acts on the first failure."""
-    return [check_grounding(answer, evidence, intent, question), check_booking(answer, evidence)]
+    return [check_grounding(answer, evidence, intent, question), check_booking(answer, evidence),
+            check_no_false_grant(answer, already_approved), check_figures(answer, evidence, known_text or question)]

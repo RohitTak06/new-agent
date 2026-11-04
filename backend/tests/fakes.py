@@ -28,8 +28,19 @@ class FakeLLM:
         self.tool_results: list[tuple[str, Any, bool]] = []
         self.feedback: list[str] = []
         self.act_calls = 0
+        self.writes: list[Any] = []             # scripted replies for write(), popped in order
+        self.write_prompts: list[str] = []
+        self.plan_calls = 0
+
+    def write(self, system: str, prompt: str) -> str:
+        self.write_prompts.append(prompt)
+        item = self.writes.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return item
 
     def plan(self, system: str, prompt: str) -> dict:
+        self.plan_calls += 1
         if isinstance(self._plan, Exception):
             raise self._plan
         return self._plan
