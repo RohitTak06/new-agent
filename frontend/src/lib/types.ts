@@ -102,3 +102,18 @@ export interface Followup {
   sent_message_id: number | null;
   processed_at: string | null;
 }
+
+export interface AuditRow {
+  id: number;
+  created_at: string;
+  actor: string;
+  event_type: string;
+  tool_name: string | null;
+  input: unknown;
+  output: unknown;
+  reasoning_step: string | null;
+  approval_id: number | null;
+  request_id: string | null;
+  lead_id: number | null;
+  session_id: string | null;
+}

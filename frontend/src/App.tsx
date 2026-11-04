@@ -1,13 +1,14 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { Inbox, KanbanSquare, LogIn, LogOut, MessageSquare, type LucideIcon } from "lucide-react";
+import { Inbox, KanbanSquare, LogIn, LogOut, MessageSquare, ScrollText, ShieldCheck, type LucideIcon } from "lucide-react";
 import { AuthProvider, homeFor, useAuth } from "./lib/auth";
 import { ErrorBoundary } from "./lib/ErrorBoundary";
 import { ErrorBanner, Loading } from "./lib/ui";
-import type { Role } from "./lib/types";
+import { useApi } from "./lib/useApi";
+import type { Approval, Role } from "./lib/types";
 import { ChatPage } from "./modules/agent";
 import { MessagesPage } from "./modules/channels";
-import { LeadDetailPage, LoginPage, PipelinePage } from "./modules/crm";
+import { APPROVALS_CHANGED, ApprovalsPage, AuditPage, LeadDetailPage, LoginPage, PipelinePage } from "./modules/crm";
 
 type Viewer = Role | "anonymous";
 const STAFF: Viewer[] = ["admin", "counsellor"];
@@ -23,6 +24,8 @@ const NAV: NavItem[] = [
   { to: "/chat", label: "Chat", icon: MessageSquare, viewers: ["anonymous", "student"] },
   { to: "/messages", label: "My messages", icon: Inbox, viewers: ["student"] },
   { to: "/pipeline", label: "Pipeline", icon: KanbanSquare, viewers: STAFF },
+  { to: "/approvals", label: "Approvals", icon: ShieldCheck, viewers: STAFF },
+  { to: "/audit", label: "Audit", icon: ScrollText, viewers: STAFF },
   { to: "/chat", label: "Test chat", icon: MessageSquare, viewers: STAFF },
 ];
 
@@ -32,6 +35,21 @@ const RequireRole: React.FC<{ roles: Viewer[]; children: React.ReactElement }> =
   const location = useLocation();
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   return roles.includes(user.role) ? children : <Navigate to={homeFor(user)} replace />;
+};
+
+const PendingCount: React.FC = () => {
+  const { data, reload } = useApi<Approval[]>("/crm/approvals?status=pending", 10_000);
+  useEffect(() => {
+    const refresh = () => void reload();
+    window.addEventListener(APPROVALS_CHANGED, refresh);
+    return () => window.removeEventListener(APPROVALS_CHANGED, refresh);
+  }, [reload]);
+  if (!data?.length) return null;
+  return (
+    <span aria-label={`${data.length} pending`} className="ml-0.5 min-w-[18px] rounded-full bg-jklu-gold px-1 text-center text-[11px] font-bold text-jklu-blue">
+      {data.length}
+    </span>
+  );
 };
 
 const Header: React.FC = () => {
@@ -51,6 +69,7 @@ const Header: React.FC = () => {
               `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition-colors ${
                 isActive ? "bg-white/15 text-white font-medium" : "text-slate-300 hover:text-white hover:bg-white/10"}`}>
               <item.icon className="w-4 h-4" /> {item.label}
+              {item.to === "/approvals" && <PendingCount />}
             </NavLink>
           ))}
         </nav>
@@ -91,6 +110,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/chat" element={<ChatPage key={user?.id ?? "anonymous"} />} />
       <Route path="/messages" element={<RequireRole roles={["student"]}><MessagesPage /></RequireRole>} />
       <Route path="/pipeline" element={<RequireRole roles={STAFF}><PipelinePage /></RequireRole>} />
+      <Route path="/approvals" element={<RequireRole roles={STAFF}><ApprovalsPage /></RequireRole>} />
+      <Route path="/audit" element={<RequireRole roles={STAFF}><AuditPage /></RequireRole>} />
       <Route path="/leads/:id" element={<RequireRole roles={STAFF}><LeadDetailPage /></RequireRole>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, BellOff, CalendarCheck } from "lucide-react";
+import { ArrowLeft, BellOff, CalendarCheck, ScrollText } from "lucide-react";
 import { formatDateTime, formatTime } from "../../lib/format";
 import { leadName } from "../../lib/leads";
 import { Badge, Card, EmptyState, ErrorBanner, Loading, type Tone } from "../../lib/ui";
@@ -171,6 +171,9 @@ export const LeadDetailPage: React.FC = () => {
         <h1 className="text-xl font-bold text-jklu-blue">{leadName(lead.data)}</h1>
         <Badge>{lead.data.status}</Badge>
         {lead.data.opted_out && <Badge tone="violet"><BellOff className="w-3 h-3" aria-hidden /> opted out of follow-ups</Badge>}
+        <Link to={`/audit?lead_id=${leadId}`} className="ml-auto inline-flex items-center gap-1 text-sm text-jklu-blue underline">
+          <ScrollText className="w-4 h-4" /> Audit trail
+        </Link>
       </div>
       {lead.error && <div className="mb-3"><ErrorBanner message={lead.error} /></div>}
 
