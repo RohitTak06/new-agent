@@ -508,3 +508,27 @@ def test_figures_from_the_conversation_are_fine_but_invented_ones_are_not(client
     bad = chat(client, monkeypatch, FakeLLM(CHIT, [lie, lie]), "Is it affordable?")
     assert [v["check"] for v in of(bad, "verify") if not v["ok"]] == ["figures", "figures"]
     assert "2 lakh" not in spoken(bad)
+
+
+# ------------------------------------------------------------------ model unavailable
+def test_a_sensitive_request_is_not_lost_when_the_model_fails(client, monkeypatch):
+    llm = FakeLLM({"intent": "sensitive_request", "steps": []}, [ConnectionError("quota exhausted")])
+    final = chat(client, monkeypatch, llm, "Please waive my fees")[-1]["data"]
+    assert final["escalated"] and final["text"] == agent_loop.FALLBACK_ESCALATED_MSG
+    approval = row(Approval, final["approval_id"])
+    assert approval.action == "escalate_question" and approval.payload["question"] == "Please waive my fees"
+
+
+def _run_with_failures(monkeypatch, error_text):
+    monkeypatch.setattr(agent_loop, "BACKOFF_SECONDS", (0.5, 1.5))
+    waits = []
+    llm = FakeLLM(RuntimeError(error_text), [says("Hello!")])
+    ctx = agent_loop.TurnContext(message="Hi", lead_id=new_lead(), session_id=uuid.uuid4().hex)
+    list(agent_loop.AgentLoop(llm, sleep=waits.append).run(ctx))
+    return waits
+
+
+def test_short_rate_limit_hint_is_used_but_a_daily_quota_is_not(monkeypatch):
+    assert _run_with_failures(monkeypatch, "Rate limit (5 per minute). Please retry in 38s.") == [38.0, 38.0]
+    assert _run_with_failures(monkeypatch, "Rate limit (20 per day). Please retry in 17h11m3s.") == [0.5, 1.5]
+    assert _run_with_failures(monkeypatch, "Please retry in 300s.") == [0.5, 1.5]

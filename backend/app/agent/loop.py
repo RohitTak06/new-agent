@@ -8,6 +8,7 @@ The drafted answer is held back until the verifiers pass, then streamed as
 from __future__ import annotations
 
 import concurrent.futures
+import re
 import time
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
@@ -28,6 +29,7 @@ BACKOFF_SECONDS = (0.5, 1.5)
 TOOL_TIMEOUT_SECONDS = 15
 LLM_TIMEOUT_SECONDS = 40       # hard wall-clock cap per model call, whatever the SDK does
 TURN_BUDGET_SECONDS = 90       # no new retries once a turn has used this much time
+RATE_LIMIT_MAX_WAIT_SECONDS = 45    # honour a short "retry in 38s"; a daily quota ("17h11m3s") isn't worth waiting for
 CHUNK_CHARS = 40
 OBJECTIONS = {"fees", "distance"}
 
@@ -40,6 +42,9 @@ SENSITIVE_NOTE = ("\n\nI can't approve waivers or exceptions myself, so I've als
 PENDING_NOTE = "\n\nYour request is pending counsellor approval. Nothing has been applied yet."
 FALLBACK_MSG = ("Sorry, I couldn't complete that right now. An admissions counsellor can help you; "
                 "would you like a callback?")
+FALLBACK_ESCALATED_MSG = ("Sorry, I couldn't complete that right now, so I've passed your request to an admissions "
+                          "counsellor, who will get back to you.")
+_RETRY_HINT = re.compile(r"retry in (\d+(?:\.\d+)?)s", re.IGNORECASE)
 
 
 @dataclass
@@ -102,7 +107,7 @@ class AgentLoop:
             result = yield from self._retry("llm.act", lambda: self._with_timeout(
                 self.llm.act, convo, SYSTEM_PROMPT, tools_schema.DECLARATIONS, seconds=LLM_TIMEOUT_SECONDS))
             if result is None:
-                yield from self._respond(ctx, FALLBACK_MSG, intent, env.evidence.escalation, env)
+                yield from self._give_up(ctx, intent, env)
                 return
 
             if result.calls:
@@ -135,6 +140,13 @@ class AgentLoop:
             yield from self._respond(ctx, FALLBACK_MSG, intent, env.evidence.escalation, env)
             return
         yield from self._finish(ctx, draft, intent, plan.get("objection"), env)
+
+    def _give_up(self, ctx: TurnContext, intent: str, env: ToolEnv) -> Events:
+        """The model is unavailable. A sensitive request still reaches a person rather than being lost."""
+        approval = env.evidence.escalation
+        if intent == "sensitive_request" and approval is None and not env.evidence.approvals:
+            approval = yield from self._escalate(ctx, "model unavailable: sensitive request needs a counsellor")
+        yield from self._respond(ctx, FALLBACK_ESCALATED_MSG if approval else FALLBACK_MSG, intent, approval, env)
 
     def _finish(self, ctx: TurnContext, draft: str, intent: str, objection: Optional[str], env: ToolEnv) -> Events:
         """A verified answer: settle any approval wording, plan the next follow-up, then respond."""
@@ -294,7 +306,17 @@ class AgentLoop:
                     return None
                 yield self._event("retry", {"target": label, "attempt": attempt + 1,
                                             "error": f"{type(exc).__name__}: {exc}"[:300]})
-                self.sleep(BACKOFF_SECONDS[min(attempt, len(BACKOFF_SECONDS) - 1)])
+                self.sleep(self._wait_before_retry(exc, attempt))
+
+    def _wait_before_retry(self, exc: Exception, attempt: int) -> float:
+        """Normal backoff, or the service's own short rate-limit wait if the turn can afford it."""
+        backoff = BACKOFF_SECONDS[min(attempt, len(BACKOFF_SECONDS) - 1)]
+        hint = _RETRY_HINT.search(str(exc))
+        if hint:
+            wait = float(hint.group(1))
+            if wait <= RATE_LIMIT_MAX_WAIT_SECONDS and time.monotonic() + wait < self.deadline:
+                return max(wait, backoff)
+        return backoff
 
     @staticmethod
     def _with_timeout(fn, *args, seconds: float = TOOL_TIMEOUT_SECONDS):
