@@ -6,7 +6,7 @@ Run once (idempotent: bails if users already exist):
 Creates:
     1  admin
     3  counsellors
-    1  student
+    2  students, each linked to their own lead
    30  leads  (mixed tiers, channels, cities)
     2-4 interactions per lead
 
@@ -113,13 +113,38 @@ def _random_interaction(lead_id: int, channel: str) -> Interaction:
 # Seed entry-point
 # ---------------------------------------------------------------------------
 
+_STUDENTS = [
+    ("test.student@example.com", "Test Student", "Student@1234", "Jaipur", "B.Tech CSE"),
+    ("second.student@example.com", "Second Student", "Student@5678", "Delhi", "MBA"),
+]
+
+
+def ensure_students(db) -> int:
+    """Create the two demo students and link each to their own lead. Safe to re-run."""
+    linked = 0
+    for email, name, password, city, program in _STUDENTS:
+        user = db.scalars(select(User).where(User.email == email)).first()
+        if user is None:
+            user = User(email=email, full_name=name, role="student",
+                        password_hash=hash_password(password), is_active=True)
+            db.add(user)
+            db.flush()
+        lead = db.scalars(select(Lead).where(Lead.user_id == user.id)).first()
+        if lead is None:
+            db.add(Lead(user_id=user.id, name=name, email=email, city=city, program_interest=program,
+                        channel="web", status="new"))
+            linked += 1
+    db.commit()
+    return linked
+
+
 def run_seed() -> None:
     db = SessionLocal()
     try:
         # Idempotency guard
         user_count = db.scalar(select(func.count(User.id)))
         if user_count and user_count > 0:
-            print("[seed] Data already present — skipping.")
+            print(f"[seed] Data already present; linked {ensure_students(db)} student lead(s).")
             return
 
         # ── Users ────────────────────────────────────────────────────────
@@ -138,17 +163,9 @@ def run_seed() -> None:
             User(email="mr.mathur@jklu.edu.in",  full_name="Mr. Sunil Mathur",
                  role="counsellor", password_hash=hash_password("Counsel@3"), is_active=True),
         ]
-        student = User(
-            email="test.student@example.com",
-            full_name="Test Student",
-            role="student",
-            password_hash=hash_password("Student@1234"),
-            is_active=True,
-        )
 
         db.add(admin)
         db.add_all(counsellors)
-        db.add(student)
         db.flush()  # get IDs before leads
 
         counsellor_ids = [c.id for c in counsellors]
@@ -192,8 +209,9 @@ def run_seed() -> None:
 
         db.add_all(interactions)
         db.commit()
+        ensure_students(db)
 
-        print(f"[seed] Created 1 admin, 3 counsellors, 1 student, "
+        print(f"[seed] Created 1 admin, 3 counsellors, {len(_STUDENTS)} students, "
               f"{len(lead_rows)} leads, {len(interactions)} interactions.")
 
     except Exception:

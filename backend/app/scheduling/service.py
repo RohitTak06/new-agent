@@ -119,6 +119,41 @@ def _book(lead_id: int, slot_id: str) -> BookingResult:
         return BookingResult(ok=True, slot=_slot(target, _counsellor_name(db, target)))
 
 
+def override_booking(lead_id: int, slot_id: str) -> dict:
+    """Force-book a future slot for a lead, displacing any current holder.
+
+    Sensitive: only the approval gate's `booking_override` executor calls this; it is
+    not an agent tool. The lead's other upcoming booking is released. Raises ValueError
+    if the lead or slot doesn't exist or the slot is in the past.
+    """
+    with SessionLocal() as db:
+        if db.get(LeadRow, lead_id, with_for_update=True) is None:
+            raise ValueError(f"Lead {lead_id} not found")
+        slot = db.get(SlotRow, int(slot_id), with_for_update=True) if slot_id.isdigit() else None
+        if slot is None:
+            raise ValueError(f"Slot {slot_id} not found")
+        now = clock.now()
+        if slot.start_at <= now:
+            raise ValueError(f"Slot {slot_id} is in the past")
+
+        displaced = slot.lead_id if slot.lead_id != lead_id else None
+        held = db.scalars(select(SlotRow).where(SlotRow.lead_id == lead_id, SlotRow.status == "booked",
+                                                SlotRow.start_at > now, SlotRow.id != slot.id)
+                          .with_for_update()).all()
+        for other in held:
+            other.status, other.lead_id, other.booked_at = "free", None, None
+        slot.status, slot.lead_id, slot.booked_at = "booked", lead_id, now
+        db.commit()
+        result = {"slot": _slot(slot, _counsellor_name(db, slot)).model_dump(), "displaced_lead_id": displaced,
+                  "released_slot_ids": [str(o.id) for o in held],
+                  "alternatives": [a.model_dump() for a in _alternatives(db, slot.start_at, slot.id, now)]
+                  if displaced is not None else []}
+    log_event(actor="system", event_type="tool_call", tool_name="override_booking",
+              input={"lead_id": lead_id, "slot_id": slot_id}, output=result, reasoning_step=None,
+              request_id=None, lead_id=lead_id)
+    return result
+
+
 def _store_message(db: Session, lead_id: int, channel: str, text: str, meta: Optional[dict]) -> MessageRow:
     row = MessageRow(lead_id=lead_id, channel=channel, direction="outbound", text=text,
                      sent_at=clock.now(), meta=meta)

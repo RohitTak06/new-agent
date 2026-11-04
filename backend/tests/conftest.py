@@ -24,6 +24,7 @@ os.environ["USE_REAL_INTEL"] = "1"
 os.environ["USE_REAL_CRM"] = "1"
 os.environ["USE_REAL_SCHEDULING"] = "1"
 os.environ["SCHEDULER_ENABLED"] = "0"   # tests call dispatch_due directly
+os.environ["JWT_SECRET"] = "test-only-secret-" + "x" * 32
 
 
 def _recreate_test_db() -> None:
@@ -43,3 +44,35 @@ def test_database():
     ini = Path(__file__).resolve().parents[1] / "app" / "crm" / "db" / "alembic.ini"
     command.upgrade(Config(str(ini)), "head")
     yield
+
+
+@pytest.fixture(scope="session")
+def users(test_database):
+    """Test accounts: admin, counsellor and two students with their own leads, each with auth headers."""
+    from types import SimpleNamespace
+
+    from app.crm.auth import create_token
+    from app.crm.db.base import SessionLocal
+    from app.crm.db.models import Lead, User
+    from app.crm.service import hash_password
+
+    accounts = {}
+    with SessionLocal() as db:
+        for name, role in [("admin", "admin"), ("counsellor", "counsellor"),
+                           ("student", "student"), ("other_student", "student")]:
+            email = f"{name}@example.test"
+            user = User(email=email, full_name=name.title(), role=role,
+                        password_hash=hash_password(f"{name}-password"), is_active=True)
+            db.add(user)
+            db.flush()
+            lead_id = None
+            if role == "student":
+                lead = Lead(user_id=user.id, name=name.title(), email=email, channel="web", status="new")
+                db.add(lead)
+                db.flush()
+                lead_id = lead.id
+            accounts[name] = SimpleNamespace(id=user.id, email=email, role=role, password=f"{name}-password",
+                                             lead_id=lead_id,
+                                             headers={"Authorization": f"Bearer {create_token(user.id, role)}"})
+        db.commit()
+    return SimpleNamespace(**accounts)

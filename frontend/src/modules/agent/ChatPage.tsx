@@ -16,7 +16,7 @@ export const ChatPage: React.FC = () => {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const session = useRef<{ session_id?: string; lead_id?: number }>({});
+  const session = useRef<{ session_id?: string }>({});
   const bottom = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export const ChatPage: React.FC = () => {
         setEvents((prev) => [...prev, ev]);
         if (ev.type === "message") updateAgent((m) => ({ ...m, text: m.text + ev.data.delta }));
         if (ev.type === "final") {
-          session.current = { session_id: ev.data.session_id, lead_id: ev.data.lead_id };
+          session.current = { session_id: ev.data.session_id };
           updateAgent((m) => ({ ...m, text: ev.data.text, citations: ev.data.citations, escalated: ev.data.escalated }));
         }
       });

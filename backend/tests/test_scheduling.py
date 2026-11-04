@@ -157,14 +157,14 @@ def _due_in_24h() -> str:
     return clock.to_ist(clock.now() + timedelta(hours=24))
 
 
-def test_s6_due_followup_fires_after_clock_advance(restore_clock):
+def test_s6_due_followup_fires_after_clock_advance(restore_clock, users):
     lead = new_lead(name="Aarav Test", program_interest="B.Tech CSE")
     crm.update_lead_score(lead, 88, "hot")
     f = service.schedule_followup(lead, _due_in_24h(), "hot_reminder")
     assert f["ok"]
 
     assert f["followup_id"] not in [o["followup_id"] for o in followups.dispatch_due()["processed"]]
-    res = TestClient(app).post("/scheduling/clock/advance", json={"hours": 24})
+    res = TestClient(app).post("/scheduling/clock/advance", json={"hours": 24}, headers=users.counsellor.headers)
     assert res.status_code == 200
     outcome = next(o for o in res.json()["followups"]["processed"] if o["followup_id"] == f["followup_id"])
     assert outcome["status"] == "sent" and outcome["detail"] == "email"
@@ -212,8 +212,8 @@ def test_concurrent_dispatch_sends_once(restore_clock):
 
 
 # ------------------------------------------------------------------ endpoints
-def test_endpoints_book_clash_and_clock_validation(restore_clock):
-    client = TestClient(app)
+def test_endpoints_book_clash_and_clock_validation(restore_clock, users):
+    client = TestClient(app, headers=users.counsellor.headers)
     slot = free_slots(1)[0]
     a, b = new_lead(), new_lead()
     assert client.post("/scheduling/book", json={"lead_id": a, "slot_id": slot.slot_id}).json()["ok"] is True

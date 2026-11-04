@@ -255,6 +255,31 @@ def get_lead(lead_id: int) -> Lead:
     return result
 
 
+def link_lead_to_user(lead_id: int, user_id: int) -> None:
+    """Tie a lead to a student account (one lead per account)."""
+    db: Session = SessionLocal()
+    try:
+        row = db.get(LeadRow, lead_id)
+        if row is None:
+            raise ValueError(f"Lead {lead_id} not found")
+        row.user_id = user_id
+        db.commit()
+    finally:
+        db.close()
+    log_event(actor="system", event_type="tool_call", tool_name="link_lead_to_user",
+              input={"lead_id": lead_id, "user_id": user_id}, output=None, reasoning_step=None,
+              request_id=None, lead_id=lead_id)
+
+
+def lead_owner(lead_id: int) -> Optional[int]:
+    """The student account that owns this lead, if any."""
+    db: Session = SessionLocal()
+    try:
+        return db.scalar(select(LeadRow.user_id).where(LeadRow.id == lead_id))
+    finally:
+        db.close()
+
+
 # ---------------------------------------------------------------------------
 # Public: request_approval  — stub-compatible signature
 # ---------------------------------------------------------------------------
@@ -419,6 +444,24 @@ def add_interaction(
         request_id=None,
     )
     return result
+
+
+def session_interactions(session_id: str) -> list[dict]:
+    """Interactions recorded in one chat session, oldest first."""
+    db: Session = SessionLocal()
+    try:
+        rows = db.scalars(
+            select(Interaction)
+            .where(Interaction.meta["session_id"].astext == session_id)
+            .order_by(Interaction.created_at, Interaction.id)
+        ).all()
+        return [
+            {"id": r.id, "actor": r.actor, "channel": r.channel, "direction": r.direction,
+             "message": r.message, "created_at": r.created_at.isoformat()}
+            for r in rows
+        ]
+    finally:
+        db.close()
 
 
 def list_interactions(lead_id: int) -> list[dict]:

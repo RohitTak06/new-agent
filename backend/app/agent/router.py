@@ -6,7 +6,7 @@ import uuid
 from functools import lru_cache
 from typing import Iterator, Literal, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -15,7 +15,9 @@ from app.agent.llm import LLM, GeminiLLM
 from app.agent.loop import AgentLoop, TurnContext
 from app.contracts import tools
 from app.contracts.models import Lead, LeadProfile
+from app.crm import reports
 from app.crm import service as crm
+from app.crm.auth import CurrentUser, current_user, deny, ensure_lead_access, optional_user
 from app.scheduling import clock
 
 router = APIRouter()
@@ -41,11 +43,30 @@ def health():
     return {"module": "agent", "ok": True}
 
 
+@router.get("/sessions/{session_id}")
+def get_session(session_id: str, request: Request, user: CurrentUser = Depends(current_user)):
+    """A chat session's messages; staff also get its reasoning trace. Students: only their own."""
+    lead_id = sessions.lead_for(session_id)
+    if lead_id is None and user.is_staff:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if lead_id is None or (not user.is_staff and user.lead_id != lead_id):
+        raise deny(user, request, f"session {session_id} is not this student's")
+    view = {"session_id": session_id, "lead_id": lead_id, "messages": crm.session_interactions(session_id)}
+    if user.is_staff:
+        view["trace"] = reports.list_audit(session_id=session_id, limit=reports.MAX_AUDIT_ROWS)
+    return view
+
+
 @router.post("/chat")
-def chat(req: ChatRequest):
-    """Run one agent turn and stream its events (`text/event-stream`, SPEC 2.2)."""
+def chat(req: ChatRequest, request: Request, user: Optional[CurrentUser] = Depends(optional_user)):
+    """Run one agent turn and stream its events (`text/event-stream`, SPEC 2.2).
+
+    Open without login so prospects can chat. Anonymous callers only reach their own
+    anonymous session; students always act as their own lead; staff may name any lead.
+    """
     session_id = req.session_id or uuid.uuid4().hex
-    lead = _resolve_lead(req, sessions.lead_for(session_id) if req.session_id else None)
+    session_lead = sessions.lead_for(session_id) if req.session_id else None
+    lead = _resolve_lead(req, _allowed_lead(req, user, session_lead, request), user)
     try:
         sessions.bind(session_id, lead.id, req.channel)
     except sessions.SessionLeadMismatch:
@@ -62,9 +83,27 @@ def chat(req: ChatRequest):
     )
 
 
-def _resolve_lead(req: ChatRequest, session_lead: Optional[int]) -> Lead:
-    lead_id = req.lead_id or session_lead
+def _allowed_lead(req: ChatRequest, user: Optional[CurrentUser], session_lead: Optional[int],
+                  request: Request) -> Optional[int]:
+    """Which existing lead this caller may chat as (None = a new one). Raises 401/403 otherwise."""
+    if user is None:
+        if req.lead_id is not None or (session_lead is not None and crm.lead_owner(session_lead) is not None):
+            raise HTTPException(status_code=401, detail="Log in to use this lead or session")
+        return session_lead
+    if user.is_staff:
+        return req.lead_id or session_lead
+    for wanted in (req.lead_id, session_lead):
+        if wanted is not None:
+            ensure_lead_access(user, wanted, request)
+    return user.lead_id
+
+
+def _resolve_lead(req: ChatRequest, lead_id: Optional[int], user: Optional[CurrentUser]) -> Lead:
     if lead_id is None:
+        if user is not None and not user.is_staff:             # a student's first chat: their own lead
+            lead = tools.upsert_lead(LeadProfile(name=user.full_name, email=user.email, channel=req.channel))
+            crm.link_lead_to_user(lead.id, user.id)
+            return lead
         return tools.upsert_lead(LeadProfile(channel=req.channel))   # anonymous lead for a new chat
     try:
         return tools.get_lead(lead_id)

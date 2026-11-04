@@ -40,9 +40,9 @@ def client():
     return TestClient(app)
 
 
-def chat(client, monkeypatch, llm, message, **body):
+def chat(client, monkeypatch, llm, message, headers=None, **body):
     monkeypatch.setattr(agent_router, "get_llm", lambda: llm)
-    res = client.post("/agent/chat", json={"message": message, **body})
+    res = client.post("/agent/chat", json={"message": message, **body}, headers=headers)
     assert res.status_code == 200, res.text
     assert res.headers["content-type"].startswith("text/event-stream")
     events = [json.loads(line[6:]) for line in res.text.splitlines() if line.startswith("data: ")]
@@ -114,8 +114,7 @@ def test_s1_second_turn_keeps_session_and_history(client, monkeypatch):
     llm = FakeLLM({"intent": "chitchat", "steps": []}, [says("Happy to help.")])
     seen = {}
     llm.start = lambda text: seen.setdefault("ctx", text) and FakeLLM.start(llm, text)
-    second = chat(client, monkeypatch, llm, "Thanks", session_id=first["session_id"],
-                  lead_id=first["lead_id"])[-1]["data"]
+    second = chat(client, monkeypatch, llm, "Thanks", session_id=first["session_id"])[-1]["data"]
     assert second["lead_id"] == first["lead_id"] and second["session_id"] == first["session_id"]
     assert "Student: Hello" in seen["ctx"] and "Assistant: Hi! How can I help?" in seen["ctx"]
 
@@ -246,8 +245,9 @@ def test_missing_llm_config_streams_an_error(client, monkeypatch):
     assert res.status_code == 200 and '"type": "error"' in res.text and '"type": "final"' in res.text
 
 
-def test_unknown_lead_is_404(client):
-    assert client.post("/agent/chat", json={"message": "hi", "lead_id": 999999}).status_code == 404
+def test_unknown_lead_is_404(client, users):
+    res = client.post("/agent/chat", json={"message": "hi", "lead_id": 999999}, headers=users.counsellor.headers)
+    assert res.status_code == 404
 
 
 # ---------------------------------------------------------------- sessions
@@ -258,10 +258,11 @@ def test_session_id_alone_continues_the_same_lead(client, monkeypatch):
     assert again["lead_id"] == first["lead_id"]
 
 
-def test_session_of_another_lead_is_rejected(client, monkeypatch):
+def test_session_of_another_lead_is_rejected(client, monkeypatch, users):
     first = chat(client, monkeypatch, FakeLLM({"intent": "chitchat", "steps": []}, [says("Hi!")]), "Hello")[-1]["data"]
     other = crm_service.upsert_lead(LeadProfile(email=f"{uuid.uuid4().hex[:8]}@example.test")).id
-    res = client.post("/agent/chat", json={"message": "hi", "session_id": first["session_id"], "lead_id": other})
+    res = client.post("/agent/chat", json={"message": "hi", "session_id": first["session_id"], "lead_id": other},
+                      headers=users.counsellor.headers)
     assert res.status_code == 409
 
 
