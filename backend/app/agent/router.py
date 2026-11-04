@@ -19,6 +19,7 @@ from app.crm import reports
 from app.crm import service as crm
 from app.crm.auth import CurrentUser, current_user, deny, ensure_lead_access, optional_user
 from app.scheduling import clock
+from app.scheduling import service as scheduling
 
 router = APIRouter()
 
@@ -74,6 +75,8 @@ def chat(req: ChatRequest, request: Request, user: Optional[CurrentUser] = Depen
     history = _history(lead.id)
     crm.add_interaction(lead.id, actor="student", channel=req.channel, direction="inbound",
                         message=req.message, meta={"session_id": session_id})
+    if req.channel != "web":
+        scheduling.record_chat_message(lead.id, req.channel, "inbound", req.message, {"session_id": session_id})
     ctx = TurnContext(message=req.message, lead_id=lead.id, session_id=session_id,
                       channel=req.channel, history=history, now_ist=clock.to_ist(clock.now()),
                       lead_profile=lead.profile.model_dump(exclude={"channel"}), lead_score=lead.score,
@@ -138,6 +141,10 @@ def _stream(ctx: TurnContext) -> Iterator[str]:
                                     message=event["data"]["text"],
                                     meta={"session_id": ctx.session_id,
                                           **{k: v for k, v in event["data"].items() if k != "text"}})
+                if ctx.channel != "web":
+                    scheduling.record_chat_message(ctx.lead_id, ctx.channel, "outbound", event["data"]["text"],
+                                                   {"session_id": ctx.session_id,
+                                                    "citations": event["data"].get("citations", [])})
         except Exception as exc:  # persistence must not cut the student's stream
             yield _frame({"type": "error", "step": event["step"], "ts": event["ts"],
                           "data": {"error": "persistence_failed", "detail": f"{type(exc).__name__}: {exc}"[:300]}})

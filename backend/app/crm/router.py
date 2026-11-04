@@ -132,8 +132,9 @@ def opt_out_lead(lead_id: int, user: CurrentUser = Depends(require_lead_access))
 # ---------------------------------------------------------------------------
 
 @router.get("/approvals", dependencies=[Depends(require_staff)])
-def list_approvals(status: Optional[Literal["pending", "approved", "rejected"]] = None):
-    return approvals.list_approvals(status)
+def list_approvals(status: Optional[Literal["pending", "approved", "rejected"]] = None,
+                   lead_id: Optional[int] = None):
+    return approvals.list_approvals(status, lead_id=lead_id)
 
 
 @router.post("/approvals/{approval_id}/approve")

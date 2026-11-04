@@ -44,7 +44,7 @@ def update_lead_score(lead_id: int, score: int, tier: str, reasons: list[str] | 
 
 
 def opt_out_lead(lead_id: int) -> Lead:
-    return Lead(id=lead_id, profile=LeadProfile(name="Stub Student"), status="new")
+    return Lead(id=lead_id, profile=LeadProfile(name="Stub Student"), status="new", opted_out=True)
 
 
 def request_fee_waiver(lead_id: int, reason: str, session_id: str | None = None) -> ApprovalRequest:

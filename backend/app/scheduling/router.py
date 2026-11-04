@@ -57,6 +57,18 @@ def book(req: BookRequest, request: Request, user: CurrentUser = Depends(current
     return result
 
 
+@router.get("/bookings")
+def bookings(request: Request, lead_id: Optional[int] = None, user: CurrentUser = Depends(current_user)):
+    """Booked sessions. Staff: all, or one lead's. Students: only their own."""
+    if lead_id is not None:
+        ensure_lead_access(user, lead_id, request)
+    elif not user.is_staff:
+        if user.lead_id is None:
+            return []
+        lead_id = user.lead_id
+    return service.list_bookings(lead_id)
+
+
 @router.get("/messages/{lead_id}", dependencies=[Depends(require_lead_access)])
 def messages(lead_id: int):
     return service.list_messages(lead_id)
@@ -75,6 +87,12 @@ def create_followup(req: FollowupRequest, user: CurrentUser = Depends(require_st
 def list_followups(lead_id: Optional[int] = None,
                    status: Optional[Literal["pending", "sent", "skipped", "failed"]] = Query(default=None)):
     return service.list_followups(lead_id, status)
+
+
+@router.get("/faults", dependencies=[Depends(require_admin)])
+def fault_status():
+    """Whether the failure demo is available, and how many failures are still armed."""
+    return {"enabled": os.getenv("ENABLE_FAULT_INJECTION") == "1", "remaining": faults.remaining()}
 
 
 @router.post("/faults")

@@ -143,7 +143,7 @@ def _row_to_lead(row: LeadRow) -> Lead:
             tier=row.score_tier,
             reasons=row.score_reasons or ["stored score"],
         )
-    return Lead(id=row.id, profile=profile, score=score_obj, status=row.status)
+    return Lead(id=row.id, profile=profile, score=score_obj, status=row.status, opted_out=row.opted_out)
 
 
 # ---------------------------------------------------------------------------
