@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { AlertTriangle, CheckCircle2, ShieldCheck, XCircle } from "lucide-react";
 import { api, ApiError, errorMessage } from "../../lib/api";
 import { formatDateTime } from "../../lib/format";
-import { leadName } from "../../lib/leads";
+import { isAnonymous, leadName } from "../../lib/leads";
 import { Badge, Button, Card, EmptyState, ErrorBanner, Loading, PageHeader, type Tone } from "../../lib/ui";
 import { useApi } from "../../lib/useApi";
 import type { Approval, Booking, Lead } from "../../lib/types";
@@ -41,7 +41,10 @@ const TAKES_REPLY = new Set(["escalate_question", "fee_waiver"]);
 
 type Outcome = Record<string, any> | null;
 
-function outcomeText(action: string, status: string, o: Outcome): string {
+function outcomeText(action: string, status: string, o: Outcome, anonymous: boolean): string {
+  if (anonymous) {
+    return `${status === "rejected" ? "Rejected" : "Approved"} and saved, but this visitor has no login or contact details, so they can't see it.`;
+  }
   if (status === "rejected") {
     return o?.notified ? "Rejected. The student was told the reason and offered a call." : "Rejected. The student could not be notified.";
   }
@@ -85,7 +88,12 @@ const Payload: React.FC<{ approval: Approval; bookings: Booking[] }> = ({ approv
   );
 };
 
-const DecisionForm: React.FC<{ approval: Approval; onDone: (text: string) => void; onStale: (text: string) => void }> = ({ approval, onDone, onStale }) => {
+const DecisionForm: React.FC<{
+  approval: Approval;
+  anonymous: boolean;
+  onDone: (text: string) => void;
+  onStale: (text: string) => void;
+}> = ({ approval, anonymous, onDone, onStale }) => {
   const [reply, setReply] = useState("");
   const [note, setNote] = useState("");
   const [rejecting, setRejecting] = useState(false);
@@ -99,7 +107,7 @@ const DecisionForm: React.FC<{ approval: Approval; onDone: (text: string) => voi
     setError(null);
     try {
       const result = await api<{ outcome: Outcome }>(`/crm/approvals/${approval.id}/${path}`, { body });
-      onDone(outcomeText(approval.action, status, result.outcome));
+      onDone(outcomeText(approval.action, status, result.outcome, anonymous));
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
         onStale(`${err.message}. Someone else decided it first, and your decision was not applied.`);
@@ -117,6 +125,11 @@ const DecisionForm: React.FC<{ approval: Approval; onDone: (text: string) => voi
   return (
     <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
       <p className="text-xs text-slate-600">{APPROVE_EFFECT[approval.action] ?? "Runs this action."}</p>
+      {anonymous && (
+        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+          This visitor has no login or contact details, so they won't see your message.
+        </p>
+      )}
       {TAKES_REPLY.has(approval.action) && !rejecting && (
         <div>
           <label htmlFor={`reply-${approval.id}`} className="block text-xs font-medium text-slate-600 mb-1">
@@ -187,7 +200,7 @@ const ApprovalCard: React.FC<{
       </p>
       <Payload approval={approval} bookings={bookings} />
       {approval.status === "pending" ? (
-        <DecisionForm approval={approval} onDone={(text) => onDone(approval.id, text)} onStale={(text) => onStale(approval.id, text)} />
+        <DecisionForm approval={approval} anonymous={lead ? isAnonymous(lead) : false} onDone={(text) => onDone(approval.id, text)} onStale={(text) => onStale(approval.id, text)} />
       ) : (
         <p className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600">
           {approval.status === "approved" ? "Approved" : "Rejected"}{approval.resolved_at ? ` ${formatDateTime(approval.resolved_at)}` : ""}
