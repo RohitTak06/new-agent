@@ -1,11 +1,12 @@
 import React from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { LogIn, LogOut, MessageSquare, type LucideIcon } from "lucide-react";
+import { Inbox, LogIn, LogOut, MessageSquare, type LucideIcon } from "lucide-react";
 import { AuthProvider, homeFor, useAuth } from "./lib/auth";
 import { ErrorBoundary } from "./lib/ErrorBoundary";
 import { Button, Loading } from "./lib/ui";
 import type { Role } from "./lib/types";
 import { ChatPage } from "./modules/agent";
+import { MessagesPage } from "./modules/channels";
 import { LoginPage } from "./modules/crm";
 
 type Viewer = Role | "anonymous";
@@ -20,6 +21,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { to: "/chat", label: "Chat", icon: MessageSquare, viewers: ["anonymous", "student"] },
+  { to: "/messages", label: "My messages", icon: Inbox, viewers: ["student"] },
   { to: "/chat", label: "Test chat", icon: MessageSquare, viewers: STAFF },
 ];
 
@@ -83,6 +85,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/login" element={user ? <Navigate to={homeFor(user)} replace /> : <LoginPage />} />
       {/* Remounts on login and logout, so one person's conversation never shows for the next. */}
       <Route path="/chat" element={<ChatPage key={user?.id ?? "anonymous"} />} />
+      <Route path="/messages" element={<RequireRole roles={["student"]}><MessagesPage /></RequireRole>} />
       <Route path="/pipeline" element={<RequireRole roles={STAFF}><Navigate to="/chat" replace /></RequireRole>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

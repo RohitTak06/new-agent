@@ -40,7 +40,7 @@ function isUpdate(m: ChannelMessage): boolean {
 }
 
 function updateMessage(m: ChannelMessage): ChatMessage {
-  return { id: `m${m.id}`, role: "update", text: m.text, via: m.channel, time: m.sent_at };
+  return { id: `m${m.id}`, role: "update", text: m.text, citations: m.meta?.citations, via: m.channel, time: m.sent_at };
 }
 
 function chatRow(r: Interaction): ChatMessage {
@@ -78,7 +78,7 @@ const Bubble: React.FC<{ m: ChatMessage; waiting: boolean; disabled: boolean; on
           <p className="flex items-center gap-1 text-[11px] font-medium text-amber-800 mb-1">
             <Mail className="w-3.5 h-3.5" /> From JKLU Admissions, sent by {m.via}{m.time ? ` · ${formatDateTime(m.time)}` : ""}
           </p>
-          <RichText text={m.text} />
+          <RichText text={m.text} citations={m.citations} />
         </div>
       </div>
     );
@@ -123,7 +123,6 @@ export const ChatPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const session = useRef<{ session_id?: string }>({});
   const seenUpdates = useRef<Set<number> | null>(null);
-  const abort = useRef<AbortController | null>(null);
   const list = useRef<HTMLDivElement>(null);
   const bookings = useApi<Booking[]>(student ? "/scheduling/bookings" : null);
   const upcoming = bookings.data?.find((b) => b.upcoming);
@@ -133,8 +132,6 @@ export const ChatPage: React.FC = () => {
   useEffect(() => {
     list.current?.scrollTo({ top: list.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
-
-  useEffect(() => () => abort.current?.abort(), []);
 
   // A student's conversation lives on the server: restore it, with anything counsellors sent.
   useEffect(() => {
@@ -187,7 +184,6 @@ export const ChatPage: React.FC = () => {
     setMessages((now) => [...now, { id: `s${Date.now()}`, role: "student", text }, { id: agentId, role: "agent", text: "" }]);
     const turn: AgentEvent[] = [];
     let finished = false;
-    abort.current = new AbortController();
     try {
       await streamChat({ message: text, ...session.current }, (ev) => {
         turn.push(ev);
@@ -204,14 +200,13 @@ export const ChatPage: React.FC = () => {
             sources: citedChunks(turn, ev.data.citations ?? []),
           }));
         }
-      }, abort.current.signal);
+      });
       if (!finished) throw new Error("The reply was cut off. Please try again.");
       if (student) {
         void bookings.reload();
         if (student.lead_id === null) void refresh();
       }
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
       setError(errorMessage(err));
       setMessages((now) => now.filter((m) => m.id !== agentId || m.text));
     } finally {

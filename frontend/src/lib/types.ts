@@ -57,3 +57,24 @@ export interface ChannelMessage {
   created_at: string;
   meta: Record<string, any> | null;
 }
+
+export interface LeadProfile {
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  city: string | null;
+  program_interest: string | null;
+  twelfth_percent: number | null;
+  entrance_exam: string | null;
+  budget_lakh: number | null;
+  asked_scholarship: boolean;
+  channel: Channel;
+}
+
+export interface Lead {
+  id: number;
+  profile: LeadProfile;
+  score: LeadScore | null;
+  status: string;
+  opted_out: boolean;
+}
