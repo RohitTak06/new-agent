@@ -80,7 +80,7 @@ export const BookingCard: React.FC<{ view: BookingView; disabled: boolean; onBoo
         </div>
       );
     default: {
-      const heading = view.kind === "clash" ? "That session was just taken. Nearest free sessions:"
+      const heading = view.kind === "clash" ? "That session is taken. Nearest free sessions:"
         : view.kind === "past" ? "That time has passed. Nearest free sessions:"
         : "The calendar couldn't complete the booking. These sessions are open:";
       return (
