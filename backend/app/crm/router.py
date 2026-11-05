@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 
 from app.contracts.models import Lead, LeadProfile
-from app.crm import approvals, auth, reports, service
+from app.crm import approvals, auth, ratelimit, reports, service
 from app.crm.auth import CurrentUser, audit_action, current_user, require_lead_access, require_staff
 
 router = APIRouter()
@@ -45,12 +45,17 @@ def health():
 # ---------------------------------------------------------------------------
 
 @router.post("/auth/login", response_model=TokenOut)
-def login(form: OAuth2PasswordRequestForm = Depends()):
-    """Exchange email (form field `username`) and password for a bearer token."""
+def login(request: Request, form: OAuth2PasswordRequestForm = Depends()):
+    """Exchange email (form field `username`) and password for a bearer token. Repeated failures are blocked."""
+    key = f"{ratelimit.client_ip(request)}|{form.username.lower()}"
+    if ratelimit.enabled() and ratelimit.login_failures.blocked(key):
+        raise ratelimit.refuse(ratelimit.login_failures, request, "failed logins")
     user = auth.authenticate(form.username, form.password)
     if user is None:
+        ratelimit.login_failures.hit(key)
         raise HTTPException(status_code=401, detail="Incorrect email or password",
                             headers={"WWW-Authenticate": "Bearer"})
+    ratelimit.login_failures.reset(key)
     return TokenOut(access_token=auth.create_token(user.id, user.role), role=user.role)
 
 

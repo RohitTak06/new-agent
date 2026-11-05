@@ -77,7 +77,7 @@ class Lead(Base):
     """
 
     __tablename__ = "leads"
-    __table_args__ = (Index("ix_leads_score_tier", "score_tier"),)
+    __table_args__ = (Index("ix_leads_score_tier", "score_tier"), Index("ix_leads_status", "status"))
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
 
@@ -164,6 +164,7 @@ class Approval(Base):
     """
 
     __tablename__ = "approvals"
+    __table_args__ = (Index("ix_approvals_status", "status"), Index("ix_approvals_lead_id", "lead_id"))
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     lead_id: Mapped[Optional[int]] = mapped_column(
@@ -220,6 +221,7 @@ class AuditLog(Base):
         Index("ix_audit_log_request_id", "request_id"),
         Index("ix_audit_log_lead_id", "lead_id"),
         Index("ix_audit_log_session_id", "session_id"),
+        Index("ix_audit_log_event_type", "event_type"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
