@@ -18,6 +18,8 @@ from app.scheduling.router import router as scheduling_router
 
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logging.getLogger("apscheduler").setLevel(logging.WARNING)   # it logs every tick
+logging.getLogger("httpx").setLevel(logging.WARNING)         # and this logs every model call
 followups.set_composer(followup_writer.compose)
 
 
