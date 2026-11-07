@@ -106,7 +106,7 @@ def run() -> None:
 
     # S3: profile over several turns
     t = chat("I'm interested in B.Tech CSE. I'm from Jaipur and I scored 94% in 12th.")
-    record("S3", "first details saved, not scored yet", not t["final"].get("lead_score"), t)
+    record("S3", "first details saved", crm.get_lead(crm_lead()).profile.twelfth_percent == 94, t)
     t = chat("I got 96 percentile in JEE Main and my budget is about 4 lakh a year.")
     score = t["final"].get("lead_score") or {}
     record("S3", "complete profile scored Hot with reasons", score.get("tier") == "hot" and score.get("reasons"), t,
