@@ -35,8 +35,8 @@ random.seed(42)
 
 _CITIES = ["Jaipur", "Delhi", "Mumbai", "Pune", "Ahmedabad", "Lucknow", "Hyderabad", "Bhopal"]
 _CHANNELS = ["web", "whatsapp", "email"]
-_PROGRAMS = ["B.Tech CSE", "B.Tech ECE", "B.Tech ME", "MBA", "BBA", "B.Des"]
-_EXAMS = ["JEE Main", "CUET", "CAT", "NMAT", None, None]   # None = not given
+_PROGRAMS = ["B.Tech CSE", "B.Tech ECE (VLSI Design)", "B.Tech CSE (Data Science)", "BBA", "BBA", "B.Des"]
+_EXAMS = ["JEE Main", "CUET", "CUET", "CUET", None, None]   # None = not given
 _STATUSES = ["new", "contacted", "qualified", "converted", "lost"]
 
 # 30 lead templates: (name, email, phone, city, program, pct, exam, budget, scholarship, channel, score, tier, status)
@@ -44,34 +44,34 @@ _LEADS: list[tuple] = [
     # ── HOT (score ≥ 70) ──────────────────────────────────────────────────
     ("Aarav Sharma",    "aarav.sharma@example.test",    "9000000001", "Jaipur",    "B.Tech CSE", 92.0, "JEE Main", 8.0,  True,  "web",       88, "hot",  "qualified"),
     ("Diya Mehta",      "diya.mehta@example.test",      "9000000002", "Delhi",     "B.Tech CSE", 88.5, "JEE Main", 7.5,  True,  "whatsapp",  84, "hot",  "qualified"),
-    ("Rohan Verma",     "rohan.verma@example.test",   "9000000003", "Mumbai",    "MBA",        85.0, "CAT",      10.0, False, "email",     80, "hot",  "contacted"),
-    ("Priya Nair",      "priya.nair@example.test",       "9000000004", "Pune",      "B.Tech ECE", 90.0, "JEE Main", 6.0,  True,  "web",       86, "hot",  "qualified"),
+    ("Rohan Verma",     "rohan.verma@example.test",   "9000000003", "Mumbai",    "BBA",        85.0, "CUET",      10.0, False, "email",     80, "hot",  "contacted"),
+    ("Priya Nair",      "priya.nair@example.test",       "9000000004", "Pune",      "B.Tech ECE (VLSI Design)", 90.0, "JEE Main", 6.0,  True,  "web",       86, "hot",  "qualified"),
     ("Arjun Singh",     "arjun.singh@example.test",     "9000000005", "Ahmedabad", "B.Tech CSE", 91.0, "JEE Main", 9.0,  True,  "web",       90, "hot",  "converted"),
     ("Sneha Iyer",      "sneha.iyer@example.test",      "9000000006", "Jaipur",    "B.Des",      86.0, "CUET",     5.5,  False, "whatsapp",  75, "hot",  "qualified"),
-    ("Vikram Patel",    "vikram.patel@example.test",    "9000000007", "Lucknow",   "B.Tech ME",  87.5, "JEE Main", 7.0,  True,  "email",     79, "hot",  "contacted"),
+    ("Vikram Patel",    "vikram.patel@example.test",    "9000000007", "Lucknow",   "B.Tech CSE (Data Science)",  87.5, "JEE Main", 7.0,  True,  "email",     79, "hot",  "contacted"),
     ("Ananya Gupta",    "ananya.gupta@example.test",    "9000000008", "Delhi",     "BBA",        83.0, "CUET",     4.5,  True,  "web",       72, "hot",  "new"),
     ("Kartik Joshi",    "kartik.joshi@example.test",    "9000000009", "Hyderabad", "B.Tech CSE", 89.0, "JEE Main", 8.5,  False, "whatsapp",  82, "hot",  "qualified"),
-    ("Meera Pillai",    "meera.pillai@example.test",    "9000000010", "Pune",      "MBA",        84.0, "CAT",      11.0, True,  "email",     85, "hot",  "converted"),
+    ("Meera Pillai",    "meera.pillai@example.test",    "9000000010", "Pune",      "BBA",        84.0, "CUET",      11.0, True,  "email",     85, "hot",  "converted"),
     # ── WARM (score 40–69) ────────────────────────────────────────────────
-    ("Rahul Dubey",     "rahul.dubey@example.test",     "9000000011", "Bhopal",    "B.Tech ME",  72.0, "JEE Main", 4.0,  False, "web",       60, "warm", "contacted"),
+    ("Rahul Dubey",     "rahul.dubey@example.test",     "9000000011", "Bhopal",    "B.Tech CSE (Data Science)",  72.0, "JEE Main", 4.0,  False, "web",       60, "warm", "contacted"),
     ("Pooja Yadav",     "pooja.yadav@example.test",     "9000000012", "Mumbai",    "BBA",        68.0, "CUET",     3.5,  False, "whatsapp",  55, "warm", "new"),
     ("Amit Kapoor",     "amit.kapoor@example.test",   "9000000013", "Jaipur",    "B.Tech CSE", 75.0, None,       5.0,  False, "email",     58, "warm", "new"),
-    ("Kavya Reddy",     "kavya.reddy@example.test",     "9000000014", "Hyderabad", "B.Tech ECE", 71.0, "JEE Main", 4.5,  True,  "web",       65, "warm", "contacted"),
-    ("Nikhil Bansal",   "nikhil.bansal@example.test",   "9000000015", "Delhi",     "MBA",        69.0, "CAT",      6.0,  False, "whatsapp",  62, "warm", "new"),
+    ("Kavya Reddy",     "kavya.reddy@example.test",     "9000000014", "Hyderabad", "B.Tech ECE (VLSI Design)", 71.0, "JEE Main", 4.5,  True,  "web",       65, "warm", "contacted"),
+    ("Nikhil Bansal",   "nikhil.bansal@example.test",   "9000000015", "Delhi",     "BBA",        69.0, "CUET",      6.0,  False, "whatsapp",  62, "warm", "new"),
     ("Ritika Saxena",   "ritika.saxena@example.test",   "9000000016", "Lucknow",   "B.Des",      73.0, "CUET",     3.0,  False, "email",     50, "warm", "new"),
     ("Siddharth Tiwari","siddharth.t@example.test",     "9000000017", "Pune",      "B.Tech CSE", 76.0, "JEE Main", 5.5,  True,  "web",       68, "warm", "qualified"),
     ("Tanvi Mishra",    "tanvi.mishra@example.test",    "9000000018", "Ahmedabad", "BBA",        65.0, None,       2.5,  False, "whatsapp",  45, "warm", "lost"),
-    ("Yash Agarwal",    "yash.agarwal@example.test",    "9000000019", "Bhopal",    "B.Tech ME",  70.0, "JEE Main", 4.0,  False, "web",       57, "warm", "contacted"),
-    ("Pallavi Shukla",  "pallavi.shukla@example.test",  "9000000020", "Mumbai",    "MBA",        74.0, "CAT",      7.0,  True,  "email",     66, "warm", "new"),
+    ("Yash Agarwal",    "yash.agarwal@example.test",    "9000000019", "Bhopal",    "B.Tech CSE (Data Science)",  70.0, "JEE Main", 4.0,  False, "web",       57, "warm", "contacted"),
+    ("Pallavi Shukla",  "pallavi.shukla@example.test",  "9000000020", "Mumbai",    "BBA",        74.0, "CUET",      7.0,  True,  "email",     66, "warm", "new"),
     # ── COLD (score < 40) ─────────────────────────────────────────────────
     ("Deepak Kumar",    "deepak.kumar@example.test",    "9000000021", "Lucknow",   "B.Tech CSE", 52.0, None,       1.5,  False, "web",       30, "cold", "new"),
     ("Shweta Pandey",   "shweta.pandey@example.test",   "9000000022", "Delhi",     "BBA",        48.0, None,       2.0,  False, "whatsapp",  25, "cold", "lost"),
-    ("Gaurav Chauhan",  "gaurav.chauhan@example.test",  "9000000023", "Jaipur",    "B.Tech ME",  55.0, "JEE Main", 1.0,  False, "email",     32, "cold", "new"),
+    ("Gaurav Chauhan",  "gaurav.chauhan@example.test",  "9000000023", "Jaipur",    "B.Tech CSE (Data Science)",  55.0, "JEE Main", 1.0,  False, "email",     32, "cold", "new"),
     ("Nidhi Srivastava","nidhi.s@example.test",         "9000000024", "Bhopal",    "B.Des",      50.0, None,       1.5,  False, "web",       20, "cold", "lost"),
-    ("Manish Tomar",    "manish.tomar@example.test",    "9000000025", "Ahmedabad", "MBA",        58.0, "CAT",      3.0,  False, "whatsapp",  38, "cold", "new"),
+    ("Manish Tomar",    "manish.tomar@example.test",    "9000000025", "Ahmedabad", "BBA",        58.0, "CUET",      3.0,  False, "whatsapp",  38, "cold", "new"),
     ("Ankita Rawat",    "ankita.rawat@example.test",    "9000000026", "Hyderabad", "BBA",        45.0, None,       1.0,  False, "email",     22, "cold", "new"),
     ("Suresh Prajapat", "suresh.p@example.test",        "9000000027", "Pune",      "B.Tech CSE", 60.0, None,       2.0,  False, "web",       28, "cold", "contacted"),
-    ("Reena Holkar",    "reena.holkar@example.test",    "9000000028", "Lucknow",   "B.Tech ECE", 53.0, None,       1.5,  False, "whatsapp",  18, "cold", "lost"),
+    ("Reena Holkar",    "reena.holkar@example.test",    "9000000028", "Lucknow",   "B.Tech ECE (VLSI Design)", 53.0, None,       1.5,  False, "whatsapp",  18, "cold", "lost"),
     ("Tushar Bhatt",    "tushar.bhatt@example.test",    "9000000029", "Delhi",     "B.Des",      47.0, None,       1.0,  False, "email",     15, "cold", "new"),
     ("Geeta Solanki",   "geeta.solanki@example.test",   "9000000030", "Mumbai",    "BBA",        44.0, None,       0.8,  False, "web",       12, "cold", "new"),
 ]
@@ -114,7 +114,7 @@ def _random_interaction(lead_id: int, channel: str) -> Interaction:
 
 _STUDENTS = [
     ("test.student@example.com", "Test Student", "Student@1234", "Jaipur", "B.Tech CSE"),
-    ("second.student@example.com", "Second Student", "Student@5678", "Delhi", "MBA"),
+    ("second.student@example.com", "Second Student", "Student@5678", "Delhi", "BBA"),
 ]
 
 

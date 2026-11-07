@@ -90,3 +90,22 @@ if __name__ == "__main__":
     test_tool_contract_switch()
     test_full_benchmark_accuracy()
     print("All intel unit tests passed successfully!")
+
+
+def test_every_knowledge_section_names_its_programme_when_it_is_programme_specific():
+    """Chunks are retrieved alone, so a heading like "Class XII Merit" gets read as applying to any programme."""
+    from app.intel.retrieval import store
+    for _text, source in store.raw_chunks:
+        anchor = source.split("#")[-1]
+        if "merit" in anchor or "portfolio" in anchor or "entrance-exams-nid" in anchor:
+            assert anchor.startswith("b-des") or anchor.startswith("b-tech"), source
+
+
+def test_official_fees_are_in_the_knowledge_base():
+    """Figures from jklu.edu.in/admissions/fee-structure, and old figures that were wrong."""
+    from app.intel.retrieval import store
+    text = " ".join(t for t, _ in store.raw_chunks)
+    for figure in ("3,40,000", "4,03,000", "1,98,000", "3,50,000", "1,80,000", "3,10,000", "54,500", "65,500", "1,38,000"):
+        assert figure in text, figure
+    for stale in ("2,65,000", "2,90,000", "1,60,000", "10,85,000", "22.5 LPA", "JKLU-EET", "1800-123-4848"):
+        assert stale not in text, stale

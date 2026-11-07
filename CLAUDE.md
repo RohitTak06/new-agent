@@ -47,6 +47,7 @@ Phases 0-5 are merged. Phase 6 (hardening and delivery) is in progress: see `doc
 Known risks:
 - Model speed varies by model and hour. The demo runs on `gemini-3.5-flash-lite` with `LLM_FALLBACK_MODEL=gemini-3.6-flash`. Free-tier rate limits are low, so don't burn requests just before a demo.
 - pytest uses a scripted model and can't catch how the real one words things. `scripts/live_scenarios.py` found real bugs that all tests missed, so re-run it after changing the agent loop, verifiers or prompts.
+- `intel/data/*.md` is a snapshot of jklu.edu.in, checked 7 Nov 2026. Update it from the official pages, never from memory, and keep `docs/TEST_REPORT.md`'s list of disagreements current.
 - Don't edit files during a rehearsal: Vite can cache a half-written file as empty and blank the page.
 
 ## Commands (run from repo root unless noted)
