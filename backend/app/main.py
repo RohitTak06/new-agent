@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 
 load_dotenv()  # before app imports: modules read env vars at import time
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -10,11 +11,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.agent import followup_writer
 from app.agent.router import router as agent_router
 from app.crm.router import router as crm_router
+from app.errors import CatchUnhandledErrors
 from app.intel.router import router as intel_router
 from app.scheduling import followups, scheduler
 from app.scheduling.router import router as scheduling_router
 
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logging.getLogger("apscheduler").setLevel(logging.WARNING)   # it logs every tick
+logging.getLogger("httpx").setLevel(logging.WARNING)         # and this logs every model call
 followups.set_composer(followup_writer.compose)
 
 
@@ -27,6 +32,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(title="JKLU Admission Agent (PS-04)", lifespan=lifespan)
 
+app.add_middleware(CatchUnhandledErrors)   # added first, so it sits inside CORS and crashes keep their headers
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],

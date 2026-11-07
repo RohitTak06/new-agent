@@ -24,6 +24,7 @@ os.environ["USE_REAL_INTEL"] = "1"
 os.environ["USE_REAL_CRM"] = "1"
 os.environ["USE_REAL_SCHEDULING"] = "1"
 os.environ["SCHEDULER_ENABLED"] = "0"   # tests call dispatch_due directly
+os.environ["RATE_LIMITS_ENABLED"] = "0"  # test_hardening turns them on where it tests them
 os.environ["JWT_SECRET"] = "test-only-secret-" + "x" * 32
 os.environ["ENABLE_FAULT_INJECTION"] = "1"
 LIVE_LLM = {k: os.environ.get(k, "") for k in ("LLM_API_KEY", "LLM_MODEL")}     # only @pytest.mark.live uses these

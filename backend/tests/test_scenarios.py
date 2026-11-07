@@ -6,7 +6,7 @@ test_s<N>_... is the acceptance test for that scenario.
 import json
 import re
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -533,3 +533,68 @@ def test_short_rate_limit_hint_is_used_but_a_daily_quota_is_not(monkeypatch):
     assert _run_with_failures(monkeypatch, "Rate limit (5 per minute). Please retry in 38s.") == [38.0, 38.0]
     assert _run_with_failures(monkeypatch, "Rate limit (20 per day). Please retry in 17h11m3s.") == [0.5, 1.5]
     assert _run_with_failures(monkeypatch, "Please retry in 300s.") == [0.5, 1.5]
+
+
+# ------------------------------------------------------------------ found by the live run
+def test_s5_alternatives_are_the_nearest_to_the_slot_that_failed(client, monkeypatch):
+    free = sched.get_slots("2020-01-01", "2099-12-31")
+    wanted = free[20]
+    faults.arm("book_slot", 3)
+    llm = FakeLLM({"intent": "booking", "steps": []}, [calls(("book_slot", {"slot_id": wanted.slot_id})), says("The calendar is down.")])
+    result = of(chat(client, monkeypatch, llm, f"Book slot {wanted.slot_id}"), "tool_result")[0]["result"]
+    target = datetime.fromisoformat(wanted.start)
+    gaps = sorted(abs(datetime.fromisoformat(s.start) - target) for s in free if s.slot_id != wanted.slot_id)
+    got = [abs(datetime.fromisoformat(a["start"]) - target) for a in result["alternatives"]]
+    assert got == gaps[:3]
+
+
+def test_s7_a_waiver_request_with_a_stray_figure_is_reworded_and_files_once(client, monkeypatch, users):
+    s = users.other_student
+    before = {a["id"] for a in client.get("/crm/approvals", headers=users.counsellor.headers).json()}
+    llm = FakeLLM({"intent": "sensitive_request", "steps": []}, [
+        calls(("request_fee_waiver", {"reason": "Lost income"})),
+        says("Your fee of INR 2,65,000 is a lot, so I've sent this on."),
+        says("I've sent this to a counsellor to review."),
+    ])
+    events = chat(client, monkeypatch, llm, "Waive my fees please", headers=s.headers)
+    assert not of(events, "escalation") and any(not v["ok"] and v["action"] == "replan" for v in of(events, "verify"))
+    assert "2,65,000" not in spoken(events)
+    new = [a for a in client.get("/crm/approvals", headers=users.counsellor.headers).json() if a["id"] not in before]
+    assert [a["action"] for a in new] in ([], ["fee_waiver"])    # [] if this student's earlier request is still pending
+
+
+def test_s7_asking_where_a_request_stands_gets_the_status_with_no_new_request(client, monkeypatch, users):
+    s = users.student
+    requested = chat(client, monkeypatch, FakeLLM({"intent": "sensitive_request", "steps": []}, [
+        calls(("request_fee_waiver", {"reason": "Lost income"})), says("Sent to a counsellor.")]),
+        "Waive my fee", headers=s.headers)
+    assert of(requested, "approval_pending")
+    asked = chat(client, monkeypatch, FakeLLM({"intent": "sensitive_request", "steps": []}, [
+        says("Your request is still pending with a counsellor.")]), "Has my waiver been approved?", headers=s.headers)
+    assert "still pending" in spoken(asked) and not of(asked, "escalation")
+
+
+def test_s7_a_status_answer_with_a_date_is_reworded_not_escalated(client, monkeypatch, users):
+    s = users.student
+    chat(client, monkeypatch, FakeLLM({"intent": "sensitive_request", "steps": []}, [
+        calls(("request_fee_waiver", {"reason": "Lost income"})), says("Sent to a counsellor.")]),
+        "Waive my fee", headers=s.headers)
+    asked = chat(client, monkeypatch, FakeLLM({"intent": "sensitive_request", "steps": []}, [
+        says("It's pending, and your session is on 9 November."), says("Your request is still pending with a counsellor.")]),
+        "Has my waiver been approved?", headers=s.headers)
+    assert "still pending" in spoken(asked) and not of(asked, "escalation")
+
+
+def test_s7_a_cited_tool_name_never_reaches_the_student(client, monkeypatch, users):
+    events = chat(client, monkeypatch, FakeLLM({"intent": "sensitive_request", "steps": []}, [
+        calls(("request_fee_waiver", {"reason": "Lost income"})), says("Your request is pending [request_fee_waiver].")]),
+        "Waive my fee", headers=users.other_student.headers)
+    assert "request_fee_waiver" not in spoken(events) and "pending." in spoken(events)
+
+
+def test_s5_the_model_is_told_the_slot_was_not_taken(client, monkeypatch):
+    slot = free_slot()
+    faults.arm("book_slot", 3)
+    llm = FakeLLM({"intent": "booking", "steps": []}, [calls(("book_slot", {"slot_id": slot.slot_id})), says("The calendar is down.")])
+    chat(client, monkeypatch, llm, f"Book slot {slot.slot_id}")
+    assert "not taken" in llm.tool_results[0][1]["note"]

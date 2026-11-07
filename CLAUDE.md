@@ -24,7 +24,7 @@ Simple LLM wrappers and static chatbots score poorly: the agent loop must really
 - Never commit `.env` or secrets.
 
 ## Stack and layout
-Backend FastAPI + SQLAlchemy 2 + Alembic on Postgres (docker-compose, pgvector image). Agent LLM: Gemini via the `google-genai` SDK (key in `.env`, model in `LLM_MODEL`). Frontend: React 18 + Vite + TypeScript + Tailwind (+ lucide-react).
+Backend FastAPI + SQLAlchemy 2 + Alembic on Postgres (docker-compose, pgvector image). Agent LLM: Gemini via the `google-genai` SDK (key in `.env`, models in `LLM_MODEL` and `LLM_FALLBACK_MODEL`). Frontend: React 18 + Vite + TypeScript + Tailwind (+ lucide-react).
 
 ```
 backend/app/
@@ -34,27 +34,27 @@ backend/app/
   crm/                 db/ (base, models, alembic migrations), service.py, seed.py, router.py (leads, interactions, auth, approvals, audit)
   intel/               data/*.md knowledge base, retrieval.py (TF-IDF + relevance threshold), scoring.py, service.py, test_set.py (benchmark)
   scheduling/          slots, booking, mock channels, follow-ups, virtual clock
+  demo_seed.py         the demo's starting conditions, on top of the normal seed
+backend/scripts/       demo.py (one-command reset and start), live_scenarios.py (scenarios on the real model)
 backend/tests/
 frontend/src/modules/{agent,crm,intel,channels}/
 ```
 Tools the agent may call are defined by the signatures in `contracts/stubs.py`; real implementations live in each module's `service.py` with identical signatures. Contracts may now be changed (solo project), but keep stubs, models, real services and tests in sync in the same commit.
 
-## Current state (3 Nov 2026), NOTHING HAS BEEN RUN YET
-Inherited from a 4-person start: `intel/` (KB, TF-IDF retrieval with threshold 0.18, scoring, 40+ question benchmark, 3 UI components) and `crm/` (models: users, leads, interactions, approvals, audit_log; migration 0001; service layer; seed; lead + interaction endpoints) exist and match the contract signatures. `agent/` and `scheduling/` are placeholders. Frontend is a Vite shell with Intel and Channels pages.
+## Current state (7 Nov 2026)
+Phases 0-5 are merged. Phase 6 (hardening and delivery) is in progress: see `docs/BUILD_PLAN.md`. What's left for a person: two rehearsals, the backup video, and tagging `v1.0`.
 
-Known issues to fix in Phase 0:
-1. `.env.example` uses `postgresql://buildathon:buildathon@localhost:5432/admissions` but `crm/db/base.py` defaults to a different DB and uses the psycopg3 driver (`postgresql+psycopg://...`). Unify on `postgresql+psycopg://buildathon:buildathon@localhost:5432/admissions`.
-2. `.env` is never loaded (`load_dotenv` missing in `main.py`).
-3. Some CRM files cite a `RULES.md` that does not exist: create a short one or fix the references.
-4. Requirements are incomplete: add PyJWT, alembic, python-multipart, google-genai.
-5. Frontend nav labels contain teammates' names; rebuild navigation by role.
-6. Verify that tests, migration, seed, server and `npm run build` actually work.
+Known risks:
+- Model speed varies by model and hour. The demo runs on `gemini-3.5-flash-lite` with `LLM_FALLBACK_MODEL=gemini-3.6-flash`. Free-tier rate limits are low, so don't burn requests just before a demo.
+- pytest uses a scripted model and can't catch how the real one words things. `scripts/live_scenarios.py` found real bugs that all tests missed, so re-run it after changing the agent loop, verifiers or prompts.
+- Don't edit files during a rehearsal: Vite can cache a half-written file as empty and blank the page.
 
 ## Commands (run from repo root unless noted)
 ```
 docker compose up -d db
 cd backend && python -m venv .venv && .venv\Scripts\activate   # Windows
 pip install -r requirements.txt
+python scripts/demo.py --reset          # or, by hand:
 alembic -c app/crm/db/alembic.ini upgrade head
 python -m app.crm.seed
 uvicorn app.main:app --reload          # http://localhost:8000/docs

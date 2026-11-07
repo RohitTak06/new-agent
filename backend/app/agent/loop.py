@@ -40,6 +40,7 @@ ESCALATION_FAILED_MSG = ("I don't have verified information on that, so I won't 
 SENSITIVE_NOTE = ("\n\nI can't approve waivers or exceptions myself, so I've also passed this to an "
                   "admissions counsellor in case your situation qualifies.")
 PENDING_NOTE = "\n\nYour request is pending counsellor approval. Nothing has been applied yet."
+REQUEST_FILED_MSG = "I've sent your request to a counsellor. It's pending their approval, and nothing has been applied yet."
 FALLBACK_MSG = ("Sorry, I couldn't complete that right now. An admissions counsellor can help you; "
                 "would you like a callback?")
 FALLBACK_ESCALATED_MSG = ("Sorry, I couldn't complete that right now, so I've passed your request to an admissions "
@@ -64,6 +65,23 @@ class TurnContext:
 
 
 Events = Generator[dict, None, Any]
+
+
+def _without_tool_names(text: str) -> str:
+    """Models sometimes "cite" a tool, like [request_fee_waiver]. Only knowledge-base sources are citations."""
+    for name in tools_schema.TOOL_NAMES:
+        text = text.replace(f" [{name}]", "").replace(f"[{name}]", "")
+    return text
+
+
+def _nearest_first(slots: list[Slot], failed_slot: str) -> list[Slot]:
+    """Other free slots, closest in time to the one the student wanted when it's among them."""
+    failed = next((s for s in slots if s.slot_id == failed_slot), None)
+    others = [s for s in slots if s.slot_id != failed_slot]
+    if failed is None:
+        return others
+    wanted = datetime.fromisoformat(failed.start)
+    return sorted(others, key=lambda s: abs(datetime.fromisoformat(s.start) - wanted))
 
 
 class AgentLoop:
@@ -100,6 +118,7 @@ class AgentLoop:
         yield self._event("plan", {**plan, "session_id": ctx.session_id, "lead_id": ctx.lead_id})
 
         env = ToolEnv(lead_id=ctx.lead_id, role=ctx.role, session_id=ctx.session_id)
+        env.evidence.request_ids = {r["approval_id"] for r in ctx.requests}
         approved_actions = {r["action"] for r in ctx.requests if r["status"] == "approved"}
         convo = self.llm.start(context)
         replans = 0
@@ -132,6 +151,9 @@ class AgentLoop:
                 replans += 1
                 self.llm.add_feedback(convo, self._feedback(failed))
                 continue
+            if env.evidence.approvals:        # already with a counsellor: a second request would only add noise
+                yield from self._respond(ctx, REQUEST_FILED_MSG, intent, None, env)
+                return
             approval = env.evidence.escalation or (yield from self._escalate(ctx, failed.reason))
             yield from self._respond(ctx, ESCALATED_MSG if approval else ESCALATION_FAILED_MSG, intent, approval, env)
             return
@@ -151,11 +173,13 @@ class AgentLoop:
     def _finish(self, ctx: TurnContext, draft: str, intent: str, objection: Optional[str], env: ToolEnv) -> Events:
         """A verified answer: settle any approval wording, plan the next follow-up, then respond."""
         evidence = env.evidence
+        draft = _without_tool_names(draft)
         approval = evidence.escalation
         if evidence.approvals:
             if "pending" not in draft.lower():
                 draft += PENDING_NOTE
-        elif intent == "sensitive_request" and approval is None:
+        elif intent == "sensitive_request" and approval is None and citations(draft):
+            # An uncited answer got here only by reporting an existing request, which is already with a counsellor.
             approval = yield from self._escalate(ctx, "sensitive request: counsellor decision needed")
             if approval:
                 draft += SENSITIVE_NOTE
@@ -233,11 +257,12 @@ class AgentLoop:
         today = (ctx.now_ist or datetime.now(timezone.utc).isoformat())[:10]
         until = (date.fromisoformat(today) + timedelta(days=7)).isoformat()
         slots = yield from self._retry("get_slots", lambda: self._with_timeout(tools.get_slots, today, until))
-        others = [s for s in slots or [] if s.slot_id != failed_slot]
+        others = _nearest_first(slots or [], failed_slot)
         if others:
             alternatives = tools_schema.to_jsonable(others[:3])
             env.evidence.tool_text.append(str(alternatives))
-            return {"fallback": "other_slots_available", "alternatives": alternatives}
+            return {"fallback": "other_slots_available", "alternatives": alternatives,
+                    "note": "The calendar system had a technical problem. The slot was not taken; say so accurately."}
         env.evidence.escalation = yield from self._escalate(ctx, "calendar unavailable: booking failed after retries")
         return {"fallback": "counsellor_callback"}
 

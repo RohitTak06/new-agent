@@ -11,12 +11,12 @@ const PAGE_SIZE = 50;
 
 const EVENT_TYPES = [
   "plan", "tool_call", "tool_result", "verify", "retry", "escalation", "error", "final", "approval_requested",
-  "approval_decision", "approval_execution_failed", "api_action", "followup", "channel_message", "login", "access_denied",
+  "approval_decision", "approval_execution_failed", "api_action", "followup", "channel_message", "login", "access_denied", "rate_limited",
 ];
 
 const TONE: Record<string, Tone> = {
   plan: "violet", verify: "green", final: "blue", retry: "amber", escalation: "amber", approval_requested: "amber",
-  approval_decision: "green", approval_execution_failed: "red", error: "red", access_denied: "red",
+  approval_decision: "green", approval_execution_failed: "red", error: "red", access_denied: "red", rate_limited: "red",
 };
 
 const FILTERS = ["lead_id", "session_id", "type", "from", "to"] as const;

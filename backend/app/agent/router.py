@@ -15,7 +15,7 @@ from app.agent.llm import LLM, GeminiLLM
 from app.agent.loop import AgentLoop, TurnContext
 from app.contracts import tools
 from app.contracts.models import Lead, LeadProfile
-from app.crm import reports
+from app.crm import ratelimit, reports
 from app.crm import service as crm
 from app.crm.auth import CurrentUser, current_user, deny, ensure_lead_access, optional_user
 from app.scheduling import clock
@@ -65,6 +65,11 @@ def chat(req: ChatRequest, request: Request, user: Optional[CurrentUser] = Depen
     Open without login so prospects can chat. Anonymous callers only reach their own
     anonymous session; students always act as their own lead; staff may name any lead.
     """
+    if ratelimit.enabled():
+        ip = ratelimit.client_ip(request)
+        if ratelimit.chat_requests.blocked(ip):
+            raise ratelimit.refuse(ratelimit.chat_requests, request, "chat messages")
+        ratelimit.chat_requests.hit(ip)
     session_id = req.session_id or uuid.uuid4().hex
     session_lead = sessions.lead_for(session_id) if req.session_id else None
     lead = _resolve_lead(req, _allowed_lead(req, user, session_lead, request), user)

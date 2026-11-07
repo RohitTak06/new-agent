@@ -20,7 +20,7 @@ MAX_LENGTH = 800
 
 _PURPOSE = {
     "warm_nudge": ("share one useful fact and invite questions", "{program} placements and highlights"),
-    "scholarship": ("explain scholarship eligibility and suggest a counsellor call", "{program} scholarship eligibility"),
+    "scholarship": ("explain scholarship eligibility and suggest a counsellor call", "{program} merit scholarship percentage percentile Class 12"),
 }
 _OBJECTION = {
     "fees": ("address their worry about fees and suggest a counsellor call", "{program} fee structure scholarship"),

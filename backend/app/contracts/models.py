@@ -1,4 +1,4 @@
-"""Shared data shapes. Change only via a PR that all 4 approve."""
+"""Shared data shapes. Keep stubs, real services and tests in sync when these change."""
 from typing import Literal, Optional
 from pydantic import BaseModel
 

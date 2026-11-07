@@ -29,10 +29,12 @@ _GRANT = re.compile(
     r"(?:\w+\s+){0,2}(?:approved|granted|confirmed|waived|accepted)\b"
     r"|\bi\s+(?:have\s+|'ve\s+|can\s+|will\s+|am\s+going\s+to\s+)(?:\w+\s+)?(?:approved?|grant(?:ed)?|waived?|guarantee[ds]?)\b"
     r"|\byou\s+(?:have\s+been|'ve\s+been|are|will\s+be)\s+(?:\w+\s+)?(?:approved|granted|awarded|guaranteed|admitted)\b"
+    r"|\byou(?:\s+will|\s+also)?\s+qualify\s+for\s+(?:an?\s+|the\s+)?(?:\S+\s+)?(?:\w+\s+)?scholarship\b"
+    r"|\byou(?:'re|\s+are)\s+eligible\s+for\s+(?:an?\s+|the\s+)?(?:\S+\s+)?(?:\w+\s+)?scholarship\b"
     r"|\bfree\s+seat\b|\bguaranteed\s+(?:an?\s+)?(?:seat|admission|scholarship)\b",
     re.IGNORECASE,
 )
-_GRANT_NEGATION = re.compile(r"\b(not|no|never|unable|cannot|can't|won't|doesn't|don't)\b", re.IGNORECASE)
+_GRANT_NEGATION = re.compile(r"\b(not|no|never|unable|cannot|can't|won't|doesn't|don't|if|whether)\b", re.IGNORECASE)
 # Money and percentages: the figures a model most easily invents outside an institutional answer.
 _FIGURE = re.compile(r"(?:INR|Rs\.?|₹)\s*\d[\d,]*(?:\.\d+)?|\d[\d,]*(?:\.\d+)?\s*(?:%|(?:lakhs?|lacs?|percent)\b)",
                      re.IGNORECASE)
@@ -49,6 +51,7 @@ class TurnEvidence:
     profile: Optional[dict] = None                        # lead profile after this turn's upsert_lead
     score: Optional[LeadScore] = None
     escalation: Optional[Any] = None                      # approval created by a fallback path
+    request_ids: set[int] = field(default_factory=set)    # this lead's requests from before this turn
 
     @property
     def found_chunks(self):
@@ -90,6 +93,18 @@ def _numbers(text: str) -> set[str]:
     return out
 
 
+def _about_a_request(evidence: TurnEvidence, intent: str) -> bool:
+    return bool(evidence.approvals or (intent == "sensitive_request" and evidence.request_ids))
+
+
+def _only_reports_a_request(answer: str, cited: list[str], evidence: TurnEvidence, intent: str) -> bool:
+    """Saying a request was filed, or where it stands, needs no source as long as it states no fact or figure."""
+    if cited or not _about_a_request(evidence, intent):
+        return False
+    ids = {str(a.approval_id) for a in evidence.approvals} | {str(i) for i in evidence.request_ids}
+    return not (_numbers(answer) - ids)
+
+
 def check_grounding(answer: str, evidence: TurnEvidence, intent: str, question: str = "") -> Verdict:
     """Institutional answers must be backed by this turn's KB results.
 
@@ -106,9 +121,10 @@ def check_grounding(answer: str, evidence: TurnEvidence, intent: str, question: 
     if not needs_grounding:
         return Verdict("grounding", True, "no institutional claims for this intent")
 
-    if evidence.approvals and not cited and not (_numbers(answer) - _numbers(" ".join(
-            str(a.approval_id) for a in evidence.approvals))):
-        return Verdict("grounding", True, "request submitted for approval; no institutional claims made")
+    if _only_reports_a_request(answer, cited, evidence, intent):
+        return Verdict("grounding", True, "reports the student's request; no institutional claims made")
+    if _about_a_request(evidence, intent) and not evidence.found_chunks:     # it's on file, so only the wording needs fixing
+        return Verdict("grounding", False, "answer states a fact or figure with no knowledge-base source", "replan")
     if not evidence.found_chunks:
         return Verdict("grounding", False, "no knowledge-base result supports this answer", "escalate")
     if not cited:
