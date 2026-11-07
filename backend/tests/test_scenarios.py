@@ -106,13 +106,13 @@ def test_s1_fee_and_eligibility_answered_with_citations_from_the_kb(client, monk
     llm = FakeLLM({"intent": "institutional_question", "steps": [{"goal": "look up", "tool": "search_knowledge"}]},
                   [calls(("search_knowledge", {"query": "B.Tech CSE fee"}),
                          ("search_knowledge", {"query": "B.Tech eligibility criteria"})),
-                   says(f"The annual academic fee is INR 2,65,000 [{FEES}]. You need at least 60% in Class 10th "
-                        f"and 12th [{ELIG}].")])
+                   says(f"The annual academic fee is INR 3,40,000 [{FEES}]. You need an aggregate of 60% in "
+                        f"Class XII [{ELIG}].")])
     events = chat(client, monkeypatch, llm, "What is the B.Tech CSE fee and eligibility?")
     final = events[-1]["data"]
     assert set(final["citations"]) == {FEES, ELIG}
     kb_text = " ".join(c["text"] for r in of(events, "tool_result") for c in r["result"]["chunks"])
-    assert "2,65,000" in kb_text and "60%" in kb_text and "2,65,000" in spoken(events)
+    assert "3,40,000" in kb_text and "60%" in kb_text and "3,40,000" in spoken(events)
     assert all(v["ok"] for v in of(events, "verify"))
 
 
@@ -553,12 +553,12 @@ def test_s7_a_waiver_request_with_a_stray_figure_is_reworded_and_files_once(clie
     before = {a["id"] for a in client.get("/crm/approvals", headers=users.counsellor.headers).json()}
     llm = FakeLLM({"intent": "sensitive_request", "steps": []}, [
         calls(("request_fee_waiver", {"reason": "Lost income"})),
-        says("Your fee of INR 2,65,000 is a lot, so I've sent this on."),
+        says("Your fee of INR 3,40,000 is a lot, so I've sent this on."),
         says("I've sent this to a counsellor to review."),
     ])
     events = chat(client, monkeypatch, llm, "Waive my fees please", headers=s.headers)
     assert not of(events, "escalation") and any(not v["ok"] and v["action"] == "replan" for v in of(events, "verify"))
-    assert "2,65,000" not in spoken(events)
+    assert "3,40,000" not in spoken(events)
     new = [a for a in client.get("/crm/approvals", headers=users.counsellor.headers).json() if a["id"] not in before]
     assert [a["action"] for a in new] in ([], ["fee_waiver"])    # [] if this student's earlier request is still pending
 

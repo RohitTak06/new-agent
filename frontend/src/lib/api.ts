@@ -46,10 +46,11 @@ function detailText(detail: unknown, status: number): string {
 
 /** Turn a failed response into an ApiError. A 401 on a logged-in call ends the session. */
 export async function errorFrom(res: Response): Promise<ApiError> {
-  if (res.status === 401 && getToken()) {
+  const hadToken = Boolean(getToken());
+  if (res.status === 401) {
     setToken(null);
-    onUnauthorized();
-    return new ApiError(401, "Your session has expired. Please log in again.");
+    onUnauthorized();     // also when another tab already cleared the token: this tab still thinks it's logged in
+    if (hadToken) return new ApiError(401, "Your session has expired. Please log in again.");
   }
   const body = await res.json().catch(() => null);
   return new ApiError(res.status, detailText(body?.detail, res.status));

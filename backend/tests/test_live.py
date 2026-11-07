@@ -33,7 +33,7 @@ def test_live_fee_answer_is_cited_and_every_check_passes(client):
     events = _chat(client, "What is the annual academic fee for B.Tech?")
     final = events[-1]["data"]
     assert final["citations"], final["text"]
-    assert "2,65,000" in final["text"] or "265000" in final["text"]
+    assert "3,40,000" in final["text"] or "340000" in final["text"]
     assert all(e["data"]["ok"] for e in events if e["type"] == "verify")
 
 

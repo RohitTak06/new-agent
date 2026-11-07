@@ -1,38 +1,57 @@
-# JK Lakshmipat University (JKLU) Eligibility, Admission Process & Important Dates
+# JK Lakshmipat University (JKLU) Eligibility and Admission Process
+
+Source: jklu.edu.in/admissions/eligibility, /application-process, /entrance-exams and /lateral-entry, checked on 7 November 2026.
 
 ## Eligibility Criteria
 
 ### B.Tech Eligibility Criteria
-- **Academic Qualifications**: Minimum 60% aggregate marks in Class 10th and 12th from a recognized board (CBSE, ICSE, State Boards).
-- **Mandatory 12th Subjects**: Physics, Mathematics, and one of Chemistry / Computer Science / Biology / Biotechnology, along with English.
-- **Accepted Entrance Exams**: JEE Mains 2026, CUET 2026, or JKLU Engineering Entrance Test (JKLU-EET).
-- **Passing Year**: Candidates appearing in Class 12 in 2026 or passed in 2025 are eligible.
+- **Aggregate**: 60% marks in English, Mathematics, Physics and Chemistry in Class XII.
+- **Mathematics**: A minimum of 50% marks in Mathematics in Class XII.
+- **Mathematics score between 50 and 55**: The candidate must also have either at least 60% in Mathematics in Class X, or at least 60 percentile in Mathematics on the JEE Main exam.
 
 ### BBA Eligibility Criteria
-- **Academic Qualifications**: Minimum 55% aggregate marks in Class 12th (or equivalent) with English as a compulsory subject.
-- **Accepted Entrance Exams**: CUET UG 2026, Pearson Undergraduate Entrance Exam, or JKLU Management Aptitude Test & Personal Interview.
+- **Aggregate**: A minimum of 50% aggregate marks in Class XII, including English and three subjects of the applicant's choice. The KPMG Certificate Programme requires 60%.
+- **Subjects**: Subjects with internal weightage of more than 50% are not considered. Courses such as Physical Education and Information Practices may be considered, and the admission committee's decision is final.
 
 ### B.Des Eligibility Criteria
-- **Academic Qualifications**: Minimum 50% aggregate marks in 10+2 from any recognized stream (Science, Commerce, Arts).
-- **Accepted Entrance Exams**: JK Design Entrance Test (JK-DET), or national exams (UCEED, NID-DAT, NIFT) followed by a Design Portfolio Review and Personal Interview.
+- **Aggregate**: A minimum of 60% aggregate marks in Class XII, including English and three subjects of the applicant's choice.
+- **Subjects**: Subjects where internal marks are 50% or lower are excluded from the calculation.
+
+### M.Tech Eligibility Criteria
+- **Qualifying degree**: A B.Tech or B.E. with a relevant background, an MCA, or an M.Sc. in Computer Science, Information Technology, Mathematics or Statistics.
+- **Marks**: A minimum aggregate of 60% or a CGPA of 6.0 on a 10-point scale in the qualifying degree.
+
+### M.Des Eligibility Criteria
+A bachelor's degree in any discipline from a recognised university, with at least 60% marks or equivalent CGPA.
+
+### PhD Eligibility Criteria
+- **After a master's degree**: Minimum 55% marks or 5.5/10 CGPA in aggregate in the relevant subject.
+- **Direct admission after a bachelor's degree**: At least 75% marks or 7.5/10 CGPA in B.Tech or B.E., relaxed to 60% or 6/10 CGPA for candidates with over 10 years of relevant industry experience.
+- **Reserved categories**: SC/ST/OBC, differently-abled and EWS candidates may receive a 5% relaxation in qualifying marks, or a 0.5 CGPA adjustment.
+
+### Other Eligibility Considerations
+- **Final-year students**: May apply, with provisional admission subject to meeting the qualifying criteria.
+- **Recognised qualifications**: Marks from any recognised Central or State Board or University in India, or equivalent institutions abroad recognised by the Association of Indian Universities (AIU), are accepted.
+- **International applicants**: Foreign Nationals, PIOs, NRIs and OCIs need at least 60% aggregate marks or the equivalent in their qualifying examinations, as recognised by the AIU.
+
+## Entrance Exams by Programme
+- **B.Tech**: JEE Main.
+- **B.Des**: JKLU Design Entrance Test (JK-DET) and a Portfolio Review. UCEED scores are also considered.
+- **BBA**: The application process page says no entrance test is required, with admission based on past academic record and a faculty interaction. The entrance exams page says CUET scores are used for BBA admission.
+
+### JKLU Design Entrance Test (JK-DET) Format
+A 90-minute written exam of 100 marks, with 30 multiple choice questions on logical reasoning, general knowledge and visual sensitivity, and 2 subjective questions on creative abilities and problem-solving. It is conducted in multiple rounds, and dates are published on the JKLU admissions page.
 
 ## Admission Process (Step-by-Step)
-1. **Online Application**: Register and submit the application form on the JKLU official portal with an application fee of INR 1,000.
-2. **Document Submission**: Upload Class 10 & 12 mark sheets, entrance scorecard, and ID proof.
-3. **Assessment / Interaction**:
-   - B.Tech: Counselling round based on JEE Main / CUET / 12th marks.
-   - BBA: Personal interaction round with faculty panel.
-   - B.Des: Portfolio review and design studio interaction.
-4. **Offer Letter**: Qualified applicants receive a provisional admission offer detailing fee breakdown and applicable scholarship.
-5. **Seat Acceptance Fee**: Pay the registration fee within the deadline to secure seat admission.
+1. **Explore programmes**: Check the programme details and eligibility.
+2. **Register**: Create an account on the admissions portal at applications.jklu.edu.in.
+3. **Fill in the application**: Provide personal details, academic background, programme preferences and any entrance exam details, and upload the documents.
+4. **Pay the application fee**: Non-refundable and specific to the programme. Payment is online by net banking, card or UPI.
+5. **Faculty interaction**: A mandatory informal interview, scheduled by the admissions team.
+6. **Entrance exam**: If the programme needs one.
+7. **Offer of admission**: Shortlisted applicants receive a Provisional Offer of Admission by email, with the programme details, fee structure and deadline to confirm.
+8. **Confirm admission**: Accept the offer on the portal and pay the admission confirmation fee within the given time.
+9. **Join JKLU**: Receive updates about the induction programme, hostel accommodation and class schedule.
 
-## Key Dates (Admissions 2026)
-- **Application Portal Opens**: January 15, 2026
-- **Early Bird Round 1 Deadline**: March 31, 2026
-- **Round 2 Application Deadline**: May 31, 2026
-- **Round 3 / Spot Admissions**: June 30, 2026 (Subject to seat availability)
-- **Orientation & Commencement of Classes**: August 3, 2026
-
-## Refund & Cancellation Policy
-- As per UGC regulations, 100% refund (minus maximum INR 1,000 processing fee) is given if cancellation is formally requested 15 days before the formally notified last date of admission.
-- Proportionate refunds apply for requests received within 15 days or after commencement according to UGC guidelines.
+## Lateral Entry
+External students may transfer after completing the first or second year of an undergraduate programme. This is available for B.Tech, BBA and B.Des, subject to limited seats, and transfer students must meet the eligibility criteria of their chosen programme.

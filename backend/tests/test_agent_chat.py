@@ -79,9 +79,8 @@ def test_s1_fee_and_eligibility_answered_with_citations(client, monkeypatch):
         script=[
             calls(("search_knowledge", {"query": "B.Tech CSE fee"}),
                   ("search_knowledge", {"query": "B.Tech eligibility criteria"})),
-            says(f"The B.Tech CSE annual academic fee is INR 2,65,000 per year [{FEES}]. "
-                 f"You need a minimum of 60% aggregate in Class 10th and 12th with Physics and Mathematics, "
-                 f"and JEE Mains 2026, CUET 2026 or JKLU-EET [{ELIG}]."),
+            says(f"The B.Tech CSE annual academic fee is INR 3,40,000 per year [{FEES}]. "
+                 f"You need an aggregate of 60% in English, Mathematics, Physics and Chemistry in Class XII [{ELIG}]."),
         ],
     )
     events = chat(client, monkeypatch, llm, "What is the B.Tech CSE fee and eligibility?")
@@ -95,7 +94,7 @@ def test_s1_fee_and_eligibility_answered_with_citations(client, monkeypatch):
     final = events[-1]["data"]
     retrieved = {c["source"] for r in by_type(events, "tool_result") for c in r["data"]["result"]["chunks"]}
     assert set(final["citations"]) == {FEES, ELIG} and set(final["citations"]) <= retrieved
-    assert "2,65,000" in streamed_text(events) and streamed_text(events) == final["text"]
+    assert "3,40,000" in streamed_text(events) and streamed_text(events) == final["text"]
     assert final["escalated"] is False
 
     session, lead = final["session_id"], final["lead_id"]
@@ -159,7 +158,7 @@ def test_s2_question_not_in_kb_is_escalated_without_guessing(client, monkeypatch
 
 
 def test_fabricated_fee_never_reaches_the_student(client, monkeypatch):
-    fake = says(f"Yes! Army families get a 50% waiver, so you pay INR 1,45,000 [programs_and_fees.md#bachelor-of-design-b-des].")
+    fake = says(f"Yes! Army families get a 50% waiver, so you pay INR 1,45,000 [{HOSTEL}].")
     llm = FakeLLM(
         plan={"intent": "institutional_question", "steps": []},
         script=[calls(("search_knowledge", {"query": "fee waiver for children of army personnel"})), fake, fake],
@@ -188,12 +187,12 @@ def test_tool_error_is_retried_then_succeeds(client, monkeypatch):
     monkeypatch.setattr(tools_schema, "execute", flaky)
     llm = FakeLLM({"intent": "institutional_question", "steps": []},
                   [calls(("search_knowledge", {"query": "B.Tech CSE fee"})),
-                   says(f"The B.Tech annual academic fee is INR 2,65,000 [{FEES}].")])
+                   says(f"The B.Tech annual academic fee is INR 3,40,000 [{FEES}].")])
     events = chat(client, monkeypatch, llm, "B.Tech fee?")
 
     assert [r["data"]["attempt"] for r in by_type(events, "retry")] == [1, 2]
     assert by_type(events, "tool_result")[0]["data"]["ok"] is True
-    assert "2,65,000" in events[-1]["data"]["text"]
+    assert "3,40,000" in events[-1]["data"]["text"]
 
 
 def test_llm_down_gives_graceful_fallback(client, monkeypatch):

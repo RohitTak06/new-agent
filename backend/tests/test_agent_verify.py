@@ -175,7 +175,8 @@ def test_an_earlier_request_gives_no_pass_for_figures():
 # ---------------------------------------------------------------- promising a scholarship
 def test_promising_a_scholarship_is_a_false_grant():
     for text in ("With 96 percentile, you qualify for a 100% scholarship.", "You are eligible for a merit scholarship.",
-                 "You will qualify for the 75% scholarship.", "you're eligible for a 50% scholarship"):
+                 "You will qualify for the 75% scholarship.", "you're eligible for a 50% scholarship",
+                 "Your marks fall in that band, which qualifies you for a 30% scholarship."):
         assert not check_no_false_grant(text).ok, text
 
 

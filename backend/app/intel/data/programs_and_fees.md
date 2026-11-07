@@ -1,64 +1,88 @@
-# JK Lakshmipat University (JKLU) Programs and Fee Structure (2026-27)
+# JK Lakshmipat University (JKLU) Programmes and Fee Structure (Academic Year 2027-28)
+
+Source: jklu.edu.in/admissions/fee-structure and the programme pages, checked on 7 November 2026. All fees are in INR and are subject to yearly revision.
 
 ## Institute of Engineering and Technology (IET)
 
 ### Bachelor of Technology (B.Tech)
-- **Duration**: 4 Years (8 Semesters), Full-Time
-- **Disciplines / Specializations**:
-  - Computer Science & Engineering (CSE)
-  - Artificial Intelligence and Data Science (AI & DS)
-  - Robotics and Automation
-  - Electronics and Communication Engineering (ECE)
-- **Academic Fee Structure**:
-  - Annual Academic Fee: INR 2,65,000 per year (INR 1,32,500 per semester)
-  - One-time Caution Money (Refundable): INR 10,000
-  - One-time Admission Fee (Non-refundable): INR 15,000
-- **Total Estimated Academic Cost (4 Years, without scholarship)**: INR 10,85,000
+- **Duration**: 4 Years
+- **Specialisations**:
+  - B.Tech CSE (Computer Science and Engineering)
+  - B.Tech CSE AI (Artificial Intelligence)
+  - B.Tech CSE (Cybersecurity)
+  - B.Tech CSE (Data Science)
+  - B.Tech ECE (VLSI Design)
+- **Fee Structure**:
+  - Annual Academic Fee: INR 3,40,000 per year
+  - Annual Technology Fee: INR 10,000 per year
+  - One-time Caution Deposit (Refundable): INR 10,000
+  - One-time Admission Fee (Non-refundable): INR 5,000
+- **Merit Scholarships**: Up to 100%
 
 ### Master of Technology (M.Tech)
-- **Duration**: 2 Years (4 Semesters), Full-Time
-- **Specializations**: Data Science, Cyber Security, Robotics
-- **Academic Fee**: INR 1,20,000 per year
+- **Duration**: 2 Years, Full-Time
+- **Specialisation**: Computer Science and Engineering
+- **Annual Academic Fee**: INR 1,80,000 per year
 
-## Institute of Management (IM)
+## Institute of Management
 
 ### Bachelor of Business Administration (BBA)
-- **Duration**: 3 Years (6 Semesters), Full-Time
-- **Specializations**:
-  - Banking and FinTech
-  - Digital Marketing & Social Media
-  - Entrepreneurship & Family Business
-  - Human Resource Management
-- **Academic Fee Structure**:
-  - Annual Academic Fee: INR 1,60,000 per year
-  - One-time Caution Deposit (Refundable): INR 10,000
-  - One-time Admission Fee: INR 10,000
-- **Total Estimated Academic Cost (3 Years, without scholarship)**: INR 5,00,000
+- **Duration**: 3 Years, or 4 Years for BBA (Honours)
+- **Annual Academic Fee**: INR 1,98,000 per year
+- **One-time Caution Deposit (Refundable)**: INR 10,000
+- **One-time Admission Fee (Non-refundable)**: INR 5,000
+- **Merit Scholarships**: Up to 50%
+- **Programmes**:
+  - BBA (3 years): a general management programme with no formal specialisations.
+  - BBA (Fintech) (3 years).
+  - BBA (Honours) (4 years), with specialisations in Marketing, Entrepreneurship, BFSI and Business Analytics.
 
-## Institute of Design (ID)
+### BBA Honours in Supply Chain and Logistics
+- **Duration**: 4 Years
+- **Annual Academic Fee**: INR 3,50,000 per year
+
+## Institute of Design
 
 ### Bachelor of Design (B.Des)
-- **Duration**: 4 Years (8 Semesters), Full-Time
-- **Specializations**:
-  - Product Design
-  - Interaction Design (UI/UX)
-  - Communication & Graphic Design
-- **Academic Fee Structure**:
-  - Annual Academic Fee: INR 2,90,000 per year
+- **Duration**: 4 Years
+- **Specialisations**: Product Design, Interaction Design, Interdisciplinary Design, Integrated Communication Design
+- **Fee Structure**:
+  - Annual Academic Fee: INR 4,03,000 per year
+  - Annual Technology Fee: INR 30,000 per year
   - One-time Caution Deposit (Refundable): INR 10,000
-  - One-time Admission Fee: INR 15,000
-- **Total Estimated Academic Cost (4 Years, without scholarship)**: INR 11,85,000
+  - One-time Admission Fee (Non-refundable): INR 5,000
+- **Merit Scholarships**: Up to 50%
+
+### Master of Design (M.Des)
+- **Duration**: 2 Years
+- **Annual Academic Fee**: INR 3,10,000 per year
+- **Annual Technology Fee**: INR 30,000 per year
+
+## Doctor of Philosophy (PhD)
+- **Fields**: Engineering, Management and Humanities
+- **Fee**: INR 55,000 per year (part-time)
 
 ## Hostel and Residential Facilities Fees
-- **Hostel is Optional for Day Scholars (Jaipur residents) and Mandatory for Outstation Students.**
-- **Air-Cooled Rooms**:
-  - Double Occupancy: INR 95,000 per year (Hostel & Mess included)
-  - Triple Occupancy: INR 80,000 per year (Hostel & Mess included)
-- **Air-Conditioned (AC) Rooms**:
-  - Double Occupancy AC: INR 1,30,000 per year (Hostel & Mess included)
-  - Single Occupancy AC (Subject to availability): INR 1,60,000 per year
-- **Caution Deposit for Hostel (Refundable)**: INR 5,000
+Annual hostel fee, by type of room. Mess charges are separate and listed below.
+- **Single Bed, AC (common washrooms)**: INR 1,50,000 per year
+- **Premium Double Bed, AC (attached washrooms)**: INR 1,65,000 per year
+- **Double Sharing, AC**: INR 1,38,000 per year
+- **Double Sharing, Non-AC**: INR 1,03,000 per year
+- **Quad Sharing, Lower Bed, AC**: INR 1,10,000 per year
+- **Quad Sharing, Lower Bed, Non-AC**: INR 88,000 per year
+- **Quad Sharing, Upper Bed, AC**: INR 1,05,000 per year
+- **Quad Sharing, Upper Bed, Non-AC**: INR 82,500 per year
+- **Security Deposit for Hostel Students (Refundable)**: INR 5,000
+- **Mess, Vegetarian (veg)**: INR 65,500 per year
+- **Mess, Non-Vegetarian (twice a week)**: INR 73,500 per year
 
-## Transport Facility (Day Scholars)
-- AC Bus service covering major routes across Jaipur city.
-- Annual Transport Fee: INR 35,000 - 45,000 per year depending on route distance.
+## Transport Facility
+Air-conditioned bus service for students commuting from Jaipur City to the campus, at INR 54,500 per year.
+
+## One-time Fees and Refund Notes
+- A one-time caution deposit of INR 10,000 (refundable) is required at the time of admission.
+- A one-time admission fee of INR 5,000 (non-refundable) is required at the time of admission.
+- Hostel and transport charges are non-refundable once the academic year has started.
+- If hostel or transport is cancelled before the academic year starts, an administrative processing fee of INR 5,000 is deducted from the refundable amount, and any balance is refunded under the University's refund policy.
+- All fees are subject to yearly revision.
+- The full Fee Refund Policy, including cancelling an admission, is a separate document on the JKLU admissions pages.

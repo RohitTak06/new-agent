@@ -30,6 +30,7 @@ _GRANT = re.compile(
     r"|\bi\s+(?:have\s+|'ve\s+|can\s+|will\s+|am\s+going\s+to\s+)(?:\w+\s+)?(?:approved?|grant(?:ed)?|waived?|guarantee[ds]?)\b"
     r"|\byou\s+(?:have\s+been|'ve\s+been|are|will\s+be)\s+(?:\w+\s+)?(?:approved|granted|awarded|guaranteed|admitted)\b"
     r"|\byou(?:\s+will|\s+also)?\s+qualify\s+for\s+(?:an?\s+|the\s+)?(?:\S+\s+)?(?:\w+\s+)?scholarship\b"
+    r"|\bqualifies\s+you\s+for\s+(?:an?\s+|the\s+)?(?:\S+\s+)?(?:\w+\s+)?scholarship\b"
     r"|\byou(?:'re|\s+are)\s+eligible\s+for\s+(?:an?\s+|the\s+)?(?:\S+\s+)?(?:\w+\s+)?scholarship\b"
     r"|\bfree\s+seat\b|\bguaranteed\s+(?:an?\s+)?(?:seat|admission|scholarship)\b",
     re.IGNORECASE,

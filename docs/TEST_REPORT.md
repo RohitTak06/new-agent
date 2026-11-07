@@ -4,13 +4,43 @@ Results from 7 Nov 2026. Every number below comes from a real run; re-run the co
 
 | Test | Result | What it shows |
 |---|---|---|
-| Automated tests (`pytest -q`) | **217 passed** | Behaviour of every module, with a scripted model and a throwaway database |
+| Automated tests (`pytest -q`) | **219 passed** | Behaviour of every module, with a scripted model and a throwaway database |
 | Live model smoke test (`pytest -m live`) | **2 passed** | Fee answer and waiver request, on the real model |
-| All scenarios on the real model (`scripts/live_scenarios.py`) | **19 of 20 checks passed** | The agent's real behaviour, including its wording |
+| All scenarios on the real model (`scripts/live_scenarios.py`) | **20 of 20 checks passed** | The agent's real behaviour, including its wording |
 | Retrieval benchmark (Knowledge page or `GET /intel/benchmark`) | **45 of 45 passed** | The right knowledge-base passage is found, and out-of-scope questions are refused |
-| Full demo in the browser | **Completed in one take** | S1 to S7 and the audit log, through the UI |
+| Full demo in the browser | **Completed in one take** | S1 to S7 and the audit log, through the UI (run before the knowledge base was corrected) |
 
 The benchmark tests retrieval only, not the model's wording. There are no automated frontend tests: screens were checked by `npm run build` and by hand in a browser.
+
+## The knowledge base
+
+Every fact comes from JKLU's official pages (fee structure, eligibility, scholarships, application process, entrance exams, placements, contact), read on 7 Nov 2026. The original knowledge base was written by hand and didn't match the site, so it was rewritten. A test checks that the official fees are present and that the old wrong figures are gone.
+
+| Fact | Old knowledge base | Official site |
+|---|---|---|
+| B.Tech annual academic fee | INR 2,65,000 | INR 3,40,000, plus INR 10,000 technology fee |
+| BBA annual academic fee | INR 1,60,000 | INR 1,98,000 |
+| B.Des annual academic fee | INR 2,90,000 | INR 4,03,000, plus INR 30,000 technology fee |
+| M.Tech annual academic fee | INR 1,20,000 | INR 1,80,000 |
+| One-time admission fee | INR 15,000 (B.Tech, B.Des) | INR 5,000 |
+| Hostel | Fees that included mess, from INR 80,000 | INR 82,500 to 1,65,000 by room, with mess separately INR 65,500 or 73,500 |
+| Transport | INR 35,000 to 45,000 | INR 54,500 |
+| B.Tech eligibility | 60% in Class 10 and 12 | 60% in English, Maths, Physics and Chemistry in Class XII, with Maths conditions |
+| BBA eligibility | 55% | 50% |
+| B.Des eligibility | 50% | 60% |
+| Highest and average package | 22.5 LPA and 7.8 LPA | 31 LPA and 8.8 LPA |
+| M.Tech scholarship | 50% for GATE, or by CGPA | INR 12,400 per month for GATE; assistantships otherwise |
+| Admissions helpline | 1800-123-4848 | +91 830 222 3344 |
+
+Removed because the official pages don't state them: application round dates, the INR 1,000 application fee, the JKLU-EET exam, the named list of recruiters, the claim that hostel is mandatory for outstation students, and the UGC refund wording. The agent now says it doesn't have these and passes the question to a counsellor.
+
+**Where the official pages disagree or may be out of date.** The knowledge base follows them as written, and these need checking with the admissions office:
+
+- BBA minimum marks: 50% on the eligibility page, 55% on the scholarship page.
+- BBA entrance: "no entrance test" on the application page, CUET on the entrance exams page. The knowledge base states both.
+- Fees are for 2027-28, while scholarship rules mention Class XII in 2025 or 2026 and "Batch 2026".
+
+**Not read:** the Fee Refund Policy PDF. The agent points to it and doesn't state its terms.
 
 ## Scenarios on the real model
 
@@ -18,36 +48,34 @@ Model `gemini-3.5-flash-lite`, fallback `gemini-3.6-flash`, with an 8-second pau
 
 | Scenario | Check | Result | Seconds |
 |---|---|---|---|
-| S1 | Cited answer with the fee from the KB | pass | 11.2 |
-| S2 | Not in the KB: passed to a counsellor | pass | 8.2 |
-| S2 | Unknown figure: says it doesn't have it, invents nothing | pass | 10.2 |
-| S3 | First details saved, not scored yet | **fail** (see below) | 13.2 |
-| S3 | Complete profile scored Hot, with reasons | pass | 12.8 |
-| S4 | Clash refused with alternatives, no double booking | pass | 31.1 |
-| S5 | The reply doesn't blame a taken slot | pass | 19.6 |
-| S5 | Two retries, then alternatives, nothing booked | pass | 19.6 |
-| S4 | Booked once the calendar recovered | pass | 9.5 |
-| S6 | Hot silent lead gets a follow-up | pass | 3.6 |
+| S1 | Cited answer with the fee from the KB | pass | 10.1 |
+| S2 | Not in the KB: passed to a counsellor | pass | 5.9 |
+| S2 | Unknown figure: says it doesn't have it | pass | 5.3 |
+| S3 | First details saved | pass | 8.4 |
+| S3 | Complete profile scored Hot, with reasons | pass | 8.2 |
+| S4 | Clash refused with alternatives, no double booking | pass | 8.7 |
+| S5 | The reply doesn't blame a taken slot | pass | 11.2 |
+| S5 | Two retries, then alternatives, nothing booked | pass | 11.2 |
+| S4 | Booked once the calendar recovered | pass | 6.2 |
+| S6 | Hot silent lead gets a follow-up | pass | 2.8 |
 | S6 | Opted-out lead refused | pass | – |
 | S6 | Agent wrote the scholarship follow-up from the KB | pass | – |
-| S7 | Waiver stays pending and says so, one request only | pass | 9.3 |
-| S7 | Before a decision: reports it pending, no false claim | pass | 7.6 |
+| S7 | Waiver stays pending and says so, one request only | pass | 7.0 |
+| S7 | Before a decision: reports it pending, no false claim | pass | 5.6 |
 | S7 | Fee waiver approved by a counsellor, student notified | pass | – |
 | S7 | Audit shows reasoning, tools and the approval | pass | – |
 | S8 | Student and counsellor refused; the right roles allowed | pass | – |
 | S9 | Opted out at once; later messages refused | pass | 0.1 |
 | S10 | Direct injection refused without calling the model | pass | 0.1 |
-| S10 | A claimed approval from a counsellor isn't repeated | pass | 8.9 |
+| S10 | A claimed approval from a counsellor isn't repeated | pass | 5.0 |
 
-**The failure:** the model scored a partial profile one message earlier than the check expected. Nothing wrong was shown or stored, and the spec doesn't require a particular moment, so the check was too strict. It now confirms the details were saved. The run hasn't been repeated since that change, because no agent code changed.
+**Speed:** 12 model turns, median 8.2 seconds, slowest 11.2. Speed varies with Google's load: earlier runs that day had a median of about 11 seconds and a slowest turn of 44, when a model timed out.
 
-**Speed:** 12 model turns, median 11.2 seconds, slowest 31.1. The slow one came from a real timeout that the fallback model recovered from.
-
-**Accuracy:** beyond these checks, I compared the fees, scholarship bands and placement figures in the replies with the KB text. They matched.
+**Accuracy:** beyond these checks, I read each reply and compared its fees, scholarship bands and placement figures with the official pages. They matched.
 
 ## Pytest coverage of the scenarios
 
-Each scenario has tests with a scripted model in `tests/test_scenarios.py`: S1 (1), S2 (2), S3 (2), S4 (1), S5 (5), S6 (6), S7 (7), S8 (1), S9 (2), S10 (5). In all, there are 217 tests across these files:
+Each scenario has tests with a scripted model in `tests/test_scenarios.py`: S1 (1), S2 (2), S3 (2), S4 (1), S5 (5), S6 (6), S7 (7), S8 (1), S9 (2), S10 (5). In all, there are 219 tests across these files:
 
 | File | Tests | Covers |
 |---|---|---|
@@ -58,11 +86,11 @@ Each scenario has tests with a scripted model in `tests/test_scenarios.py`: S1 (
 | `test_scheduling.py` | 17 | Booking races, clock, follow-ups, opt-out |
 | `test_agent_chat.py` | 15 | Agent loop, streaming, timeouts |
 | `test_ui_api.py` | 15 | Endpoints the screens rely on |
-| `test_intel.py` | 7 | Retrieval and scoring |
+| `test_intel.py` | 9 | Retrieval, scoring and official fee figures |
 
 ## Timed demo
 
-One take through `docs/DEMO_SCRIPT.md` in a browser. These are waits for the agent, not including talking.
+One take through `docs/DEMO_SCRIPT.md` in a browser, before the knowledge base was corrected. These are waits for the agent, not including talking.
 
 | Step | Wait (seconds) |
 |---|---|
@@ -94,6 +122,9 @@ Pytest was all green while these bugs existed, because a scripted model says wha
 | Failed-booking alternatives ignored the slot wanted, or included it | Offered the failed slot, or sessions days away |
 | The scholarship follow-up searched with the wrong words | Fell back to a fixed template |
 | Seeded agent lines stated invented facts, such as a batch date and EMI options | Would have been visible on every lead |
+| A B.Tech student was quoted a B.Des scholarship rule | That section's heading didn't name its programme, and sections are retrieved alone |
+| "Which qualifies you for a 30% scholarship" | Got past the false-grant check |
+| Asked about a hostel room and the mess together, the agent said it had no mess fee | Mess was a separate section that retrieval missed |
 | Model said "you qualify for a 100% scholarship" | Now rejected as a false grant, and it describes the band instead |
 
 ## Known gaps

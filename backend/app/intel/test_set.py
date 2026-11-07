@@ -197,7 +197,7 @@ BENCHMARK_QUESTIONS: List[Dict[str, Any]] = [
     },
     {
         "id": "q27",
-        "query": "What are the hostel room charges for double occupancy air-cooled room?",
+        "query": "What are the hostel room charges for a double sharing non-AC room?",
         "expected_answer_found": True,
         "expected_source": "programs_and_fees.md",
         "category": "hostel_fees"
@@ -228,15 +228,15 @@ BENCHMARK_QUESTIONS: List[Dict[str, Any]] = [
     {
         "id": "q31",
         "query": "What is the last date to apply in Round 1 early bird admissions?",
-        "expected_answer_found": True,
-        "expected_source": "admissions_and_eligibility.md",
+        "expected_answer_found": False,
+        "expected_source": None,
         "category": "dates"
     },
     {
         "id": "q32",
         "query": "What is the refund policy if I cancel my admission before classes start?",
         "expected_answer_found": True,
-        "expected_source": "admissions_and_eligibility.md",
+        "expected_source": "programs_and_fees.md",
         "category": "refund_policy"
     },
 

@@ -2,7 +2,7 @@
 
 An agentic AI system for the JKLU AI-Buildathon 1.0 that takes a prospective student from first question to counsellor session. It answers from a verified knowledge base with citations, qualifies and scores the lead, books counsellor slots and handles clashes, plans follow-ups that adapt to the student's behaviour, sends sensitive actions to a human for approval, and records every step in an append-only audit log.
 
-All data is synthetic and every integration is simulated: no real student data, no real WhatsApp, email, calendar or CRM.
+Institutional facts come from JKLU's official website. Student data is synthetic and every integration is simulated: no real student data, no real WhatsApp, email, calendar or CRM.
 
 ## Run it
 
@@ -83,6 +83,10 @@ flowchart LR
 
 The answer is held back until verified, while the plan, tool calls and checks stream live over SSE to the trace panel.
 
+## The knowledge base
+
+Facts live in four Markdown files in `backend/app/intel/data/`, rewritten from [JKLU's official pages](https://jklu.edu.in/admissions/fee-structure) on 7 Nov 2026. They're a snapshot, not a live lookup, so when the site changes, update the files and click **Reload knowledge base** as an admin (or restart the API). Each file names its source pages and the date they were checked. Where the official pages disagree with each other, [the test report](docs/TEST_REPORT.md) lists it.
+
 ## Rubric mapping
 
 | Criterion | What to look at | Where |
@@ -136,6 +140,7 @@ Design details are in [docs/SPEC.md](docs/SPEC.md).
 - **Tokens in `localStorage`.** Fine for a demo; production should use httpOnly cookies. One browser profile holds one login, so use an incognito window to show two roles side by side.
 - **Closing the tab mid-reply** can lose that reply, because the turn stops when the connection drops.
 - **Anonymous visitors can't see counsellor replies**, since they have no inbox. Staff get a warning first.
+- **The knowledge base is a snapshot** of the official pages, so it can fall behind them. The Fee Refund Policy PDF wasn't included.
 - **Students see their own lead score** in the trace panel, which is there to show the agent's work.
 - **Retrieval is TF-IDF with a relevance threshold**, not embeddings. It's simple and easy to test, but matches wording more than meaning. The Postgres image includes pgvector, which isn't used.
 - **Model speed varies.** A timed-out call costs up to 18 seconds before the fallback model answers.

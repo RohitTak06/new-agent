@@ -1,13 +1,14 @@
-# JK Lakshmipat University (JKLU) Scholarships Policy (Batch 2026)
+# JK Lakshmipat University (JKLU) Scholarships Policy
+
+Source: jklu.edu.in/admissions/scholarship-aid, checked on 7 November 2026.
 
 ## General Scholarship Guidelines
-- **Fee Applicability**: All scholarships apply solely to academic/tuition fees. Scholarships do NOT apply to hostel, mess, transport, or security deposit fees.
-- **Non-Combinable / Highest Value Rule**: If an applicant qualifies for more than one scholarship, only the higher value scholarship will be applied. Scholarships from multiple categories cannot be stacked or combined.
-- **Passing Year Eligibility**: Only candidates who passed their Class XII in the year 2025 or 2026 are eligible for undergraduate merit scholarships.
-- **Sibling and Alumni Discount**: A 20% discount on academic fees is available for siblings of alumni who have graduated from JKLU with a full-time degree. This applies only to new enrollments, not to siblings already enrolled.
+- **Fee Applicability**: Scholarships apply solely to academic fees.
+- **Highest Value Rule**: If a student qualifies for more than one scholarship, only the higher value scholarship is applied.
+- **Passing Year Eligibility**: Only candidates who passed Class XII in 2025 or 2026 are eligible for B.Tech scholarships.
 
 ## Bachelor of Technology (B.Tech) Scholarships
-Scholarships are awarded based on Class 12 percentage (specified subjects: Physics, Chemistry, Mathematics, English), JEE Mains Percentile, or CUET Score (3 subjects: English, Mathematics, and one domain-specific subject).
+Scholarships are based on Class 12 percentage (specified subjects: Physics, Chemistry, Mathematics, English), JEE Mains Percentile, or CUET Score (3 subjects: English, Mathematics, and one domain-specific subject).
 
 | Scholarship % | Class 12th % (PCM + English) | JEE Mains Score (Percentile) | CUET Score (3 Specified Subjects) |
 |---|---|---|---|
@@ -19,11 +20,11 @@ Scholarships are awarded based on Class 12 percentage (specified subjects: Physi
 | 10% | 75% and <= 85% | 70 and <= 75 | 401 - 450 |
 
 ### B.Tech Mathematics Criterion Clause
-- Candidates who score between 50 and 55 marks in Mathematics in Class 12 will receive a scholarship one level lower than originally qualified for.
-- Example: If a candidate qualifies for a 75% scholarship based on JEE Main / 12th / CUET, but their Class 12 Math score is between 50 and 55, they will receive a 50% scholarship instead.
+- Candidates who scored between 50 and 55 in Mathematics receive a scholarship one level lower than originally qualified for.
+- Example: A candidate eligible for a 75% scholarship based on 12th marks, JEE Main or CUET score, with a Mathematics score between 50 and 55, receives a 50% scholarship instead.
 
 ## Bachelor of Business Administration (BBA) Scholarships
-Scholarships for BBA applicants are awarded based on Class 12 percentage (English and any 3 additional subjects, internal weightage > 50% not considered) or CUET scores (English and two domain-specific subjects). Minimum Class 12 aggregate of 55% is required.
+Scholarships are merit-based, through Class 12 results (English and any three additional subjects; internals with weightage of more than 50% are not considered) or CUET scores (English and two domain-specific subjects of choice).
 
 | Scholarship % | Class 12th % (Specified Subjects) | CUET Score (3 Specified Subjects) |
 |---|---|---|
@@ -32,42 +33,52 @@ Scholarships for BBA applicants are awarded based on Class 12 percentage (Englis
 | 20% | > 75 and <= 85% | 451 - 500 |
 | 10% | 65% and <= 75% | 401 - 450 |
 
-*Note: Subjects like Physical Education and Informatics Practices may be considered at the discretion of the Admission Committee.
+The scholarship page states a minimum of 55% aggregate marks in Class XII, including English and three subjects of the applicant's choice. Courses such as Physical Education and Information Practices may be considered, and the admission committee's decision is final.
 
 ## Bachelor of Design (B.Des) Scholarships
-Applicants are awarded scholarships based on Class XII scores (English + 3 subjects, internals >= 50% not considered) OR performance in JK-DET (JK Design Entrance Test) & Portfolio Round.
+Awarded through Class XII scores or performance in the JK Design Entrance Test (JK-DET) and portfolio round.
 
-### Class XII Merit
+### B.Des Class XII Merit Scholarships
+Specified subjects are English and three subjects chosen by the applicant; a subject with internal marks of 50% or higher is not considered.
 - Above 95%: 50% Scholarship
 - > 90% and <= 95%: 30% Scholarship
 - 80% and <= 90%: 20% Scholarship
 
-### JK-DET and Portfolio Review
-- **50% Scholarship**: Candidates who score >= 90 percentile in JK-DET AND score >= 4 (on a 0-5 scale) in the portfolio review.
-- **25% Scholarship**: Candidates who meet only ONE of the criteria (either >= 90 percentile in JK-DET OR >= 4 in the portfolio review).
-- Cannot combine JK-DET and Class 12 scholarship awards.
+### B.Des JK-DET and Portfolio Review Scholarships
+- **50% Scholarship**: 90 percentile or higher in JK-DET AND a score of 4 or more (on a 0-5 scale) in the portfolio review.
+- **25% Scholarship**: Meeting only ONE of those two criteria.
+- JK-DET and Class 12 scholarships cannot be combined; only one can be availed.
 
-### National Design Entrance Exams (NID / NIFT / UCEED)
-- Applicants surpassing predetermined cutoffs in NID DAT, NIFT, or UCEED are granted a 25% scholarship on academic fees. Only the single highest scholarship applies.
+### B.Des Scholarships through National Design Entrance Exams (NID / NIFT / UCEED)
+Applicants who don't qualify through JK-DET but pass a predetermined cutoff in NID, NIFT or UCEED receive a 25% scholarship on the academic fee. The specific cutoffs are yet to be determined. Only one scholarship applies, based on the highest achievement.
 
 ## Master of Technology (M.Tech) Scholarships
-- GATE Qualified candidates with valid GATE scores receive a 50% merit scholarship on academic fees.
-- Candidates with B.Tech CGPA >= 8.5 from a recognized university receive a 30% merit scholarship.
-- Candidates with B.Tech CGPA between 7.5 and 8.5 receive a 20% merit scholarship.
+- **GATE qualified students**: INR 12,400 per month.
+- **Non-GATE students**: Teaching assistantship for deserving candidates.
+
+## Other Scholarships
+- **Sibling or Alumni**: 20% for applicants who are siblings of JKLU students or alumni, or alumni pursuing a second degree. A 20% discount for siblings of alumni who graduated from JKLU with a full-time degree applies only to new enrolments, not to siblings already enrolled.
+- **Single Girl Child**: 10% for single girl children with no siblings.
+- **Special Category**: 10% for wards of defence personnel (children of army, navy or air force personnel), SC/ST and differently-abled students, students from the Northeast, students from Union Territories (except Delhi and Chandigarh), and students from JKO school.
+- **Extra-Curricular and Co-Curricular**: A special committee evaluates exceptional performance in sports or other areas, case by case.
+- **JKO Staff Scholarship**: 15% for wards of JKLU staff and of employees of JK Organization entities. For wards of JK Organization employees, the employee's company reimburses the amount to the employee.
 
 ## Scholarship Continuation Policy (Year 2 Onwards)
-For Batch 2026, scholarships awarded in the first year do not automatically continue into second year onwards (except for Special Circumstances).
-To avail scholarship in subsequent academic years, students must maintain a minimum CGPA of 8.0:
+For Batch 2026, scholarships given in the first year do not apply from the second year onwards, except scholarships from the "Special Circumstances" category. To receive a scholarship after the first year, students need a minimum CGPA of 8. The policy doesn't apply to existing students.
 
-| CGPA of Previous Academic Year | Performance-based Scholarship for Next Year |
+| CGPA of Previous Year | Performance-based Scholarship for Next Year |
 |---|---|
 | Above 9.5 | 75% |
 | > 9.0 and <= 9.5 | 50% |
 | > 8.5 and <= 9.0 | 25% |
 | 8.0 and <= 8.5 | 10% |
-| Below 8.0 | 0% (No scholarship) |
+
+## Financial Assistance and Educational Loans
+Apart from scholarships, the University helps students apply for educational loans from external financial organisations.
+
+## Scholarship Conduct Rules
+The Disciplinary Committee and the Unfair Means Committee can alter or end a scholarship for academic or disciplinary violations. A first offence reduces it to the next lower level, and a second removes it completely. The committees may keep it after a minor infraction or remove it on a first serious offence.
 
 ## Special Circumstances and Out of Scope Clarifications
-- **Hostel Fee Waivers**: JKLU does NOT offer hostel fee waivers under standard merit scholarships. All scholarships apply strictly to academic fees.
-- **Full 100% Scholarship for B.Tech**: Only available via JEE Mains percentile > 95. Class 12th marks alone do NOT award 100% scholarship for B.Tech (max 50%).
-- **Foreign / External Scholarships**: Third-party government or corporate scholarships (e.g. NSP, PMSSS) are accepted, but processed externally as per respective government norms.
+- **Hostel, Mess and Transport**: Scholarships apply solely to academic fees, so they do not cover hostel, mess or transport charges. No separate hostel fee waiver is listed.
+- **Full 100% Scholarship for B.Tech**: Listed only for JEE Mains percentile above 95. Class 12 marks alone reach at most 50% for B.Tech.
