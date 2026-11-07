@@ -23,11 +23,11 @@ def _resolve(flag: str, module: str, name: str):
     return call
 
 
-# Guru
+# intel
 search_knowledge = _resolve("USE_REAL_INTEL", "app.intel.service", "search_knowledge")
 score_lead = _resolve("USE_REAL_INTEL", "app.intel.service", "score_lead")
 
-# Dev
+# crm
 upsert_lead = _resolve("USE_REAL_CRM", "app.crm.service", "upsert_lead")
 get_lead = _resolve("USE_REAL_CRM", "app.crm.service", "get_lead")
 request_approval = _resolve("USE_REAL_CRM", "app.crm.service", "request_approval")
@@ -38,7 +38,7 @@ request_booking_override = _resolve("USE_REAL_CRM", "app.crm.service", "request_
 request_bulk_message = _resolve("USE_REAL_CRM", "app.crm.service", "request_bulk_message")
 lead_requests = _resolve("USE_REAL_CRM", "app.crm.service", "lead_requests")
 
-# Riya
+# scheduling
 get_slots = _resolve("USE_REAL_SCHEDULING", "app.scheduling.service", "get_slots")
 book_slot = _resolve("USE_REAL_SCHEDULING", "app.scheduling.service", "book_slot")
 send_message = _resolve("USE_REAL_SCHEDULING", "app.scheduling.service", "send_message")

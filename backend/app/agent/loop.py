@@ -67,6 +67,13 @@ class TurnContext:
 Events = Generator[dict, None, Any]
 
 
+def _without_tool_names(text: str) -> str:
+    """Models sometimes "cite" a tool, like [request_fee_waiver]. Only knowledge-base sources are citations."""
+    for name in tools_schema.TOOL_NAMES:
+        text = text.replace(f" [{name}]", "").replace(f"[{name}]", "")
+    return text
+
+
 def _nearest_first(slots: list[Slot], failed_slot: str) -> list[Slot]:
     """Other free slots, closest in time to the one the student wanted when it's among them."""
     failed = next((s for s in slots if s.slot_id == failed_slot), None)
@@ -166,6 +173,7 @@ class AgentLoop:
     def _finish(self, ctx: TurnContext, draft: str, intent: str, objection: Optional[str], env: ToolEnv) -> Events:
         """A verified answer: settle any approval wording, plan the next follow-up, then respond."""
         evidence = env.evidence
+        draft = _without_tool_names(draft)
         approval = evidence.escalation
         if evidence.approvals:
             if "pending" not in draft.lower():
@@ -253,7 +261,8 @@ class AgentLoop:
         if others:
             alternatives = tools_schema.to_jsonable(others[:3])
             env.evidence.tool_text.append(str(alternatives))
-            return {"fallback": "other_slots_available", "alternatives": alternatives}
+            return {"fallback": "other_slots_available", "alternatives": alternatives,
+                    "note": "The calendar system had a technical problem. The slot was not taken; say so accurately."}
         env.evidence.escalation = yield from self._escalate(ctx, "calendar unavailable: booking failed after retries")
         return {"fallback": "counsellor_callback"}
 

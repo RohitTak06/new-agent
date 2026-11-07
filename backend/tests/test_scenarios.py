@@ -572,3 +572,29 @@ def test_s7_asking_where_a_request_stands_gets_the_status_with_no_new_request(cl
     asked = chat(client, monkeypatch, FakeLLM({"intent": "sensitive_request", "steps": []}, [
         says("Your request is still pending with a counsellor.")]), "Has my waiver been approved?", headers=s.headers)
     assert "still pending" in spoken(asked) and not of(asked, "escalation")
+
+
+def test_s7_a_status_answer_with_a_date_is_reworded_not_escalated(client, monkeypatch, users):
+    s = users.student
+    chat(client, monkeypatch, FakeLLM({"intent": "sensitive_request", "steps": []}, [
+        calls(("request_fee_waiver", {"reason": "Lost income"})), says("Sent to a counsellor.")]),
+        "Waive my fee", headers=s.headers)
+    asked = chat(client, monkeypatch, FakeLLM({"intent": "sensitive_request", "steps": []}, [
+        says("It's pending, and your session is on 9 November."), says("Your request is still pending with a counsellor.")]),
+        "Has my waiver been approved?", headers=s.headers)
+    assert "still pending" in spoken(asked) and not of(asked, "escalation")
+
+
+def test_s7_a_cited_tool_name_never_reaches_the_student(client, monkeypatch, users):
+    events = chat(client, monkeypatch, FakeLLM({"intent": "sensitive_request", "steps": []}, [
+        calls(("request_fee_waiver", {"reason": "Lost income"})), says("Your request is pending [request_fee_waiver].")]),
+        "Waive my fee", headers=users.other_student.headers)
+    assert "request_fee_waiver" not in spoken(events) and "pending." in spoken(events)
+
+
+def test_s5_the_model_is_told_the_slot_was_not_taken(client, monkeypatch):
+    slot = free_slot()
+    faults.arm("book_slot", 3)
+    llm = FakeLLM({"intent": "booking", "steps": []}, [calls(("book_slot", {"slot_id": slot.slot_id})), says("The calendar is down.")])
+    chat(client, monkeypatch, llm, f"Book slot {slot.slot_id}")
+    assert "not taken" in llm.tool_results[0][1]["note"]

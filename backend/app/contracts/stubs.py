@@ -12,7 +12,7 @@ _SLOTS = [
 ]
 
 
-# ---- Guru: intel ----
+# ---- intel ----
 def search_knowledge(query: str) -> KnowledgeResult:
     if "hostel" in query.lower():
         return KnowledgeResult(answer_found=False, chunks=[])
@@ -26,7 +26,7 @@ def score_lead(profile: LeadProfile) -> LeadScore:
     return LeadScore(score=72, tier="warm", reasons=["stub: program interest given", "stub: no booking yet"])
 
 
-# ---- Dev: crm ----
+# ---- crm ----
 def upsert_lead(data: LeadProfile, lead_id: int | None = None) -> Lead:
     return Lead(id=lead_id or 1, profile=data, status="new")
 
@@ -63,7 +63,7 @@ def lead_requests(lead_id: int) -> list[dict]:
     return []
 
 
-# ---- Riya: scheduling ----
+# ---- scheduling ----
 def get_slots(date_from: str, date_to: str) -> list[Slot]:
     return _SLOTS
 

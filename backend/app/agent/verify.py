@@ -93,9 +93,13 @@ def _numbers(text: str) -> set[str]:
     return out
 
 
+def _about_a_request(evidence: TurnEvidence, intent: str) -> bool:
+    return bool(evidence.approvals or (intent == "sensitive_request" and evidence.request_ids))
+
+
 def _only_reports_a_request(answer: str, cited: list[str], evidence: TurnEvidence, intent: str) -> bool:
     """Saying a request was filed, or where it stands, needs no source as long as it states no fact or figure."""
-    if cited or not (evidence.approvals or (intent == "sensitive_request" and evidence.request_ids)):
+    if cited or not _about_a_request(evidence, intent):
         return False
     ids = {str(a.approval_id) for a in evidence.approvals} | {str(i) for i in evidence.request_ids}
     return not (_numbers(answer) - ids)
@@ -119,7 +123,7 @@ def check_grounding(answer: str, evidence: TurnEvidence, intent: str, question: 
 
     if _only_reports_a_request(answer, cited, evidence, intent):
         return Verdict("grounding", True, "reports the student's request; no institutional claims made")
-    if evidence.approvals and not evidence.found_chunks:     # the request is filed, so only the wording needs fixing
+    if _about_a_request(evidence, intent) and not evidence.found_chunks:     # it's on file, so only the wording needs fixing
         return Verdict("grounding", False, "answer states a fact or figure with no knowledge-base source", "replan")
     if not evidence.found_chunks:
         return Verdict("grounding", False, "no knowledge-base result supports this answer", "escalate")
