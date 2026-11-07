@@ -29,8 +29,9 @@ Say the words in quotes, or your own. Times are a guide.
 
 > What is the B.Tech CSE fee and eligibility?
 
-- "On the right is the agent's reasoning, live: it plans, searches the knowledge base, then code checks the answer before the student sees it."
-- Point at the green **verify** rows, then click a source under the answer to show the exact passage.
+- Click **Show how the agent worked** at the top of the chat, and leave the panel open for the rest of the demo.
+- "This is the agent's reasoning, for each message: it plans, searches the knowledge base, then code checks the answer before the student sees it."
+- Point at the green **Checks passed** row, then click a source under the answer to show the exact passage.
 - "Every number here was checked by code against that text. Nothing comes from the model's memory."
 
 ### 2. Refusing to guess: S2 (0:45–1:10)
@@ -66,7 +67,7 @@ Say the words in quotes, or your own. Times are a guide.
 
 *Student window.* Click **Book this** on the first alternative.
 
-- Point at the trace: **two retries**, then the fallback. "It doesn't crash or claim success. It retries, then offers other sessions."
+- Point at the panel: **two retries**, then the fallback. "It doesn't crash or claim success. It retries, then offers other sessions."
 - Click **Book this** again. The next attempt works, and the **Session booked** card appears.
 
 ### 6. Adaptive follow-ups: S6 (3:00–3:30)
@@ -108,7 +109,7 @@ In a timed run, the agent's replies added up to about 105 seconds, which leaves 
 
 | What happens | What to do |
 |---|---|
-| A reply is slow | Keep talking over the trace: it's streaming the agent's work. A timed-out model hands over to the fallback, which can take about 20 seconds. |
+| A reply is slow | Keep talking over the panel: it's streaming the agent's work. A timed-out model hands over to the fallback, which can take about 20 seconds. |
 | "Sorry, I couldn't complete that right now" | Say "the model is unavailable, so the agent says so rather than guessing, and sensitive requests still reach a person." Try once more, then move on. |
 | Many replies fail in a row | Switch to the backup video. |
 | Blank page | Reload it. |

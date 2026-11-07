@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { CalendarCheck, Clock, Loader2, Mail, RotateCcw, Send, ShieldAlert } from "lucide-react";
+import { CalendarCheck, Clock, ListChecks, Loader2, Mail, RotateCcw, Send, ShieldAlert } from "lucide-react";
 import { api, errorMessage } from "../../lib/api";
 import { useAuth } from "../../lib/auth";
 import { formatDateTime } from "../../lib/format";
@@ -122,6 +122,7 @@ export const ChatPage: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const session = useRef<{ session_id?: string }>({});
+  const [showWork, setShowWork] = useState(false);
   const seenUpdates = useRef<Set<number> | null>(null);
   const list = useRef<HTMLDivElement>(null);
   const bookings = useApi<Booking[]>(student ? "/scheduling/bookings" : null);
@@ -222,16 +223,22 @@ export const ChatPage: React.FC = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 lg:h-[calc(100dvh-5.5rem)] lg:min-h-[520px]">
+    <div className={`grid grid-cols-1 gap-4 lg:h-[calc(100dvh-5.5rem)] lg:min-h-[520px] ${
+      showWork ? "lg:grid-cols-[1fr_380px]" : "max-w-4xl mx-auto"}`}>
       <section aria-label="Chat" className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col min-h-0 h-[75dvh] lg:h-auto">
-        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between gap-3">
+        <div className="px-4 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-sm font-semibold text-slate-800">Admissions chat</h1>
             <p className="text-xs text-slate-500">Answers come only from the verified knowledge base, with sources</p>
           </div>
-          {!student && (
-            <Button variant="ghost" small onClick={reset} disabled={busy} className="shrink-0 whitespace-nowrap"><RotateCcw className="w-3.5 h-3.5" /> New chat</Button>
-          )}
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" small aria-expanded={showWork} aria-controls="agent-work" onClick={() => setShowWork(!showWork)} className="whitespace-nowrap">
+              <ListChecks className="w-3.5 h-3.5" /> {showWork ? "Hide how the agent worked" : "Show how the agent worked"}
+            </Button>
+            {!student && (
+              <Button variant="ghost" small onClick={reset} disabled={busy} className="whitespace-nowrap"><RotateCcw className="w-3.5 h-3.5" /> New chat</Button>
+            )}
+          </div>
         </div>
 
         {upcoming && (
@@ -270,7 +277,7 @@ export const ChatPage: React.FC = () => {
         </form>
       </section>
 
-      <TracePanel events={events} busy={busy} className="h-[60dvh] lg:h-auto" />
+      {showWork && <TracePanel id="agent-work" events={events} busy={busy} className="h-[60dvh] lg:h-auto" />}
     </div>
   );
 };

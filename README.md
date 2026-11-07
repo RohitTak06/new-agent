@@ -81,7 +81,7 @@ flowchart LR
 4. **Verify:** deterministic checks read the draft answer. Every claim needs a source retrieved this turn, every number must appear in the knowledge base or the conversation, no booking may be claimed unless one succeeded, and nothing may be granted without a matching approval.
 5. **Respond or recover:** a failed check sends the draft back with the reason. If it can't be fixed, the student is told honestly and the question goes to a counsellor.
 
-The answer is held back until verified, while the plan, tool calls and checks stream live over SSE to the trace panel.
+The answer is held back until verified, while the plan, tool calls and checks stream live over SSE. **Show how the agent worked**, on the chat page, opens them in plain language; staff get the full technical record in the audit log.
 
 ## The knowledge base
 
@@ -141,7 +141,7 @@ Design details are in [docs/SPEC.md](docs/SPEC.md).
 - **Closing the tab mid-reply** can lose that reply, because the turn stops when the connection drops.
 - **Anonymous visitors can't see counsellor replies**, since they have no inbox. Staff get a warning first.
 - **The knowledge base is a snapshot** of the official pages, so it can fall behind them.
-- **Students see their own lead score** in the trace panel, which is there to show the agent's work.
+- **Students can see their own lead score** if they open the panel showing the agent's work. It's hidden until opened.
 - **Retrieval is TF-IDF with a relevance threshold**, not embeddings. It's simple and easy to test, but matches wording more than meaning. The Postgres image includes pgvector, which isn't used.
 - **Model speed varies.** A timed-out call costs up to 18 seconds before the fallback model answers.
 - **Dependency warnings.** `npm audit` reports 4 issues (`vite` high; `esbuild`, `react-router` and `react-router-dom` moderate). Fixing them needs major upgrades, so they're deferred. The app's links are all internal.
