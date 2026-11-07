@@ -140,7 +140,7 @@ Design details are in [docs/SPEC.md](docs/SPEC.md).
 - **Tokens in `localStorage`.** Fine for a demo; production should use httpOnly cookies. One browser profile holds one login, so use an incognito window to show two roles side by side.
 - **Closing the tab mid-reply** can lose that reply, because the turn stops when the connection drops.
 - **Anonymous visitors can't see counsellor replies**, since they have no inbox. Staff get a warning first.
-- **The knowledge base is a snapshot** of the official pages, so it can fall behind them. The Fee Refund Policy PDF wasn't included.
+- **The knowledge base is a snapshot** of the official pages, so it can fall behind them.
 - **Students see their own lead score** in the trace panel, which is there to show the agent's work.
 - **Retrieval is TF-IDF with a relevance threshold**, not embeddings. It's simple and easy to test, but matches wording more than meaning. The Postgres image includes pgvector, which isn't used.
 - **Model speed varies.** A timed-out call costs up to 18 seconds before the fallback model answers.

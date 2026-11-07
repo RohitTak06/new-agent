@@ -4,7 +4,7 @@ Results from 7 Nov 2026. Every number below comes from a real run; re-run the co
 
 | Test | Result | What it shows |
 |---|---|---|
-| Automated tests (`pytest -q`) | **219 passed** | Behaviour of every module, with a scripted model and a throwaway database |
+| Automated tests (`pytest -q`) | **220 passed** | Behaviour of every module, with a scripted model and a throwaway database |
 | Live model smoke test (`pytest -m live`) | **2 passed** | Fee answer and waiver request, on the real model |
 | All scenarios on the real model (`scripts/live_scenarios.py`) | **20 of 20 checks passed** | The agent's real behaviour, including its wording |
 | Retrieval benchmark (Knowledge page or `GET /intel/benchmark`) | **45 of 45 passed** | The right knowledge-base passage is found, and out-of-scope questions are refused |
@@ -14,7 +14,7 @@ The benchmark tests retrieval only, not the model's wording. There are no automa
 
 ## The knowledge base
 
-Every fact comes from JKLU's official pages (fee structure, eligibility, scholarships, application process, entrance exams, placements, contact), read on 7 Nov 2026. The original knowledge base was written by hand and didn't match the site, so it was rewritten. A test checks that the official fees are present and that the old wrong figures are gone.
+Every fact comes from JKLU's official pages (fee structure, eligibility, scholarships, application process, entrance exams, placements, contact) and its Admissions Refund Policy document, read on 7 Nov 2026. The original knowledge base was written by hand and didn't match the site, so it was rewritten. A test checks that the official fees are present and that the old wrong figures are gone.
 
 | Fact | Old knowledge base | Official site |
 |---|---|---|
@@ -31,16 +31,17 @@ Every fact comes from JKLU's official pages (fee structure, eligibility, scholar
 | Highest and average package | 22.5 LPA and 7.8 LPA | 31 LPA and 8.8 LPA |
 | M.Tech scholarship | 50% for GATE, or by CGPA | INR 12,400 per month for GATE; assistantships otherwise |
 | Admissions helpline | 1800-123-4848 | +91 830 222 3344 |
+| Refund on withdrawal | 100% if 15 days before the last admission date, under UGC rules | 100% up to 30 Sep 2026; 100% less INR 1,000 to 31 Oct 2026; none after |
 
-Removed because the official pages don't state them: application round dates, the INR 1,000 application fee, the JKLU-EET exam, the named list of recruiters, the claim that hostel is mandatory for outstation students, and the UGC refund wording. The agent now says it doesn't have these and passes the question to a counsellor.
+Removed because the official pages don't state them: application round dates, the INR 1,000 application fee, the JKLU-EET exam, the named list of recruiters, and the claim that hostel is mandatory for outstation students. The agent now says it doesn't have these and passes the question to a counsellor.
 
 **Where the official pages disagree or may be out of date.** The knowledge base follows them as written, and these need checking with the admissions office:
 
 - BBA minimum marks: 50% on the eligibility page, 55% on the scholarship page.
 - BBA entrance: "no entrance test" on the application page, CUET on the entrance exams page. The knowledge base states both.
-- Fees are for 2027-28, while scholarship rules mention Class XII in 2025 or 2026 and "Batch 2026".
+- Fees are for 2027-28, while scholarship rules mention Class XII in 2025 or 2026 and "Batch 2026", and the refund policy covers admission session 2026.
+- Hostel charges: "non-refundable" once the academic year starts on the fee page, while the refund policy says deductions on hostel and mess are pro rata. The knowledge base states both.
 
-**Not read:** the Fee Refund Policy PDF. The agent points to it and doesn't state its terms.
 
 ## Scenarios on the real model
 
@@ -73,9 +74,11 @@ Model `gemini-3.5-flash-lite`, fallback `gemini-3.6-flash`, with an 8-second pau
 
 **Accuracy:** beyond these checks, I read each reply and compared its fees, scholarship bands and placement figures with the official pages. They matched.
 
+The refund policy was added after this run, with no change to the agent's code. Three refund questions were then asked of the real model, and the replies matched the policy document.
+
 ## Pytest coverage of the scenarios
 
-Each scenario has tests with a scripted model in `tests/test_scenarios.py`: S1 (1), S2 (2), S3 (2), S4 (1), S5 (5), S6 (6), S7 (7), S8 (1), S9 (2), S10 (5). In all, there are 219 tests across these files:
+Each scenario has tests with a scripted model in `tests/test_scenarios.py`: S1 (1), S2 (2), S3 (2), S4 (1), S5 (5), S6 (6), S7 (7), S8 (1), S9 (2), S10 (5). In all, there are 220 tests across these files:
 
 | File | Tests | Covers |
 |---|---|---|
@@ -86,7 +89,7 @@ Each scenario has tests with a scripted model in `tests/test_scenarios.py`: S1 (
 | `test_scheduling.py` | 17 | Booking races, clock, follow-ups, opt-out |
 | `test_agent_chat.py` | 15 | Agent loop, streaming, timeouts |
 | `test_ui_api.py` | 15 | Endpoints the screens rely on |
-| `test_intel.py` | 9 | Retrieval, scoring and official fee figures |
+| `test_intel.py` | 10 | Retrieval, scoring, official fee figures and refund terms |
 
 ## Timed demo
 

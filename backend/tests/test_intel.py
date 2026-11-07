@@ -109,3 +109,12 @@ def test_official_fees_are_in_the_knowledge_base():
         assert figure in text, figure
     for stale in ("2,65,000", "2,90,000", "1,60,000", "10,85,000", "22.5 LPA", "JKLU-EET", "1800-123-4848"):
         assert stale not in text, stale
+
+
+def test_refund_policy_is_found_with_its_dates():
+    """From JKLU's Admissions Refund Policy document."""
+    for query in ("What is the refund policy if I withdraw my admission?", "Will I get a refund if I cancel in October?"):
+        res = search_knowledge(query)
+        assert res.answer_found, query
+        text = " ".join(c.text for c in res.chunks)
+        assert "30 September 2026" in text and "31 October 2026" in text and "INR 1,000" in text, query
