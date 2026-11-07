@@ -1,7 +1,7 @@
 """Unit tests for the deterministic answer verifiers."""
 from app.agent.verify import (NOT_IN_KB, TurnEvidence, check_booking, check_figures, check_grounding, check_no_false_grant,
                               check_outbound, citations)
-from app.contracts.models import BookingResult, Chunk, KnowledgeResult, Slot
+from app.contracts.models import ApprovalRequest, BookingResult, Chunk, KnowledgeResult, Slot
 
 SRC = "programs_and_fees.md#bachelor-of-technology-b-tech"
 KB = KnowledgeResult(answer_found=True, chunks=[Chunk(
@@ -141,3 +141,45 @@ def test_an_approved_waiver_does_not_unlock_a_seat_claim():
 def test_answered_question_does_not_unlock_request_approved():
     assert not check_no_false_grant("Your request has been approved.", {"escalate_question"}).ok
     assert check_no_false_grant("Your request has been approved.", {"fee_waiver"}).ok
+
+
+# ---------------------------------------------------------------- reporting a request (seen live)
+def filed(status="pending"):
+    return TurnEvidence(approvals=[ApprovalRequest(approval_id=7, status=status, action="fee_waiver")])
+
+
+def test_a_filed_request_can_be_reported_in_any_wording():
+    for text in ("I've sent this to a counsellor to review.", "Request #7 is with a counsellor now."):
+        assert check_grounding(text, filed(), "sensitive_request").ok, text
+
+
+def test_a_figure_beside_a_filed_request_is_reworded_not_escalated():
+    verdict = check_grounding("Your fee is INR 2,65,000, and I've sent your request on.", filed(), "sensitive_request")
+    assert not verdict.ok and verdict.action == "replan"
+
+
+def test_status_of_an_earlier_request_needs_no_source():
+    evidence = TurnEvidence(request_ids={7})
+    assert check_grounding("Request #7 is still with a counsellor.", evidence, "sensitive_request").ok
+
+
+def test_status_wording_gives_no_pass_outside_sensitive_requests():
+    evidence = TurnEvidence(request_ids={7})
+    assert not check_grounding("JKLU has a large campus.", evidence, "institutional_question").ok
+
+
+def test_an_earlier_request_gives_no_pass_for_figures():
+    assert not check_grounding("A waiver is worth INR 5,000.", TurnEvidence(request_ids={7}), "sensitive_request").ok
+
+
+# ---------------------------------------------------------------- promising a scholarship
+def test_promising_a_scholarship_is_a_false_grant():
+    for text in ("With 96 percentile, you qualify for a 100% scholarship.", "You are eligible for a merit scholarship.",
+                 "You will qualify for the 75% scholarship.", "you're eligible for a 50% scholarship"):
+        assert not check_no_false_grant(text).ok, text
+
+
+def test_describing_a_band_is_not_a_grant():
+    for text in ("A 96 percentile falls in the 100% scholarship band.", "If you qualify for a scholarship, a counsellor confirms it.",
+                 "A counsellor can check whether you qualify for a scholarship.", "You may qualify for a scholarship."):
+        assert check_no_false_grant(text).ok, text

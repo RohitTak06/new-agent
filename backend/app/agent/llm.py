@@ -18,7 +18,7 @@ from typing import Any, Protocol
 logger = logging.getLogger("app.agent.llm")
 
 TIMEOUT_WITH_FALLBACK_SECONDS = 18.0   # two tries must fit inside the agent loop's 40-second cap per model call
-PRIMARY_COOLDOWN_SECONDS = 120.0       # after a failure, don't spend every call rediscovering it
+PRIMARY_COOLDOWN_SECONDS = 60.0        # after a failure, don't spend every call rediscovering it
 _TRANSIENT_STATUS = {429, 500, 502, 503, 504}
 _TRANSIENT_ERRORS = {"APITimeoutError", "APIConnectionError", "TimeoutError"}
 
@@ -132,8 +132,8 @@ class GeminiLLM:
                 if not is_transient(exc):
                     raise
                 logger.warning("%s failed (%s); trying the other model", model, type(exc).__name__)
-                if model == self.model:
-                    self._primary_down_until = time.monotonic() + PRIMARY_COOLDOWN_SECONDS
+                # The model that just failed goes last for a while, whichever it was.
+                self._primary_down_until = time.monotonic() + PRIMARY_COOLDOWN_SECONDS if model == self.model else 0.0
         return self._call(models[-1], kwargs)
 
     def plan(self, system: str, prompt: str) -> dict:
