@@ -85,4 +85,10 @@ Air-conditioned bus service for students commuting from Jaipur City to the campu
 - Hostel and transport charges are non-refundable once the academic year has started.
 - If hostel or transport is cancelled before the academic year starts, an administrative processing fee of INR 5,000 is deducted from the refundable amount, and any balance is refunded under the University's refund policy.
 - All fees are subject to yearly revision.
-- The full Fee Refund Policy, including cancelling an admission, is a separate document on the JKLU admissions pages.
+
+## Admission Withdrawal and Fee Refund Policy (Admission Session 2026)
+Source: JKLU's Admissions Refund Policy document. It covers a student withdrawing or cancelling an admission for session 2026, whether offered provisionally or finally. The refund depends on when the notice of withdrawal is received:
+- **Up to 30 September 2026**: 100% refund of fees, including the admission fee of INR 5,000, with no processing fee.
+- **From 1 October 2026 to 31 October 2026**: 100% refund of fees, less a processing fee of INR 1,000.
+- **After 31 October 2026**: No refund (0%).
+- **Hostel and Mess**: Deductions on hostel and mess charges are made on a pro rata basis.
