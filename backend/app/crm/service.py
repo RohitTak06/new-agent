@@ -38,6 +38,7 @@ from app.crm.db.models import (
     AuditLog,
     Interaction,
     Lead as LeadRow,
+    User,
 )
 
 
@@ -566,3 +567,20 @@ def list_leads(
     finally:
         db.close()
 
+
+# ---------------------------------------------------------------------------
+# Users (read-only, for admins)
+# ---------------------------------------------------------------------------
+
+def list_users() -> list[dict]:
+    """Every account with its role and linked lead. Never includes password hashes."""
+    db: Session = SessionLocal()
+    try:
+        rows = db.execute(
+            select(User, LeadRow.id).outerjoin(LeadRow, LeadRow.user_id == User.id).order_by(User.role, User.id)
+        ).all()
+        return [{"id": u.id, "email": u.email, "full_name": u.full_name, "role": u.role,
+                 "is_active": u.is_active, "created_at": u.created_at.isoformat(), "lead_id": lead_id}
+                for u, lead_id in rows]
+    finally:
+        db.close()

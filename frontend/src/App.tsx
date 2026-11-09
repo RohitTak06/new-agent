@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { BarChart3, BookOpen, CalendarClock, Inbox, KanbanSquare, LogIn, LogOut, MessageSquare, ScrollText, ShieldCheck, type LucideIcon } from "lucide-react";
+import { BarChart3, BookOpen, CalendarClock, Inbox, KanbanSquare, LogIn, LogOut, MessageSquare, ScrollText, ShieldCheck, Users, type LucideIcon } from "lucide-react";
 import { AuthProvider, homeFor, useAuth } from "./lib/auth";
 import { ErrorBoundary } from "./lib/ErrorBoundary";
 import { ErrorBanner, Loading } from "./lib/ui";
@@ -8,7 +8,7 @@ import { useApi } from "./lib/useApi";
 import type { Approval, Role } from "./lib/types";
 import { ChatPage } from "./modules/agent";
 import { MessagesPage } from "./modules/channels";
-import { AnalyticsPage, APPROVALS_CHANGED, ApprovalsPage, AuditPage, LeadDetailPage, LoginPage, PipelinePage, SchedulingPage } from "./modules/crm";
+import { AnalyticsPage, APPROVALS_CHANGED, ApprovalsPage, AuditPage, LeadDetailPage, LoginPage, PipelinePage, SchedulingPage, UsersPage } from "./modules/crm";
 import { KnowledgeAdmin } from "./modules/intel";
 
 type Viewer = Role | "anonymous";
@@ -30,6 +30,7 @@ const NAV: NavItem[] = [
   { to: "/audit", label: "Audit", icon: ScrollText, viewers: STAFF },
   { to: "/analytics", label: "Analytics", icon: BarChart3, viewers: STAFF },
   { to: "/knowledge", label: "Knowledge", icon: BookOpen, viewers: STAFF },
+  { to: "/users", label: "Users", icon: Users, viewers: ["admin"] },
   { to: "/chat", label: "Test chat", icon: MessageSquare, viewers: STAFF },
 ];
 
@@ -119,6 +120,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/scheduling" element={<RequireRole roles={STAFF}><SchedulingPage /></RequireRole>} />
       <Route path="/analytics" element={<RequireRole roles={STAFF}><AnalyticsPage /></RequireRole>} />
       <Route path="/knowledge" element={<RequireRole roles={STAFF}><KnowledgeAdmin /></RequireRole>} />
+      <Route path="/users" element={<RequireRole roles={["admin"]}><UsersPage /></RequireRole>} />
       <Route path="/leads/:id" element={<RequireRole roles={STAFF}><LeadDetailPage /></RequireRole>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -8,9 +8,20 @@ from pydantic import BaseModel, Field
 
 from app.contracts.models import Lead, LeadProfile
 from app.crm import approvals, auth, ratelimit, reports, service
-from app.crm.auth import CurrentUser, audit_action, current_user, require_lead_access, require_staff
+from app.crm.auth import (CurrentUser, audit_action, current_user, require_admin, require_lead_access,
+                          require_staff)
 
 router = APIRouter()
+
+
+class UserOut(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    role: str
+    is_active: bool
+    created_at: str
+    lead_id: Optional[int] = None
 
 
 class TokenOut(BaseModel):
@@ -62,6 +73,12 @@ def login(request: Request, form: OAuth2PasswordRequestForm = Depends()):
 @router.get("/auth/me", response_model=CurrentUser)
 def me(user: CurrentUser = Depends(current_user)):
     return user
+
+
+@router.get("/users", response_model=list[UserOut], dependencies=[Depends(require_admin)])
+def list_users():
+    """All accounts and their roles, for admins. Read-only: accounts are created by the seed."""
+    return service.list_users()
 
 
 # ---------------------------------------------------------------------------

@@ -428,3 +428,18 @@ def test_interaction_actor_comes_from_the_token_not_the_request(client, users):
     assert res.status_code == 201 and res.json()["actor"] == "counsellor"
     with SessionLocal() as db:
         assert db.scalars(select(Interaction).where(Interaction.lead_id == lead)).one().actor == "counsellor"
+
+
+# ---------------------------------------------------------------- users page (admin only)
+def test_admin_lists_users_with_roles_and_no_password_hashes(client, users):
+    res = client.get("/crm/users", headers=users.admin.headers)
+    assert res.status_code == 200
+    rows = {r["email"]: r for r in res.json()}
+    assert rows[users.counsellor.email]["role"] == "counsellor"
+    assert rows[users.student.email]["lead_id"] == users.student.lead_id
+    assert all("password" not in key for row in rows.values() for key in row)
+
+
+@pytest.mark.parametrize("who", ["counsellor", "student"])
+def test_only_admins_can_list_users(client, users, who):
+    assert client.get("/crm/users", headers=getattr(users, who).headers).status_code == 403

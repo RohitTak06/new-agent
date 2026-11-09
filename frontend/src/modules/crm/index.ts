@@ -5,3 +5,4 @@ export * from "./ApprovalsPage";
 export * from "./AuditPage";
 export * from "./SchedulingPage";
 export * from "./AnalyticsPage";
+export * from "./UsersPage";
