@@ -110,6 +110,11 @@ def score_lead(profile: LeadProfile) -> LeadScore:
     else:
         tier = "cold"
 
+    # Hot means "call now", which needs a way to call. Strong marks alone stay Warm until contact details arrive.
+    if tier == "hot" and not (has_phone or has_email):
+        tier = "warm"
+        reasons.append("Kept at Warm until there is a phone number or email to reach them")
+
     return LeadScore(
         score=final_score,
         tier=tier,

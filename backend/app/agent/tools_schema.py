@@ -117,7 +117,23 @@ def score_and_save(lead_id: int, given: dict | None = None) -> Any:
     profile = tools.get_lead(lead_id).profile.model_copy(update=given or {})
     score = tools.score_lead(profile)
     tools.update_lead_score(lead_id, score.score, score.tier, score.reasons)
+    _advance(lead_id, "qualified", ("new", "contacted"))
     return score
+
+
+def _advance(lead_id: int, status: str, only_from: tuple[str, ...]) -> None:
+    """Move the lead along the pipeline. A failure here must not cost the student their score or booking."""
+    try:
+        tools.set_lead_status(lead_id, status, actor="agent", only_from=only_from)
+    except Exception:
+        pass
+
+
+def _book(args: dict, env: ToolEnv) -> Any:
+    result = tools.book_slot(env.lead_id, _slot_id(args))
+    if getattr(result, "ok", False):
+        _advance(env.lead_id, "contacted", ("new",))
+    return result
 
 
 def _score(args: dict, env: ToolEnv) -> Any:
@@ -161,7 +177,7 @@ _EXECUTORS: dict[str, Callable[[dict, ToolEnv], Any]] = {
     "upsert_lead": _upsert,
     "get_lead": lambda a, e: tools.get_lead(e.lead_id),
     "get_slots": lambda a, e: tools.get_slots(str(a["date_from"]), str(a["date_to"])),
-    "book_slot": lambda a, e: tools.book_slot(e.lead_id, _slot_id(a)),
+    "book_slot": _book,
     "send_message": _send,
     "schedule_followup": _schedule,
     "opt_out": lambda a, e: tools.opt_out_lead(e.lead_id),

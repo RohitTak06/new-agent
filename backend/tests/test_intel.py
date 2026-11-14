@@ -118,3 +118,10 @@ def test_refund_policy_is_found_with_its_dates():
         assert res.answer_found, query
         text = " ".join(c.text for c in res.chunks)
         assert "30 September 2026" in text and "31 October 2026" in text and "INR 1,000" in text, query
+
+
+def test_no_contact_details_caps_the_tier_at_warm():
+    strong = dict(program_interest="B.Tech CSE", twelfth_percent=97, entrance_exam="JEE Main 98 percentile",
+                  budget_lakh=10, asked_scholarship=True)
+    assert score_lead(LeadProfile(**strong)).tier == "warm"
+    assert score_lead(LeadProfile(**strong, email="a@example.test")).tier == "hot"

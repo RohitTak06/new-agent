@@ -26,6 +26,10 @@ class InteractionIn(BaseModel):
     meta: Optional[dict] = None
 
 
+class StatusIn(BaseModel):
+    status: Literal["new", "contacted", "qualified", "converted", "lost"]
+
+
 class ApproveIn(BaseModel):
     note: Optional[str] = Field(default=None, max_length=2000)
     reply: Optional[str] = Field(default=None, max_length=2000, description="Counsellor's message to the student")
@@ -129,6 +133,17 @@ def opt_out_lead(lead_id: int, user: CurrentUser = Depends(require_lead_access))
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     audit_action(user, "opt_out", None, {"opted_out": True}, lead_id)
+    return lead
+
+
+@router.patch("/leads/{lead_id}/status", response_model=Lead)
+def set_status(lead_id: int, body: StatusIn, user: CurrentUser = Depends(require_staff)):
+    """A counsellor moves a lead to another pipeline stage. Audited with who did it."""
+    try:
+        lead = service.set_lead_status(lead_id, body.status, actor=user.email)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    audit_action(user, "set_lead_status", {"status": body.status}, {"status": lead.status}, lead_id)
     return lead
 
 

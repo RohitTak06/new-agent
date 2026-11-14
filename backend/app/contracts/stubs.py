@@ -43,6 +43,11 @@ def update_lead_score(lead_id: int, score: int, tier: str, reasons: list[str] | 
     return None
 
 
+def set_lead_status(lead_id: int, status: str, actor: str = "system",
+                    only_from: tuple[str, ...] | None = None) -> Lead:
+    return Lead(id=lead_id, profile=LeadProfile(name="Stub Student"), status=status)
+
+
 def opt_out_lead(lead_id: int) -> Lead:
     return Lead(id=lead_id, profile=LeadProfile(name="Stub Student"), status="new", opted_out=True)
 

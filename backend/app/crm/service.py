@@ -410,6 +410,36 @@ def update_lead_score(lead_id: int, score: int, tier: str, reasons: Optional[lis
     )
 
 
+LEAD_STATUSES = ("new", "contacted", "qualified", "converted", "lost")
+
+
+def set_lead_status(lead_id: int, status: str, actor: str = "system",
+                    only_from: Optional[tuple[str, ...]] = None) -> Lead:
+    """Set a lead's pipeline stage. With `only_from`, change it only from those stages, so the
+    agent moves a lead forward but never overrides a counsellor's "converted" or "lost"."""
+    if status not in LEAD_STATUSES:
+        raise ValueError(f"Unknown status {status}")
+    db: Session = SessionLocal()
+    try:
+        row = db.get(LeadRow, lead_id)
+        if row is None:
+            raise ValueError(f"Lead {lead_id} not found")
+        before = row.status
+        changed = before != status and (only_from is None or before in only_from)
+        if changed:
+            row.status = status
+            db.commit()
+            db.refresh(row)
+        result = _row_to_lead(row)
+    finally:
+        db.close()
+    if changed:
+        log_event(actor=actor, event_type="tool_call", tool_name="set_lead_status",
+                  input={"lead_id": lead_id, "status": status}, output={"from": before, "to": status},
+                  reasoning_step=None, request_id=None, lead_id=lead_id)
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Internal: opt_out_lead  (called by router; not a stub function)
 # ---------------------------------------------------------------------------
