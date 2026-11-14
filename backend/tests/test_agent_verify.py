@@ -184,3 +184,27 @@ def test_describing_a_band_is_not_a_grant():
     for text in ("A 96 percentile falls in the 100% scholarship band.", "If you qualify for a scholarship, a counsellor confirms it.",
                  "A counsellor can check whether you qualify for a scholarship.", "You may qualify for a scholarship."):
         assert check_no_false_grant(text).ok, text
+
+
+# --- booking words in sentences that are not about a session -----------------------------------------
+import pytest  # noqa: E402
+
+
+@pytest.mark.parametrize("answer", [
+    "The B.Tech fee is INR 3,40,000 as confirmed on the official fee page [programs_and_fees.md#b-tech].",
+    "Seats are reserved for Rajasthan domicile students.",
+    "Classes are scheduled to begin in August.",
+    "I've scheduled a follow-up reminder for you.",
+])
+def test_a_booking_word_outside_a_session_sentence_is_not_a_claim(answer):
+    assert check_booking(answer, ev()).ok
+
+
+@pytest.mark.parametrize("answer", [
+    "Your counselling session is confirmed.",
+    "You're booked with Ms. Rekha Verma.",
+    "Done! Confirmed for 3 pm tomorrow.",
+    "Great news. I have booked it for Tuesday at 10:00.",
+])
+def test_a_session_claim_without_a_booking_is_caught(answer):
+    assert not check_booking(answer, ev()).ok

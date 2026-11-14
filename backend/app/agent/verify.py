@@ -23,6 +23,18 @@ _NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
 _FEE_GRANT = re.compile(r"\b(?:waiver|discount|concession)\b", re.IGNORECASE)
 GRANTING_ACTIONS = {"fee_waiver", "booking_override"}
 _BOOKING_CLAIM = re.compile(r"\b(booked|confirmed|reserved|scheduled)\b", re.IGNORECASE)
+# A booking word is a booking claim only in a sentence about a session: "as confirmed on the official page",
+# "seats are reserved for..." and "classes are scheduled to begin..." state facts, not bookings.
+_BOOKING_CONTEXT = re.compile(
+    r"\b(?:sessions?|slots?|appointments?|meetings?|calls?|counsell?(?:or|ing)\w*|bookings?|visits?|consultations?)\b"
+    r"|\b(?:you(?:'re|\s+are)|i(?:'ve|\s+have))\s+(?:\w+\s+)?(?:booked|reserved|scheduled|confirmed)\b"
+    r"|\b(?:Ms|Mr|Mrs|Dr)\.?\s+[A-Z]"
+    r"|\b\d{1,2}[:.]\d{2}\b|\b\d{1,2}\s*(?:am|pm)\b|\btomorrow\b"
+    r"|\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\b",
+    re.IGNORECASE,
+)
+_FOLLOWUP_ONLY = re.compile(r"\b(?:follow[\s-]?ups?|reminders?)\b", re.IGNORECASE)
+_SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
 _NEGATION = re.compile(r"\b(not|n't|unable|couldn't|could not|cannot|can't|no longer)\b", re.IGNORECASE)
 _GRANT = re.compile(
     r"\byour\s+(?:\w+\s+){0,3}(?:waiver|discount|scholarship|exception|seat|admission|request|concession)\s+"
@@ -146,13 +158,22 @@ def check_grounding(answer: str, evidence: TurnEvidence, intent: str, question: 
     return Verdict("grounding", True, "all claims cite retrieved sources", details={"citations": cited})
 
 
+def _booking_claims(answer: str) -> list[str]:
+    claims = []
+    for sentence in _SENTENCE_SPLIT.split(answer):
+        about_session = _BOOKING_CONTEXT.search(sentence)
+        if not about_session or (_FOLLOWUP_ONLY.search(sentence) and not re.search(r"\bsessions?|slots?|appointments?\b",
+                                                                                        sentence, re.IGNORECASE)):
+            continue
+        for m in _BOOKING_CLAIM.finditer(sentence):
+            if not _NEGATION.search(sentence[max(0, m.start() - 30):m.start()]):
+                claims.append(m.group(0))
+    return claims
+
+
 def check_booking(answer: str, evidence: TurnEvidence) -> Verdict:
     """Never claim a booking unless a `book_slot` call this turn returned ok=True."""
-    claims = []
-    for m in _BOOKING_CLAIM.finditer(answer):
-        window = answer[max(0, m.start() - 30):m.start()]
-        if not _NEGATION.search(window):
-            claims.append(m.group(0))
+    claims = _booking_claims(answer)
     if not claims:
         return Verdict("booking", True, "no booking claimed")
     if any(b.ok for b in evidence.bookings):
