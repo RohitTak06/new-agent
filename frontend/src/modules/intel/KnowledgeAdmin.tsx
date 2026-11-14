@@ -55,23 +55,23 @@ const SearchPanel: React.FC = () => {
 
   return (
     <Card className="p-4">
-      <h2 className="text-sm font-semibold text-slate-800">Search the knowledge base</h2>
-      <p className="text-xs text-slate-500 mb-3">The same retrieval the agent uses. No match means it must refuse and escalate.</p>
+      <h2 className="text-sm font-semibold text-ink">Search the knowledge base</h2>
+      <p className="text-13 text-ink-muted mb-3">The same retrieval the agent uses. No match means it must refuse and escalate.</p>
       <form onSubmit={(e) => { e.preventDefault(); void run(text); }} className="flex gap-2">
         <label htmlFor="kb-search" className="sr-only">Question</label>
         <input id="kb-search" value={text} onChange={(e) => setText(e.target.value)} autoComplete="off"
           placeholder="Ask anything a student might…"
-          className="flex-1 min-w-0 text-sm rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        <Button type="submit" busy={busy} disabled={!text.trim()}>{!busy && <Search className="w-4 h-4" />} Search</Button>
+          className="field flex-1 min-w-0" />
+        <Button type="submit" variant="secondary" busy={busy} disabled={!text.trim()}>{!busy && <Search className="w-4 h-4" aria-hidden />} Search</Button>
       </form>
-      <div className="flex flex-wrap gap-1.5 mt-2">
+      <div className="flex flex-wrap gap-1.5 mt-3">
         {PRESETS.map((p) => (
-          <Button key={p} small variant="ghost" className="bg-slate-100" disabled={busy} onClick={() => { setText(p); void run(p); }}>{p}</Button>
+          <Button key={p} small variant="secondary" disabled={busy} onClick={() => { setText(p); void run(p); }}>{p}</Button>
         ))}
       </div>
       {error && <div className="mt-3"><ErrorBanner message={error} /></div>}
       {result && (
-        <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <div className="mt-4 rounded-lg border border-line bg-canvas p-3">
           {result.answer_found ? (
             <>
               <Badge tone="success"><CheckCircle2 className="w-3 h-3" aria-hidden /> Found in the knowledge base</Badge>
@@ -80,7 +80,7 @@ const SearchPanel: React.FC = () => {
           ) : (
             <>
               <Badge tone="danger"><ShieldAlert className="w-3 h-3" aria-hidden /> Not in the knowledge base</Badge>
-              <p className="text-xs text-slate-600 mt-1.5">The agent would say so and pass this to a counsellor, not guess.</p>
+              <p className="text-xs text-ink-secondary mt-1.5">The agent would say so and pass this to a counsellor, not guess.</p>
             </>
           )}
         </div>
@@ -118,13 +118,13 @@ const ScorePanel: React.FC = () => {
     }
   }
 
-  const field = "w-full text-sm rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500";
-  const label = "block text-xs font-medium text-slate-600 mb-1";
+  const field = "field py-1.5";
+  const label = "block text-xs font-medium text-ink-secondary mb-1";
 
   return (
     <Card className="p-4">
-      <h2 className="text-sm font-semibold text-slate-800">Try the lead scoring</h2>
-      <p className="text-xs text-slate-500 mb-3">A sample profile only. Nothing here is saved.</p>
+      <h2 className="text-sm font-semibold text-ink">Try the lead scoring</h2>
+      <p className="text-13 text-ink-muted mb-3">A sample profile only. Nothing here is saved.</p>
       <form onSubmit={(e) => { e.preventDefault(); void run(); }} className="grid grid-cols-2 gap-3">
         <div><label htmlFor="s-name" className={label}>Name</label>
           <input id="s-name" value={name} onChange={(e) => setName(e.target.value)} className={field} /></div>
@@ -138,8 +138,9 @@ const ScorePanel: React.FC = () => {
           <input id="s-budget" type="number" min="0" step="0.5" value={budget} onChange={(e) => setBudget(e.target.value)} className={field} /></div>
         <div className="col-span-2"><label htmlFor="s-exam" className={label}>Entrance exam</label>
           <input id="s-exam" value={exam} onChange={(e) => setExam(e.target.value)} className={field} /></div>
-        <label className="col-span-2 flex items-center gap-2 text-xs font-medium text-slate-700">
-          <input type="checkbox" checked={scholarship} onChange={(e) => setScholarship(e.target.checked)} /> Asked about scholarships
+        <label className="col-span-2 flex items-center gap-2 text-xs font-medium text-ink-secondary">
+          <input type="checkbox" checked={scholarship} onChange={(e) => setScholarship(e.target.checked)}
+            className="w-4 h-4 rounded accent-navy focus:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-1" /> Asked about scholarships
         </label>
         <Button type="submit" busy={busy} variant="secondary" className="col-span-2">Score this profile</Button>
       </form>
@@ -202,10 +203,10 @@ export const KnowledgeAdmin: React.FC = () => {
 
       <div className="space-y-3 mb-4">
         {error && <ErrorBanner message={error} />}
-        {notice && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">{notice}</p>}
+        {notice && <p role="status" className="rounded-lg border border-success/20 bg-success-soft px-3 py-2 text-sm text-success">{notice}</p>}
         {benchmark && (
-          <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
-            <p className="font-semibold">Retrieval benchmark: {benchmark.passed} of {benchmark.total_questions} passed ({benchmark.accuracy_percent}%)</p>
+          <div role="status" className="rounded-lg border border-success/20 bg-success-soft px-4 py-3 text-sm text-success">
+            <p className="font-semibold tabular-nums">Retrieval benchmark: {benchmark.passed} of {benchmark.total_questions} passed ({benchmark.accuracy_percent}%)</p>
             <p className="text-xs mt-0.5">
               Questions the knowledge base covers: {benchmark.in_scope_accuracy_percent}% · Questions it must refuse: {benchmark.zero_hallucination_guard_accuracy_percent}%.
               This tests retrieval only, not the model's wording.
@@ -221,24 +222,24 @@ export const KnowledgeAdmin: React.FC = () => {
 
       <Card className="p-4">
         <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-          <h2 className="text-sm font-semibold text-slate-800">Indexed passages{overview.data ? ` (${overview.data.count})` : ""}</h2>
+          <h2 className="text-sm font-semibold text-ink">Indexed passages{overview.data ? ` (${overview.data.count})` : ""}</h2>
           <div>
             <label htmlFor="kb-filter" className="sr-only">Filter passages</label>
             <input id="kb-filter" type="search" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter…"
-              className="text-sm rounded-lg border border-slate-300 px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="field py-1.5" />
           </div>
         </div>
         {overview.error && <ErrorBanner message={overview.error} onRetry={() => void overview.reload()} />}
         {overview.loading && !overview.data && <Loading />}
         {overview.data && (
-          <ul className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+          <ul className="max-h-72 overflow-y-auto divide-y divide-line scroll-quiet">
             {chunks.map((c, i) => (
-              <li key={`${c.source}-${i}`} className="py-2 text-xs">
-                <p className="font-mono text-blue-800 break-all">{c.source}</p>
-                <p className="text-slate-600 mt-0.5">{c.preview}</p>
+              <li key={`${c.source}-${i}`} className="py-2.5 text-xs">
+                <p className="font-mono text-navy break-all">{c.source}</p>
+                <p className="text-ink-secondary mt-0.5">{c.preview}</p>
               </li>
             ))}
-            {chunks.length === 0 && <li className="py-3 text-xs text-slate-500">No passages match.</li>}
+            {chunks.length === 0 && <li className="py-3 text-xs text-ink-secondary">No passages match.</li>}
           </ul>
         )}
       </Card>
