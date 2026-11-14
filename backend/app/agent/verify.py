@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Literal, Optional
 
-from app.contracts.models import ApprovalRequest, BookingResult, KnowledgeResult, LeadScore
+from app.contracts.models import ApprovalRequest, BookingResult, CancelResult, KnowledgeResult, LeadScore
 
 NOT_IN_KB = "[NOT_IN_KB]"
 
@@ -29,6 +29,7 @@ _SCHOOL_YEAR = re.compile(
 _FEE_GRANT = re.compile(r"\b(?:waiver|discount|concession)\b", re.IGNORECASE)
 GRANTING_ACTIONS = {"fee_waiver", "booking_override"}
 _BOOKING_CLAIM = re.compile(r"\b(booked|confirmed|reserved|scheduled)\b", re.IGNORECASE)
+_CANCEL_CLAIM = re.compile(r"\b(cancell?ed|released|removed|deleted|freed(?:\s+up)?)\b", re.IGNORECASE)
 # A booking word is a booking claim only in a sentence about a session: "as confirmed on the official page",
 # "seats are reserved for..." and "classes are scheduled to begin..." state facts, not bookings.
 _BOOKING_CONTEXT = re.compile(
@@ -65,6 +66,7 @@ class TurnEvidence:
 
     knowledge: list[KnowledgeResult] = field(default_factory=list)
     bookings: list[BookingResult] = field(default_factory=list)
+    cancellations: list[CancelResult] = field(default_factory=list)
     approvals: list[ApprovalRequest] = field(default_factory=list)
     tool_text: list[str] = field(default_factory=list)    # slot/booking results, for outbound message checks
     profile: Optional[dict] = None                        # lead profile after this turn's upsert_lead
@@ -169,21 +171,26 @@ def check_grounding(answer: str, evidence: TurnEvidence, intent: str, question: 
     return Verdict("grounding", True, "all claims cite retrieved sources", details={"citations": cited})
 
 
-def _booking_claims(answer: str) -> list[str]:
+def _booking_claims(answer: str, claim: re.Pattern = _BOOKING_CLAIM) -> list[str]:
     claims = []
     for sentence in _SENTENCE_SPLIT.split(answer):
         about_session = _BOOKING_CONTEXT.search(sentence)
         if not about_session or (_FOLLOWUP_ONLY.search(sentence) and not re.search(r"\bsessions?|slots?|appointments?\b",
                                                                                         sentence, re.IGNORECASE)):
             continue
-        for m in _BOOKING_CLAIM.finditer(sentence):
+        for m in claim.finditer(sentence):
             if not _NEGATION.search(sentence[max(0, m.start() - 30):m.start()]):
                 claims.append(m.group(0))
     return claims
 
 
 def check_booking(answer: str, evidence: TurnEvidence) -> Verdict:
-    """Never claim a booking unless a `book_slot` call this turn returned ok=True."""
+    """Never claim a booking unless a `book_slot` call this turn returned ok=True, nor a cancellation
+    unless a `cancel_booking` call this turn returned ok=True."""
+    cancelled = _booking_claims(answer, _CANCEL_CLAIM)
+    if cancelled and not any(c.ok for c in evidence.cancellations):
+        return Verdict("booking", False, "answer says a session was cancelled but no cancel_booking succeeded",
+                       "replan", {"claims": cancelled})
     claims = _booking_claims(answer)
     if not claims:
         return Verdict("booking", True, "no booking claimed")

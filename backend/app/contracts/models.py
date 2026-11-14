@@ -55,6 +55,12 @@ class BookingResult(BaseModel):
     alternatives: list[Slot] = []
 
 
+class CancelResult(BaseModel):
+    ok: bool
+    slot: Optional[Slot] = None             # the session that was released
+    reason: Optional[str] = None            # "no_booking" | "lead_not_found"
+
+
 class MessageResult(BaseModel):
     ok: bool
     message_id: Optional[str] = None

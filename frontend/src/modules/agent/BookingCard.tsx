@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertTriangle, CalendarCheck, CalendarClock, PhoneCall } from "lucide-react";
+import { AlertTriangle, CalendarCheck, CalendarClock, CalendarX, PhoneCall } from "lucide-react";
 import { formatDateTime, formatTime } from "../../lib/format";
 import { Button } from "../../lib/ui";
 import type { Slot } from "../../lib/types";
@@ -8,15 +8,18 @@ import type { AgentEvent } from "./sse";
 export type BookingView =
   | { kind: "confirmed"; slot: Slot }
   | { kind: "already_booked"; slot: Slot }
+  | { kind: "cancelled"; slot: Slot }
   | { kind: "clash"; alternatives: Slot[] }
   | { kind: "past"; alternatives: Slot[] }
   | { kind: "calendar_down"; alternatives: Slot[] }
   | { kind: "callback" };
 
-/** What a book_slot tool result means for the student; null when it needs no card (e.g. an unknown slot). */
+/** What a book_slot or cancel_booking result means for the student; null when it needs no card (e.g. an unknown slot). */
 export function bookingFromEvent(e: AgentEvent): BookingView | null {
-  if (e.type !== "tool_result" || e.data.name !== "book_slot") return null;
+  if (e.type !== "tool_result") return null;
   const r = e.data.result ?? {};
+  if (e.data.name === "cancel_booking") return e.data.ok && r.ok && r.slot ? { kind: "cancelled", slot: r.slot } : null;
+  if (e.data.name !== "book_slot") return null;
   if (!e.data.ok) {
     if (r.fallback === "other_slots_available") return { kind: "calendar_down", alternatives: r.alternatives ?? [] };
     if (r.fallback === "counsellor_callback") return { kind: "callback" };
@@ -27,6 +30,22 @@ export function bookingFromEvent(e: AgentEvent): BookingView | null {
   if (r.reason === "slot_taken") return { kind: "clash", alternatives: r.alternatives ?? [] };
   if (r.reason === "slot_in_past") return { kind: "past", alternatives: r.alternatives ?? [] };
   return null;
+}
+
+/**
+ * The cards one reply should show. The agent may call a tool several times in a turn, so the same
+ * outcome is shown once, and after a successful booking only it (and any cancellation before it) matters.
+ */
+export function bookingCards(views: BookingView[] = []): BookingView[] {
+  const seen = new Set<string>();
+  const unique = views.filter((v) => {
+    const key = `${v.kind}:${"slot" in v ? v.slot.slot_id : "alternatives" in v ? v.alternatives.map((s) => s.slot_id).join(",") : ""}`;
+    return seen.has(key) ? false : (seen.add(key), true);
+  });
+  const cancelled = unique.some((v) => v.kind === "cancelled");
+  const settled = unique.filter((v) => v.kind === "confirmed" || v.kind === "cancelled");
+  if (unique.some((v) => v.kind === "confirmed")) return settled;
+  return cancelled ? unique.filter((v) => v.kind !== "already_booked") : unique;
 }
 
 export function bookThisMessage(slot: Slot): string {
@@ -69,6 +88,13 @@ export const BookingCard: React.FC<{ view: BookingView; disabled: boolean; onBoo
       return (
         <div className={`${box} border-info/30 bg-info-soft`}>
           <p className={`${title} text-info`}><CalendarClock className="w-4 h-4" aria-hidden /> You already have a session</p>
+          <SlotLine slot={view.slot} />
+        </div>
+      );
+    case "cancelled":
+      return (
+        <div className={`${box} border-line bg-subtle`}>
+          <p className={`${title} text-ink-secondary`}><CalendarX className="w-4 h-4" aria-hidden /> Session cancelled</p>
           <SlotLine slot={view.slot} />
         </div>
       );

@@ -56,6 +56,8 @@ DECLARATIONS: list[dict] = [
     _fn("book_slot", "Book a counsellor slot for the current student. Check `ok` in the result; if false, "
         "offer the `alternatives`.", {"slot_id": {"type": "string", "description": "The slot_id value, digits only"}},
         ["slot_id"]),
+    _fn("cancel_booking", "Cancel the current student's upcoming counsellor session, freeing the slot. Call only when "
+        "the student asks to cancel it, or to move it to another time (then call book_slot for the new one).", {}, []),
     _fn("send_message", "Send a message to the current student on a channel (mock). Facts must come from this "
         "turn's search_knowledge results, or it is refused.",
         {"channel": {"type": "string", "enum": ["web", "whatsapp", "email"]}, "text": {"type": "string"}},
@@ -130,6 +132,13 @@ def _advance(lead_id: int, status: str, only_from: tuple[str, ...]) -> None:
 
 
 def _book(args: dict, env: ToolEnv) -> Any:
+    evidence = env.evidence
+    held = [b for b in evidence.bookings if b.reason == "already_booked"]
+    if held and not any(c.ok for c in evidence.cancellations):
+        # Trying slot after slot only repeats the same answer (seen live: five identical cards).
+        return _refuse("the student already has a session; book_slot will refuse every slot until it is cancelled. "
+                       "Tell them the session they hold, and call cancel_booking only if they asked to cancel or move it.",
+                       slot=held[-1].slot.model_dump() if held[-1].slot else None)
     result = tools.book_slot(env.lead_id, _slot_id(args))
     if getattr(result, "ok", False):
         _advance(env.lead_id, "contacted", ("new",))
@@ -178,6 +187,7 @@ _EXECUTORS: dict[str, Callable[[dict, ToolEnv], Any]] = {
     "get_lead": lambda a, e: tools.get_lead(e.lead_id),
     "get_slots": lambda a, e: tools.get_slots(str(a["date_from"]), str(a["date_to"])),
     "book_slot": _book,
+    "cancel_booking": lambda a, e: tools.cancel_booking(e.lead_id),
     "send_message": _send,
     "schedule_followup": _schedule,
     "opt_out": lambda a, e: tools.opt_out_lead(e.lead_id),

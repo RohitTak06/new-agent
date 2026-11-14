@@ -1,7 +1,7 @@
 """Hardcoded fake implementations so everyone can build in parallel.
 Real versions live in each module's service.py with the SAME signatures."""
 from app.contracts.models import (
-    ApprovalRequest, BookingResult, Chunk, KnowledgeResult, Lead, LeadProfile,
+    ApprovalRequest, BookingResult, CancelResult, Chunk, KnowledgeResult, Lead, LeadProfile,
     LeadScore, MessageResult, Slot,
 )
 
@@ -78,6 +78,11 @@ def book_slot(lead_id: int, slot_id: str) -> BookingResult:
         return BookingResult(ok=False, reason="slot_taken", alternatives=_SLOTS[1:])
     chosen = next((s for s in _SLOTS if s.slot_id == slot_id), None)
     return BookingResult(ok=chosen is not None, slot=chosen)
+
+
+def cancel_booking(lead_id: int) -> CancelResult:
+    """Release the student's upcoming session, if they have one."""
+    return CancelResult(ok=True, slot=_SLOTS[1])
 
 
 def send_message(channel: str, lead_id: int, text: str) -> MessageResult:

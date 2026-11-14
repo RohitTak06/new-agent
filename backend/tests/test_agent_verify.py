@@ -1,7 +1,7 @@
 """Unit tests for the deterministic answer verifiers."""
 from app.agent.verify import (NOT_IN_KB, TurnEvidence, check_booking, check_figures, check_grounding, check_no_false_grant,
                               check_outbound, citations)
-from app.contracts.models import ApprovalRequest, BookingResult, Chunk, KnowledgeResult, Slot
+from app.contracts.models import ApprovalRequest, BookingResult, CancelResult, Chunk, KnowledgeResult, Slot
 
 SRC = "programs_and_fees.md#bachelor-of-technology-b-tech"
 KB = KnowledgeResult(answer_found=True, chunks=[Chunk(
@@ -224,3 +224,25 @@ def test_invented_figures_beside_a_school_year_still_fail():
                  f"You get 12 free credits and the fee is INR 2,65,000 [{SRC}]."):
         verdict = check_grounding(text, ev(KB), "institutional_question")
         assert not verdict.ok and verdict.details["ungrounded_numbers"], text
+
+
+# ---------------------------------------------------------------- cancellations (seen live: claimed with no cancel tool)
+@pytest.mark.parametrize("answer", [
+    "Your 10:00 AM counselling session has been cancelled.",
+    "I've deleted your booking with Ms. Rekha Verma.",
+    "Your slot has been released.",
+])
+def test_a_cancellation_claim_without_cancel_booking_is_caught(answer):
+    v = check_booking(answer, ev())
+    assert not v.ok and v.action == "replan"
+
+
+def test_a_cancellation_claim_after_cancel_booking_passes():
+    evidence = ev()
+    evidence.cancellations.append(CancelResult(ok=True, slot=SLOT))
+    assert check_booking("Your counselling session has been cancelled.", evidence).ok
+
+
+def test_a_negated_or_unrelated_cancellation_is_not_a_claim():
+    assert check_booking("Your session could not be cancelled right now.", ev()).ok
+    assert check_booking("Results are released in June.", ev()).ok

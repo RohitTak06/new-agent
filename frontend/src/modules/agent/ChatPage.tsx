@@ -7,7 +7,7 @@ import { Button, ErrorBanner } from "../../lib/ui";
 import { useApi } from "../../lib/useApi";
 import type { Booking, ChannelMessage, Chunk, Interaction, Slot } from "../../lib/types";
 import { CitationDisplay } from "../intel/CitationDisplay";
-import { BookingCard, bookingFromEvent, bookThisMessage, type BookingView } from "./BookingCard";
+import { BookingCard, bookingCards, bookingFromEvent, bookThisMessage, type BookingView } from "./BookingCard";
 import { RichText } from "./RichText";
 import { streamChat, type AgentEvent } from "./sse";
 import { TracePanel } from "./TracePanel";
@@ -83,8 +83,7 @@ const Bubble: React.FC<{ m: ChatMessage; waiting: boolean; disabled: boolean; on
       </div>
     );
   }
-  const confirmed = m.bookings?.find((b) => b.kind === "confirmed");
-  const cards = confirmed ? [confirmed] : m.bookings ?? [];
+  const cards = bookingCards(m.bookings);
   return (
     <div className="flex justify-start">
       <div className="max-w-[85%] rounded-xl rounded-bl-sm px-4 py-2.5 text-sm leading-relaxed bg-surface border border-line text-ink">
