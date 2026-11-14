@@ -27,8 +27,6 @@ export default {
         success: { DEFAULT: "#067647", soft: "#ECFDF3" },
         optout: { DEFAULT: "#6941C6", soft: "#F4F3FF" },
         chart: "#2E5A88",                       // the one series colour
-        // Old names, kept until every screen uses the tokens above
-        jklu: { blue: "#0A2540", navy: "#0A2540", ink: "#13355A", line: "#1E3D60", gold: "#C9A227", goldsoft: "#FBF3DC" },
       },
       fontSize: {
         "13": ["13px", { lineHeight: "20px" }],

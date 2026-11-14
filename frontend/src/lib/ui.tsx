@@ -32,7 +32,7 @@ export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & {
   </button>
 );
 
-export type Tone = "neutral" | "success" | "warning" | "danger" | "info" | "optout" | "gold";
+export type Tone = "neutral" | "success" | "warning" | "danger" | "info" | "optout";
 
 const BADGE: Record<Tone, string> = {
   neutral: "bg-subtle text-ink-secondary border-line",
@@ -41,7 +41,6 @@ const BADGE: Record<Tone, string> = {
   danger: "bg-danger-soft text-danger border-danger/20",
   info: "bg-info-soft text-info border-info/20",
   optout: "bg-optout-soft text-optout border-optout/20",
-  gold: "bg-gold-soft text-navy border-gold/40",
 };
 
 export const Badge: React.FC<{ tone?: Tone; className?: string; children: React.ReactNode }> = ({
