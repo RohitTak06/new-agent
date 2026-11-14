@@ -117,7 +117,7 @@ def get_clock():
 
 
 @router.post("/clock/advance")
-def advance_clock(req: AdvanceRequest, user: CurrentUser = Depends(require_staff)):
+def advance_clock(req: AdvanceRequest, user: CurrentUser = Depends(require_admin)):
     """Fast-forward the virtual clock, then send anything now due (the demo's fast-forward button)."""
     before = clock.to_ist(clock.now())
     now = clock.advance(req.hours)

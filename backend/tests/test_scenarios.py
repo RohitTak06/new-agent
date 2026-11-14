@@ -258,15 +258,15 @@ def hot_lead() -> int:
 
 def test_s6_hot_lead_silent_for_24h_gets_a_personal_followup(client, monkeypatch, users, restore_clock):
     lead = hot_lead()
-    events = chat(client, monkeypatch, FakeLLM(CHIT, [says("Happy to help.")]), "Thanks", headers=users.counsellor.headers,
+    events = chat(client, monkeypatch, FakeLLM(CHIT, [says("Happy to help.")]), "Thanks", headers=users.admin.headers,
                   lead_id=lead)
     planned = next(r["result"] for r in of(events, "tool_result") if r["name"] == "plan_followup")
     assert planned["template"] == "hot_reminder" and planned["wait_hours"] == 24
     assert sched.list_messages(lead) == []
 
-    client.post("/scheduling/clock/advance", json={"hours": 23}, headers=users.counsellor.headers)
+    client.post("/scheduling/clock/advance", json={"hours": 23}, headers=users.admin.headers)
     assert sched.list_messages(lead) == []                                    # not yet
-    client.post("/scheduling/clock/advance", json={"hours": 1.5}, headers=users.counsellor.headers)
+    client.post("/scheduling/clock/advance", json={"hours": 1.5}, headers=users.admin.headers)
     [msg] = sched.list_messages(lead)
     assert "B.Tech CSE" in msg["text"] and msg["meta"]["written_by"] == "template"
     with SessionLocal() as db:
@@ -276,7 +276,7 @@ def test_s6_hot_lead_silent_for_24h_gets_a_personal_followup(client, monkeypatch
 
 def test_s6_replying_resets_the_plan_so_there_is_never_a_stale_followup(client, monkeypatch, users):
     lead = hot_lead()
-    h = users.counsellor.headers
+    h = users.admin.headers
     chat(client, monkeypatch, FakeLLM(CHIT, [says("Sure.")]), "Hi", headers=h, lead_id=lead)
     first = pending_followups(lead)
     chat(client, monkeypatch, FakeLLM(CHIT, [says("Sure.")]), "Hi again", headers=h, lead_id=lead)
@@ -295,7 +295,7 @@ def test_s6_policy_table(client, monkeypatch, users, profile, tier, objection, t
     lead = new_lead(**profile)
     crm.update_lead_score(lead, 50, tier, [])
     plan = {**CHIT, "objection": objection}
-    events = chat(client, monkeypatch, FakeLLM(plan, [says("Sure.")]), "Hello", headers=users.counsellor.headers, lead_id=lead)
+    events = chat(client, monkeypatch, FakeLLM(plan, [says("Sure.")]), "Hello", headers=users.admin.headers, lead_id=lead)
     planned = next(r["result"] for r in of(events, "tool_result") if r["name"] == "plan_followup")
     assert (planned["template"], planned["wait_hours"]) == (template, hours)
 
@@ -408,7 +408,7 @@ def test_s7_student_cannot_request_bulk_messages_but_staff_can(client, monkeypat
                    "Message everyone", headers=users.student.headers)
     assert of(student, "tool_result")[0]["result"]["ok"] is False and of(student, "approval_pending") == []
     staff = chat(client, monkeypatch, FakeLLM(CHIT, [calls(("request_bulk_message", args)), says("Sent for approval; pending.")]),
-                 "Message the list", headers=users.counsellor.headers)
+                 "Message the list", headers=users.admin.headers)
     assert of(staff, "approval_pending")[0]["action"] == "bulk_message"
 
 
@@ -419,8 +419,11 @@ def test_s8_roles_are_enforced_on_the_server(client, users):
     for url in ("/crm/leads", f"/crm/leads/{users.other_student.lead_id}", "/crm/approvals", "/crm/audit"):
         assert client.get(url, headers=student).status_code == 403
     assert client.get(f"/crm/leads/{users.student.lead_id}", headers=student).status_code == 200
-    for url in ("/crm/leads", "/crm/approvals", "/crm/audit"):
+    for url in ("/crm/leads", "/crm/approvals"):
         assert client.get(url, headers=users.counsellor.headers).status_code == 200
+    for url in ("/crm/audit", "/crm/analytics/funnel", "/intel/knowledge"):
+        assert client.get(url, headers=users.counsellor.headers).status_code == 403
+        assert client.get(url, headers=users.admin.headers).status_code == 200
     assert client.post("/intel/knowledge/reload", headers=users.counsellor.headers).status_code == 403
     assert client.post("/intel/knowledge/reload", headers=users.admin.headers).status_code == 200
 
@@ -429,7 +432,7 @@ def test_s8_roles_are_enforced_on_the_server(client, users):
 @pytest.mark.parametrize("message", ["Please stop messaging me", "unsubscribe", "Don't contact me again", "opt me out"])
 def test_s9_opt_out_in_chat_is_immediate_and_needs_no_model(client, monkeypatch, users, message, restore_clock):
     lead = hot_lead()
-    h = users.counsellor.headers
+    h = users.admin.headers
     chat(client, monkeypatch, FakeLLM(CHIT, [says("Sure.")]), "Hello", headers=h, lead_id=lead)
     assert len(pending_followups(lead)) == 1
 

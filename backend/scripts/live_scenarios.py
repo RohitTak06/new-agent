@@ -144,7 +144,7 @@ def run() -> None:
 
     # S6: follow-ups
     start = time.monotonic()
-    moved = client.post("/scheduling/clock/advance", json={"hours": 24}, headers=COUNSELLOR).json()
+    moved = client.post("/scheduling/clock/advance", json={"hours": 24}, headers=ADMIN).json()
     done = moved["followups"]["processed"]
     fake_turn = {"seconds": time.monotonic() - start, "events": [], "final": {}, "message": "fast-forward 24h"}
     sent = {p["lead_id"] for p in done if p["status"] == "sent"}
@@ -179,7 +179,7 @@ def run() -> None:
     record("S7", "fee waiver approved by a counsellor; student notified", res.status_code == 200
            and res.json().get("action") == "fee_waiver" and told)
 
-    trail = client.get("/crm/audit", params={"lead_id": crm_lead(), "limit": 500}, headers=COUNSELLOR).json()
+    trail = client.get("/crm/audit", params={"lead_id": crm_lead(), "limit": 500}, headers=ADMIN).json()
     kinds = {r["event_type"] for r in trail}
     record("S7", "audit shows reasoning, tools, approval", {"plan", "tool_call", "verify", "approval_requested", "approval_decision"} <= kinds,
            note=f"{len(trail)} rows")

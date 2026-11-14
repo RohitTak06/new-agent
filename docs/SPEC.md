@@ -2,8 +2,8 @@
 
 ## 1. Actors and roles
 - **student** (prospect): chats on web, simulated WhatsApp, or email. Sees only their own data.
-- **counsellor**: sees leads, books/overrides slots, approves or rejects sensitive actions, reads audit log.
-- **admin**: everything counsellor can do + user management + knowledge base admin.
+- **counsellor**: the everyday screens only: lead pipeline and lead details, approvals (approve or reject sensitive actions), scheduling.
+- **admin**: everything a counsellor can do, plus oversight and demo tools: audit log, analytics, knowledge base (search, benchmark, reload), staff test chat, the read-only Users page, clock fast-forward and fault injection. The server enforces this split (403 for a counsellor).
 
 ## 2. Agent design (the 30-point core)
 

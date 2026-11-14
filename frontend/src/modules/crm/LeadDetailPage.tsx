@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, BellOff, CalendarCheck, Loader2, ScrollText } from "lucide-react";
 import { api, errorMessage } from "../../lib/api";
 import { formatDateTime, formatTime } from "../../lib/format";
+import { useAuth } from "../../lib/auth";
 import { leadName } from "../../lib/leads";
 import { Badge, Card, EmptyState, ErrorBanner, Loading, type Tone } from "../../lib/ui";
 import { useApi } from "../../lib/useApi";
@@ -182,6 +183,7 @@ export const LeadDetailPage: React.FC = () => {
   const followups = useApi<Followup[]>(path("/scheduling/followups?lead_id={id}"), POLL_MS);
   const approvals = useApi<Approval[]>(path("/crm/approvals?lead_id={id}"), POLL_MS);
   const [tab, setTab] = useState("conversation");
+  const { user } = useAuth();
 
   const back = (
     <Link to="/pipeline" className="inline-flex items-center gap-1 rounded-lg text-sm text-ink-secondary hover:text-navy mb-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-navy">
@@ -212,10 +214,10 @@ export const LeadDetailPage: React.FC = () => {
         {lead.data.opted_out && <Badge tone="optout"><BellOff className="w-3 h-3" aria-hidden /> opted out of follow-ups</Badge>}
         <div className="ml-auto flex flex-wrap items-center gap-3">
           <StageSelect lead={lead.data} onChanged={() => void lead.reload()} />
-          <Link to={`/audit?lead_id=${leadId}`}
+          {user?.role === "admin" && <Link to={`/audit?lead_id=${leadId}`}
             className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium text-ink-secondary hover:bg-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-1">
             <ScrollText className="w-4 h-4" aria-hidden /> Audit trail
-          </Link>
+          </Link>}
         </div>
       </div>
       {lead.error && <div className="mb-3"><ErrorBanner message={lead.error} /></div>}

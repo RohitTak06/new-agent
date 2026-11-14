@@ -197,7 +197,7 @@ def test_a_crash_returns_json_with_cors_headers(monkeypatch, users):
 
     monkeypatch.setattr(reports, "funnel", crash)
     res = TestClient(app, raise_server_exceptions=False).get(
-        "/crm/analytics/funnel", headers={**users.counsellor.headers, "Origin": "http://localhost:5173"})
+        "/crm/analytics/funnel", headers={**users.admin.headers, "Origin": "http://localhost:5173"})
     assert res.status_code == 500
     assert "secret detail" not in res.text and res.json()["detail"]
     assert res.headers["access-control-allow-origin"] == "http://localhost:5173"

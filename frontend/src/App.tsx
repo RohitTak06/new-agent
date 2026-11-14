@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { BrowserRouter, NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { BarChart3, BookOpen, CalendarClock, Inbox, KanbanSquare, LogIn, LogOut, MessageSquare, ScrollText, ShieldCheck, type LucideIcon } from "lucide-react";
+import { BarChart3, BookOpen, CalendarClock, Inbox, KanbanSquare, LogIn, LogOut, MessageSquare, ScrollText, ShieldCheck, Users, type LucideIcon } from "lucide-react";
 import { AuthProvider, homeFor, useAuth } from "./lib/auth";
 import { ErrorBoundary } from "./lib/ErrorBoundary";
 import { ErrorBanner, Loading } from "./lib/ui";
@@ -8,11 +8,13 @@ import { useApi } from "./lib/useApi";
 import type { Approval, Role } from "./lib/types";
 import { ChatPage } from "./modules/agent";
 import { MessagesPage } from "./modules/channels";
-import { AnalyticsPage, APPROVALS_CHANGED, ApprovalsPage, AuditPage, LeadDetailPage, LoginPage, PipelinePage, SchedulingPage } from "./modules/crm";
+import { AnalyticsPage, APPROVALS_CHANGED, ApprovalsPage, AuditPage, LeadDetailPage, LoginPage, PipelinePage, SchedulingPage, UsersPage } from "./modules/crm";
 import { KnowledgeAdmin } from "./modules/intel";
 
 type Viewer = Role | "anonymous";
 const STAFF: Viewer[] = ["admin", "counsellor"];
+/** Oversight and demo tools. Counsellors get only their everyday screens; the server enforces the same split. */
+const ADMIN: Viewer[] = ["admin"];
 
 interface NavItem {
   to: string;
@@ -28,10 +30,11 @@ const NAV: NavItem[] = [
   { to: "/pipeline", label: "Pipeline", icon: KanbanSquare, viewers: STAFF, group: "Leads" },
   { to: "/approvals", label: "Approvals", icon: ShieldCheck, viewers: STAFF, group: "Leads" },
   { to: "/scheduling", label: "Scheduling", icon: CalendarClock, viewers: STAFF, group: "Operations" },
-  { to: "/audit", label: "Audit log", icon: ScrollText, viewers: STAFF, group: "Operations" },
-  { to: "/analytics", label: "Analytics", icon: BarChart3, viewers: STAFF, group: "Insights" },
-  { to: "/knowledge", label: "Knowledge base", icon: BookOpen, viewers: STAFF, group: "Insights" },
-  { to: "/chat", label: "Test chat", icon: MessageSquare, viewers: STAFF, group: "Agent" },
+  { to: "/audit", label: "Audit log", icon: ScrollText, viewers: ADMIN, group: "Operations" },
+  { to: "/analytics", label: "Analytics", icon: BarChart3, viewers: ADMIN, group: "Insights" },
+  { to: "/knowledge", label: "Knowledge base", icon: BookOpen, viewers: ADMIN, group: "Insights" },
+  { to: "/users", label: "Users", icon: Users, viewers: ADMIN, group: "Admin" },
+  { to: "/chat", label: "Test chat", icon: MessageSquare, viewers: ADMIN, group: "Agent" },
 ];
 
 /** Hides a screen from roles that can't use it. The server still refuses them on every request. */
@@ -188,14 +191,16 @@ const AppRoutes: React.FC = () => {
       <Route path="/" element={<Navigate to={homeFor(user)} replace />} />
       <Route path="/login" element={user ? <Navigate to={homeFor(user)} replace /> : <LoginPage />} />
       {/* Remounts on login and logout, so one person's conversation never shows for the next. */}
-      <Route path="/chat" element={<ChatPage key={user?.id ?? "anonymous"} />} />
+      <Route path="/chat" element={user?.role === "counsellor" ? <Navigate to="/pipeline" replace />
+        : <ChatPage key={user?.id ?? "anonymous"} />} />
       <Route path="/messages" element={<RequireRole roles={["student"]}><MessagesPage /></RequireRole>} />
       <Route path="/pipeline" element={<RequireRole roles={STAFF}><PipelinePage /></RequireRole>} />
       <Route path="/approvals" element={<RequireRole roles={STAFF}><ApprovalsPage /></RequireRole>} />
-      <Route path="/audit" element={<RequireRole roles={STAFF}><AuditPage /></RequireRole>} />
+      <Route path="/audit" element={<RequireRole roles={ADMIN}><AuditPage /></RequireRole>} />
       <Route path="/scheduling" element={<RequireRole roles={STAFF}><SchedulingPage /></RequireRole>} />
-      <Route path="/analytics" element={<RequireRole roles={STAFF}><AnalyticsPage /></RequireRole>} />
-      <Route path="/knowledge" element={<RequireRole roles={STAFF}><KnowledgeAdmin /></RequireRole>} />
+      <Route path="/analytics" element={<RequireRole roles={ADMIN}><AnalyticsPage /></RequireRole>} />
+      <Route path="/knowledge" element={<RequireRole roles={ADMIN}><KnowledgeAdmin /></RequireRole>} />
+      <Route path="/users" element={<RequireRole roles={ADMIN}><UsersPage /></RequireRole>} />
       <Route path="/leads/:id" element={<RequireRole roles={STAFF}><LeadDetailPage /></RequireRole>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

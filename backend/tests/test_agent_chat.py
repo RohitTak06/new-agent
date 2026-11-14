@@ -245,7 +245,7 @@ def test_missing_llm_config_streams_an_error(client, monkeypatch):
 
 
 def test_unknown_lead_is_404(client, users):
-    res = client.post("/agent/chat", json={"message": "hi", "lead_id": 999999}, headers=users.counsellor.headers)
+    res = client.post("/agent/chat", json={"message": "hi", "lead_id": 999999}, headers=users.admin.headers)
     assert res.status_code == 404
 
 
@@ -261,7 +261,7 @@ def test_session_of_another_lead_is_rejected(client, monkeypatch, users):
     first = chat(client, monkeypatch, FakeLLM({"intent": "chitchat", "steps": []}, [says("Hi!")]), "Hello")[-1]["data"]
     other = crm_service.upsert_lead(LeadProfile(email=f"{uuid.uuid4().hex[:8]}@example.test")).id
     res = client.post("/agent/chat", json={"message": "hi", "session_id": first["session_id"], "lead_id": other},
-                      headers=users.counsellor.headers)
+                      headers=users.admin.headers)
     assert res.status_code == 409
 
 

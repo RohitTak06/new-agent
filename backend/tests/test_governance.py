@@ -150,12 +150,24 @@ def test_s8_nonexistent_lead_looks_the_same_to_a_student(client, users):
     assert client.get("/crm/leads/999999", headers=users.student.headers).status_code == 403
 
 
-def test_s8_counsellor_can_read_but_not_manage_the_kb(client, users):
+def test_s8_counsellor_gets_only_the_everyday_screens(client, users):
     h = users.counsellor.headers
-    for url in ("/crm/leads", f"/crm/leads/{users.student.lead_id}", "/crm/approvals", "/crm/audit",
-                "/crm/analytics/funnel", "/intel/knowledge"):
+    for url in ("/crm/leads", f"/crm/leads/{users.student.lead_id}", "/crm/approvals", "/scheduling/bookings",
+                "/scheduling/followups", "/scheduling/clock"):
         assert client.get(url, headers=h).status_code == 200, url
-    assert client.post("/intel/knowledge/reload", headers=h).status_code == 403
+    for method, url in [("get", "/crm/audit"), ("get", "/crm/analytics/funnel"), ("get", "/intel/knowledge"),
+                        ("get", "/intel/benchmark"), ("get", "/crm/users"), ("post", "/intel/knowledge/reload")]:
+        assert client.request(method, url, headers=h).status_code == 403, url
+    assert client.post("/intel/search", json={"query": "fees"}, headers=h).status_code == 403
+    assert client.post("/scheduling/clock/advance", json={"hours": 1}, headers=h).status_code == 403
+    assert client.post("/agent/chat", json={"message": "hi"}, headers=h).status_code == 403
+    assert any(r.tool_name == "/crm/audit" for r in audit_rows(event_type="access_denied", actor=users.counsellor.email))
+
+
+def test_s8_admin_gets_the_oversight_screens(client, users):
+    h = users.admin.headers
+    for url in ("/crm/leads", "/crm/approvals", "/crm/audit", "/crm/analytics/funnel", "/intel/knowledge", "/crm/users"):
+        assert client.get(url, headers=h).status_code == 200, url
 
 
 def test_s8_admin_can_manage_the_kb(client, users):
@@ -211,8 +223,10 @@ def test_session_view_hides_the_trace_from_students(client, monkeypatch, users):
     assert mine.status_code == 200 and "trace" not in mine.json()
     assert [m["message"] for m in mine.json()["messages"]] == ["Hello there", "Hi!"]
     assert client.get(f"/agent/sessions/{sid}", headers=users.other_student.headers).status_code == 403
-    staff = client.get(f"/agent/sessions/{sid}", headers=users.counsellor.headers).json()
-    assert {t["event_type"] for t in staff["trace"]} >= {"plan", "final"}
+    admin = client.get(f"/agent/sessions/{sid}", headers=users.admin.headers).json()
+    assert {t["event_type"] for t in admin["trace"]} >= {"plan", "final"}
+    counsellor = client.get(f"/agent/sessions/{sid}", headers=users.counsellor.headers)
+    assert counsellor.status_code == 200 and "trace" not in counsellor.json()       # the trace is audit data
 
 
 # ---------------------------------------------------------------- S7 approval gate
@@ -249,7 +263,7 @@ def test_s7_audit_by_lead_shows_the_whole_story(client, users):
     lead = new_lead()
     req = tools.request_approval("fee_waiver", {"lead_id": lead})
     client.post(f"/crm/approvals/{req.approval_id}/approve", json={}, headers=users.counsellor.headers)
-    rows = client.get(f"/crm/audit?lead_id={lead}", headers=users.counsellor.headers).json()
+    rows = client.get(f"/crm/audit?lead_id={lead}", headers=users.admin.headers).json()
     assert {"approval_requested", "approval_decision"} <= {r["event_type"] for r in rows}
     assert {"upsert_lead", "request_approval", "add_interaction", "send_message"} <= {r["tool_name"] for r in rows}
 
@@ -398,7 +412,7 @@ def test_audit_filters(client, users):
                   request_id=None, lead_id=lead, session_id="sess-filter")
     crm.log_event(actor="agent", event_type="final", tool_name=None, input=None, output=None, reasoning_step=None,
                   request_id=None, lead_id=lead, session_id="sess-filter")
-    h = users.counsellor.headers
+    h = users.admin.headers
     by_lead = [r["event_type"] for r in client.get(f"/crm/audit?lead_id={lead}", headers=h).json()]
     assert by_lead[:2] == ["final", "plan"] and "approval_requested" in by_lead      # newest first
     assert [r["event_type"] for r in client.get("/crm/audit?session_id=sess-filter&type=plan", headers=h).json()] == ["plan"]
@@ -407,9 +421,9 @@ def test_audit_filters(client, users):
 
 
 def test_funnel_counts(client, users):
-    before = client.get("/crm/analytics/funnel", headers=users.counsellor.headers).json()
+    before = client.get("/crm/analytics/funnel", headers=users.admin.headers).json()
     new_lead()
-    after = client.get("/crm/analytics/funnel", headers=users.counsellor.headers).json()
+    after = client.get("/crm/analytics/funnel", headers=users.admin.headers).json()
     assert after["total_leads"] == before["total_leads"] + 1
     assert after["by_status"]["new"] == before["by_status"].get("new", 0) + 1
     assert set(after) >= {"by_tier", "by_channel", "opted_out", "booked_sessions", "approvals"}
@@ -428,3 +442,18 @@ def test_interaction_actor_comes_from_the_token_not_the_request(client, users):
     assert res.status_code == 201 and res.json()["actor"] == "counsellor"
     with SessionLocal() as db:
         assert db.scalars(select(Interaction).where(Interaction.lead_id == lead)).one().actor == "counsellor"
+
+
+# ---------------------------------------------------------------- users page (admin only)
+def test_admin_lists_users_with_roles_and_no_password_hashes(client, users):
+    res = client.get("/crm/users", headers=users.admin.headers)
+    assert res.status_code == 200
+    rows = {r["email"]: r for r in res.json()}
+    assert rows[users.counsellor.email]["role"] == "counsellor"
+    assert rows[users.student.email]["lead_id"] == users.student.lead_id
+    assert all("password" not in key for row in rows.values() for key in row)
+
+
+@pytest.mark.parametrize("who", ["counsellor", "student"])
+def test_only_admins_can_list_users(client, users, who):
+    assert client.get("/crm/users", headers=getattr(users, who).headers).status_code == 403

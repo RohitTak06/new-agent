@@ -8,9 +8,20 @@ from pydantic import BaseModel, Field
 
 from app.contracts.models import Lead, LeadProfile
 from app.crm import approvals, auth, ratelimit, reports, service
-from app.crm.auth import CurrentUser, audit_action, current_user, require_lead_access, require_staff
+from app.crm.auth import (CurrentUser, audit_action, current_user, require_admin, require_lead_access,
+                          require_staff)
 
 router = APIRouter()
+
+
+class UserOut(BaseModel):
+    id: int
+    email: str
+    full_name: str
+    role: str
+    is_active: bool
+    created_at: str
+    lead_id: Optional[int] = None
 
 
 class TokenOut(BaseModel):
@@ -66,6 +77,12 @@ def login(request: Request, form: OAuth2PasswordRequestForm = Depends()):
 @router.get("/auth/me", response_model=CurrentUser)
 def me(user: CurrentUser = Depends(current_user)):
     return user
+
+
+@router.get("/users", response_model=list[UserOut], dependencies=[Depends(require_admin)])
+def list_users():
+    """All accounts and their roles, for admins. Read-only: accounts are created by the seed."""
+    return service.list_users()
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +196,7 @@ def reject(approval_id: int, body: RejectIn, user: CurrentUser = Depends(require
 # Audit and analytics
 # ---------------------------------------------------------------------------
 
-@router.get("/audit", dependencies=[Depends(require_staff)])
+@router.get("/audit", dependencies=[Depends(require_admin)])
 def audit(lead_id: Optional[int] = None, session_id: Optional[str] = None,
           event_type: Optional[str] = Query(default=None, alias="type"),
           date_from: Optional[datetime] = Query(default=None, alias="from"),
@@ -190,6 +207,6 @@ def audit(lead_id: Optional[int] = None, session_id: Optional[str] = None,
     return reports.list_audit(lead_id, session_id, event_type, date_from, date_to, limit, offset)
 
 
-@router.get("/analytics/funnel", dependencies=[Depends(require_staff)])
+@router.get("/analytics/funnel", dependencies=[Depends(require_admin)])
 def funnel():
     return reports.funnel()

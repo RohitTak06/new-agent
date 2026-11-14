@@ -222,14 +222,14 @@ export const SchedulingPage: React.FC = () => {
             </div>
           </div>
           {clock.data && clock.data.offset_hours > 0 && <Badge tone="neutral">{clock.data.offset_hours} h ahead of real time</Badge>}
-          <div className="flex flex-wrap gap-2 ml-auto">
+          {user?.role === "admin" && <div className="flex flex-wrap gap-2 ml-auto">
             {[24, 48].map((hours) => (
               <Button key={hours} busy={advancing === hours} disabled={advancing !== null} variant={hours === 24 ? "primary" : "secondary"}
                 onClick={() => void fastForward(hours)}>
                 {advancing !== hours && <FastForward className="w-4 h-4" aria-hidden />} Fast-forward {hours}h
               </Button>
             ))}
-          </div>
+          </div>}
         </div>
         {advancing !== null && <p role="status" className="text-xs text-ink-muted mt-2">Sending anything now due. The agent writes some follow-ups, so this can take up to 30 seconds.</p>}
         {clock.error && <div className="mt-3"><ErrorBanner message={clock.error} onRetry={() => void clock.reload()} /></div>}

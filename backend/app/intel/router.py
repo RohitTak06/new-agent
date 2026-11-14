@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from app.contracts.models import KnowledgeResult, LeadProfile, LeadScore
-from app.crm.auth import CurrentUser, audit_action, require_admin, require_staff
+from app.crm.auth import CurrentUser, audit_action, require_admin
 from app.intel.retrieval import search_knowledge, store
 from app.intel.scoring import score_lead
 from app.intel.test_set import run_benchmark_evaluation
@@ -21,19 +21,19 @@ def health():
     return {"module": "intel", "ok": True, "indexed_chunks": len(store.raw_chunks)}
 
 
-@router.post("/search", response_model=KnowledgeResult, dependencies=[Depends(require_staff)])
+@router.post("/search", response_model=KnowledgeResult, dependencies=[Depends(require_admin)])
 def search_endpoint(req: SearchRequest):
     """Retrieve institutional knowledge chunks for a query with citation tags."""
     return search_knowledge(req.query)
 
 
-@router.post("/score", response_model=LeadScore, dependencies=[Depends(require_staff)])
+@router.post("/score", response_model=LeadScore, dependencies=[Depends(require_admin)])
 def score_endpoint(profile: LeadProfile):
     """Qualify and score a prospective student lead profile."""
     return score_lead(profile)
 
 
-@router.get("/knowledge", dependencies=[Depends(require_staff)])
+@router.get("/knowledge", dependencies=[Depends(require_admin)])
 def list_knowledge_chunks():
     """Returns all indexed knowledge chunks for KB admin review."""
     return {
@@ -53,7 +53,7 @@ def reload_knowledge(user: CurrentUser = Depends(require_admin)):
     return {"status": "reloaded", "total_chunks": len(store.raw_chunks)}
 
 
-@router.get("/benchmark", dependencies=[Depends(require_staff)])
+@router.get("/benchmark", dependencies=[Depends(require_admin)])
 def run_benchmark():
     """Runs the 40+ question benchmark test suite and returns precision and guardrail metrics."""
     return run_benchmark_evaluation()

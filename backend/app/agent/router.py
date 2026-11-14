@@ -53,7 +53,7 @@ def get_session(session_id: str, request: Request, user: CurrentUser = Depends(c
     if lead_id is None or (not user.is_staff and user.lead_id != lead_id):
         raise deny(user, request, f"session {session_id} is not this student's")
     view = {"session_id": session_id, "lead_id": lead_id, "messages": crm.session_interactions(session_id)}
-    if user.is_staff:
+    if user.role == "admin":                      # the trace comes from the audit log, which is admin-only
         view["trace"] = reports.list_audit(session_id=session_id, limit=reports.MAX_AUDIT_ROWS)
     return view
 
@@ -101,6 +101,8 @@ def _allowed_lead(req: ChatRequest, user: Optional[CurrentUser], session_lead: O
             raise HTTPException(status_code=401, detail="Log in to use this lead or session")
         return session_lead
     if user.is_staff:
+        if user.role != "admin":                  # counsellors talk to students on the record, not through the agent
+            raise deny(user, request, "staff test chat is for admins")
         return req.lead_id or session_lead
     for wanted in (req.lead_id, session_lead):
         if wanted is not None:
