@@ -65,7 +65,7 @@ const ForwardResult: React.FC<{ result: AdvanceResult; messages: Map<number, Cha
             <li key={p.followup_id} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
               <p className="flex flex-wrap items-center gap-1.5 text-xs text-slate-700">
                 {p.status === "sent"
-                  ? <Badge tone="green"><Send className="w-3 h-3" aria-hidden /> sent by {p.detail}</Badge>
+                  ? <Badge tone="success"><Send className="w-3 h-3" aria-hidden /> sent by {p.detail}</Badge>
                   : <Badge><SkipForward className="w-3 h-3" aria-hidden /> skipped</Badge>}
                 <Link to={`/leads/${p.lead_id}`} className="font-medium text-jklu-blue underline">{name(p.lead_id)}</Link>
                 {p.status === "skipped" && <span>because {SKIP_REASON[p.detail] ?? humanize(p.detail)}</span>}
@@ -221,7 +221,7 @@ export const SchedulingPage: React.FC = () => {
               <p className="text-lg font-bold text-jklu-blue">{clock.data ? formatDateTime(clock.data.now) : "…"}</p>
             </div>
           </div>
-          {clock.data && clock.data.offset_hours > 0 && <Badge tone="amber">{clock.data.offset_hours} h ahead of real time</Badge>}
+          {clock.data && clock.data.offset_hours > 0 && <Badge tone="neutral">{clock.data.offset_hours} h ahead of real time</Badge>}
           <div className="flex flex-wrap gap-2 ml-auto">
             {[24, 48].map((hours) => (
               <Button key={hours} busy={advancing === hours} disabled={advancing !== null} variant={hours === 24 ? "primary" : "secondary"}

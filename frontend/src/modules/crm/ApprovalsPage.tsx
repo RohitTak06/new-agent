@@ -13,7 +13,7 @@ const POLL_MS = 10_000;
 /** Fired after a decision, so the count in the navigation doesn't wait for its next refresh. */
 export const APPROVALS_CHANGED = "approvals-changed";
 
-const STATUS_TONE: Record<Approval["status"], Tone> = { pending: "amber", approved: "green", rejected: "red" };
+const STATUS_TONE: Record<Approval["status"], Tone> = { pending: "warning", approved: "success", rejected: "danger" };
 const TABS = [
   { key: "pending", label: "Pending" },
   { key: "approved", label: "Approved" },
@@ -189,7 +189,7 @@ const ApprovalCard: React.FC<{
       <div className="flex flex-wrap items-center gap-2 mb-2">
         <h2 className="text-sm font-semibold text-slate-900">#{approval.id} {ACTION_LABEL[approval.action] ?? approval.action.replace(/_/g, " ")}</h2>
         <Badge tone={STATUS_TONE[approval.status]}>{approval.status}</Badge>
-        {lead?.opted_out && <Badge tone="violet">opted out</Badge>}
+        {lead?.opted_out && <Badge tone="optout">opted out</Badge>}
         <span className="ml-auto text-xs text-slate-500">{formatDateTime(approval.created_at)}</span>
       </div>
       <p className="text-xs text-slate-500 mb-2">

@@ -13,9 +13,9 @@ import { LeadScoreCard } from "../intel/LeadScoreCard";
 const POLL_MS = 10_000;
 
 const STATUS_TONE: Record<string, Tone> = {
-  pending: "amber", approved: "green", rejected: "red", sent: "green", skipped: "neutral", failed: "red",
+  pending: "warning", approved: "success", rejected: "danger", sent: "success", skipped: "neutral", failed: "danger",
 };
-const ACTOR_TONE: Record<string, Tone> = { student: "blue", agent: "violet", counsellor: "green" };
+const ACTOR_TONE: Record<string, Tone> = { student: "info", agent: "neutral", counsellor: "success" };
 
 function humanize(value: string): string {
   return value.replace(/_/g, " ");
@@ -128,7 +128,7 @@ function renderInteractions(rows: Interaction[]) {
     <Row key={r.id} when={r.created_at} badges={<>
       <Badge tone={ACTOR_TONE[r.actor] ?? "neutral"}>{r.actor}</Badge>
       <Badge>{r.channel}</Badge>
-      {r.meta?.escalated && <Badge tone="red">escalated</Badge>}
+      {r.meta?.escalated && <Badge tone="warning">escalated</Badge>}
     </>}>
       <div className="text-sm text-slate-800"><RichText text={r.message} citations={r.meta?.citations} /></div>
     </Row>
@@ -210,7 +210,7 @@ export const LeadDetailPage: React.FC = () => {
           <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Lead #{lead.data.id}</p>
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{leadName(lead.data)}</h1>
         </div>
-        {lead.data.opted_out && <Badge tone="violet"><BellOff className="w-3 h-3" aria-hidden /> opted out of follow-ups</Badge>}
+        {lead.data.opted_out && <Badge tone="optout"><BellOff className="w-3 h-3" aria-hidden /> opted out of follow-ups</Badge>}
         <div className="ml-auto flex flex-wrap items-center gap-3">
           <StageSelect lead={lead.data} onChanged={() => void lead.reload()} />
           <Link to={`/audit?lead_id=${leadId}`}

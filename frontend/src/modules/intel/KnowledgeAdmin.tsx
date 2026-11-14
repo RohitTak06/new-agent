@@ -74,12 +74,12 @@ const SearchPanel: React.FC = () => {
         <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
           {result.answer_found ? (
             <>
-              <Badge tone="green"><CheckCircle2 className="w-3 h-3" aria-hidden /> Found in the knowledge base</Badge>
+              <Badge tone="success"><CheckCircle2 className="w-3 h-3" aria-hidden /> Found in the knowledge base</Badge>
               <CitationDisplay chunks={result.chunks} />
             </>
           ) : (
             <>
-              <Badge tone="red"><ShieldAlert className="w-3 h-3" aria-hidden /> Not in the knowledge base</Badge>
+              <Badge tone="danger"><ShieldAlert className="w-3 h-3" aria-hidden /> Not in the knowledge base</Badge>
               <p className="text-xs text-slate-600 mt-1.5">The agent would say so and pass this to a counsellor, not guess.</p>
             </>
           )}

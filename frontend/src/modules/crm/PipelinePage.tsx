@@ -85,8 +85,8 @@ const LeadCard: React.FC<{ lead: Lead; highlighted: boolean }> = ({ lead, highli
         <div className="mt-2 flex flex-wrap items-center gap-1">
           <Badge><Icon className="w-3 h-3" aria-hidden /> {lead.profile.channel}</Badge>
           <Badge>{lead.status}</Badge>
-          {lead.opted_out && <Badge tone="violet"><BellOff className="w-3 h-3" aria-hidden /> opted out</Badge>}
-          {highlighted && <Badge tone="amber"><Sparkles className="w-3 h-3" aria-hidden /> just updated</Badge>}
+          {lead.opted_out && <Badge tone="optout"><BellOff className="w-3 h-3" aria-hidden /> opted out</Badge>}
+          {highlighted && <Badge tone="info"><Sparkles className="w-3 h-3" aria-hidden /> just updated</Badge>}
         </div>
       </Link>
     </li>

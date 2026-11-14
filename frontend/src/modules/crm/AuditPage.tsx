@@ -15,8 +15,8 @@ const EVENT_TYPES = [
 ];
 
 const TONE: Record<string, Tone> = {
-  plan: "violet", verify: "green", final: "blue", retry: "amber", escalation: "amber", approval_requested: "amber",
-  approval_decision: "green", approval_execution_failed: "red", error: "red", access_denied: "red", rate_limited: "red",
+  plan: "info", verify: "success", final: "neutral", retry: "warning", escalation: "warning", approval_requested: "warning",
+  approval_decision: "success", approval_execution_failed: "danger", error: "danger", access_denied: "danger", rate_limited: "danger",
 };
 
 const FILTERS = ["lead_id", "session_id", "type", "from", "to"] as const;
@@ -66,7 +66,7 @@ const Row: React.FC<{ row: AuditRow; onFilter: (key: keyof Filters, value: strin
             <div className="flex flex-wrap gap-2 mb-2 text-xs">
               {row.lead_id !== null && <Button small variant="secondary" onClick={() => onFilter("lead_id", String(row.lead_id))}>Only this lead</Button>}
               {row.session_id && <Button small variant="secondary" onClick={() => onFilter("session_id", row.session_id as string)}>Only this conversation</Button>}
-              {row.approval_id !== null && <Badge tone="amber">approval #{row.approval_id}</Badge>}
+              {row.approval_id !== null && <Badge tone="warning">approval #{row.approval_id}</Badge>}
               {row.request_id && <span className="text-slate-500 self-center break-all">request {row.request_id}</span>}
             </div>
             <div className="grid gap-2 md:grid-cols-2">
