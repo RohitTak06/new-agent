@@ -1,7 +1,7 @@
 import type { Lead, Tier } from "./types";
 import type { Tone } from "./ui";
 
-export const TIER_TONE: Record<Tier, Tone> = { hot: "red", warm: "amber", cold: "blue" };
+export const TIER_TONE: Record<Tier, Tone> = { hot: "danger", warm: "warning", cold: "info" };
 
 export function isAnonymous(lead: Lead): boolean {
   return !lead.profile.name && !lead.profile.email && !lead.profile.phone;

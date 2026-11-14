@@ -46,7 +46,7 @@ Say the words in quotes, or your own. Times are a guide.
 
 > I got 96 percentile in JEE Main and my budget is about 4 lakh a year.
 
-*Staff window.* **Test Student** moves to **Hot**, highlighted in gold. They may reach Warm after the first message; that's fine, and worth pointing out.
+*Staff window.* **Test Student** moves to **Hot**, highlighted with a navy outline and a "just updated" badge. They may reach Warm after the first message; that's fine, and worth pointing out.
 
 - Click the card: "The score is explainable, with reasons, and every conversation is here for the counsellor."
 - Go back to the board.

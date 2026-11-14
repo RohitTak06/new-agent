@@ -2,17 +2,20 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { AlertCircle, ArrowUpRight, Inbox, Loader2, RefreshCw, type LucideIcon } from "lucide-react";
 
+const FOCUS = "focus:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-1";
+
 export const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ className = "", children }) => (
-  <div className={`bg-white rounded-xl border border-slate-200/80 shadow-card ${className}`}>{children}</div>
+  <div className={`bg-surface rounded-xl border border-line shadow-card ${className}`}>{children}</div>
 );
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
+/** One primary (navy) action per screen; everything else secondary or ghost. */
 const BUTTON: Record<ButtonVariant, string> = {
-  primary: "bg-jklu-blue text-white shadow-sm hover:bg-jklu-ink",
-  secondary: "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50",
-  ghost: "text-slate-600 hover:bg-slate-100",
-  danger: "bg-white text-rose-700 border border-rose-300 hover:bg-rose-50",
+  primary: "bg-navy text-white hover:bg-navy-hover",
+  secondary: "bg-surface text-ink-secondary border border-line-strong hover:bg-subtle hover:text-ink",
+  ghost: "text-ink-secondary hover:bg-subtle hover:text-ink",
+  danger: "bg-surface text-danger border border-danger/30 hover:bg-danger-soft",
 };
 
 export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -21,47 +24,46 @@ export const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & {
   busy?: boolean;
 }> = ({ variant = "primary", small, busy, className = "", children, disabled, type = "button", ...rest }) => (
   <button type={type} disabled={disabled || busy} {...rest}
-    className={`inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors
-      focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-blue-500
+    className={`inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors ${FOCUS}
       disabled:opacity-50 disabled:cursor-not-allowed
-      ${small ? "text-xs px-2.5 py-1" : "text-sm px-3.5 py-2"} ${BUTTON[variant]} ${className}`}>
-    {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+      ${small ? "text-xs px-2.5 py-1.5" : "text-sm px-4 py-2"} ${BUTTON[variant]} ${className}`}>
+    {busy && <Loader2 className="w-4 h-4 animate-spin" aria-hidden />}
     {children}
   </button>
 );
 
-export type Tone = "neutral" | "green" | "amber" | "red" | "blue" | "violet";
+export type Tone = "neutral" | "success" | "warning" | "danger" | "info" | "optout";
 
 const BADGE: Record<Tone, string> = {
-  neutral: "bg-slate-100 text-slate-700 border-slate-200",
-  green: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  amber: "bg-amber-50 text-amber-800 border-amber-200",
-  red: "bg-rose-50 text-rose-800 border-rose-200",
-  blue: "bg-blue-50 text-blue-800 border-blue-200",
-  violet: "bg-violet-50 text-violet-800 border-violet-200",
+  neutral: "bg-subtle text-ink-secondary border-line",
+  success: "bg-success-soft text-success border-success/20",
+  warning: "bg-warning-soft text-warning border-warning/20",
+  danger: "bg-danger-soft text-danger border-danger/20",
+  info: "bg-info-soft text-info border-info/20",
+  optout: "bg-optout-soft text-optout border-optout/20",
 };
 
 export const Badge: React.FC<{ tone?: Tone; className?: string; children: React.ReactNode }> = ({
   tone = "neutral", className = "", children,
 }) => (
-  <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${BADGE[tone]} ${className}`}>
+  <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium leading-4 ${BADGE[tone]} ${className}`}>
     {children}
   </span>
 );
 
 export const Loading: React.FC<{ label?: string }> = ({ label = "Loading…" }) => (
-  <div role="status" className="flex items-center justify-center gap-2 py-12 text-sm text-slate-500">
-    <Loader2 className="w-4 h-4 animate-spin" /> {label}
+  <div role="status" className="flex items-center justify-center gap-2 py-12 text-sm text-ink-muted">
+    <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> {label}
   </div>
 );
 
 export const ErrorBanner: React.FC<{ message: string; onRetry?: () => void }> = ({ message, onRetry }) => (
-  <div role="alert" className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
-    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+  <div role="alert" className="flex items-start gap-2 rounded-lg border border-danger/20 bg-danger-soft px-3 py-2 text-sm text-danger">
+    <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />
     <span className="flex-1 min-w-0 break-words">{message}</span>
     {onRetry && (
-      <button type="button" onClick={onRetry} className="inline-flex items-center gap-1 text-xs font-medium underline">
-        <RefreshCw className="w-3 h-3" /> Retry
+      <button type="button" onClick={onRetry} className={`inline-flex items-center gap-1 rounded text-xs font-medium underline ${FOCUS}`}>
+        <RefreshCw className="w-3 h-3" aria-hidden /> Retry
       </button>
     )}
   </div>
@@ -69,44 +71,48 @@ export const ErrorBanner: React.FC<{ message: string; onRetry?: () => void }> = 
 
 export const EmptyState: React.FC<{ title: string; hint?: string }> = ({ title, hint }) => (
   <div className="py-12 text-center">
-    <Inbox className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-    <p className="text-sm font-medium text-slate-600">{title}</p>
-    {hint && <p className="text-xs text-slate-500 mt-1">{hint}</p>}
+    <Inbox className="w-6 h-6 text-ink-muted mx-auto mb-2" aria-hidden />
+    <p className="text-sm font-medium text-ink-secondary">{title}</p>
+    {hint && <p className="text-xs text-ink-muted mt-1">{hint}</p>}
   </div>
 );
 
 export const PageHeader: React.FC<{ title: string; subtitle?: string; eyebrow?: string; actions?: React.ReactNode }> = ({
   title, subtitle, eyebrow, actions,
 }) => (
-  <div className="flex flex-wrap items-end justify-between gap-3 mb-5 pb-4 border-b border-slate-200/70">
+  <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
     <div className="min-w-0">
-      {eyebrow && <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">{eyebrow}</p>}
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
-      {subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}
+      {eyebrow && <p className="text-xs font-medium text-ink-muted mb-1">{eyebrow}</p>}
+      <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
+      {subtitle && <p className="text-sm text-ink-secondary mt-1">{subtitle}</p>}
     </div>
     {actions}
   </div>
 );
 
+/** Section title inside a card: 14px semibold. */
+export const SectionTitle: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = "" }) => (
+  <h2 className={`text-sm font-semibold text-ink ${className}`}>{children}</h2>
+);
+
 /** A headline number. With `to`, the whole tile opens the list behind the number. */
 export const StatTile: React.FC<{ label: string; value: number | string; note?: string; icon?: LucideIcon;
-  accent?: string; to?: string }> = ({ label, value, note, icon: Icon, accent = "text-jklu-blue bg-slate-100", to }) => {
+  accent?: string; to?: string }> = ({ label, value, note, icon: Icon, accent = "text-ink-muted", to }) => {
   const body = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium text-slate-500">{label}</p>
-        {Icon && <span className={`rounded-lg p-1.5 ${accent}`}><Icon className="w-4 h-4" aria-hidden /></span>}
+        <p className="text-13 font-medium text-ink-secondary">{label}</p>
+        {Icon && <Icon className={`w-4 h-4 ${accent}`} aria-hidden />}
       </div>
-      <p className="text-3xl font-semibold tracking-tight text-slate-900 mt-1 tabular-nums">{value}</p>
+      <p className="text-2xl font-semibold tracking-tight text-ink mt-2 tabular-nums">{value}</p>
       <div className="mt-1 flex items-center justify-between gap-2 min-h-[1rem]">
-        {note ? <p className="text-xs text-slate-500">{note}</p> : <span />}
-        {to && <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-jklu-blue transition-colors" aria-hidden />}
+        {note ? <p className="text-xs text-ink-muted">{note}</p> : <span />}
+        {to && <ArrowUpRight className="w-4 h-4 text-ink-muted group-hover:text-navy transition-colors" aria-hidden />}
       </div>
     </>
   );
-  const frame = "block bg-white rounded-xl border border-slate-200/80 shadow-card p-4";
+  const frame = "block bg-surface rounded-xl border border-line shadow-card p-4";
   return to ? (
-    <Link to={to} className={`group ${frame} hover:border-slate-300 hover:shadow-raised transition
-      focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}>{body}</Link>
+    <Link to={to} className={`group ${frame} hover:border-line-strong transition-colors ${FOCUS}`}>{body}</Link>
   ) : <div className={frame}>{body}</div>;
 };

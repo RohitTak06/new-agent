@@ -8,12 +8,14 @@
   font-weight: 400;
   font-feature-settings: "cv11", "ss01";   /* Inter's straight-sided digits read better in tables */
   -webkit-font-smoothing: antialiased;
+  color: #101828;                          /* ink */
+  background-color: #F7F8FA;               /* canvas */
 }
 
 /* Quiet scrollbars inside panels (kanban columns, chat, trace) */
-.scroll-quiet { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+.scroll-quiet { scrollbar-width: thin; scrollbar-color: #D0D5DD transparent; }
 .scroll-quiet::-webkit-scrollbar { width: 8px; height: 8px; }
-.scroll-quiet::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+.scroll-quiet::-webkit-scrollbar-thumb { background: #D0D5DD; border-radius: 9999px; }
 
 body {
   margin: 0;
@@ -21,3 +23,14 @@ body {
   min-height: 100vh;
 }
 
+@layer components {
+  /* Inputs and selects: 8px radius, a strong border, a navy focus ring */
+  .field {
+    @apply w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-muted
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-1 focus:border-navy
+      disabled:bg-subtle disabled:text-ink-muted;
+  }
+  .field-label {
+    @apply block text-xs font-medium text-ink-secondary mb-1;
+  }
+}

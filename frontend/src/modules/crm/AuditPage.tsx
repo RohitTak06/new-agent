@@ -15,8 +15,8 @@ const EVENT_TYPES = [
 ];
 
 const TONE: Record<string, Tone> = {
-  plan: "violet", verify: "green", final: "blue", retry: "amber", escalation: "amber", approval_requested: "amber",
-  approval_decision: "green", approval_execution_failed: "red", error: "red", access_denied: "red", rate_limited: "red",
+  plan: "info", verify: "success", final: "neutral", retry: "warning", escalation: "warning", approval_requested: "warning",
+  approval_decision: "success", approval_execution_failed: "danger", error: "danger", access_denied: "danger", rate_limited: "danger",
 };
 
 const FILTERS = ["lead_id", "session_id", "type", "from", "to"] as const;
@@ -30,8 +30,8 @@ function toInstant(local: string): string {
 const Json: React.FC<{ label: string; value: unknown }> = ({ label, value }) => (
   value === null || value === undefined ? null : (
     <div className="min-w-0">
-      <p className="text-[11px] font-medium text-slate-500 mb-0.5">{label}</p>
-      <pre className="text-[11px] leading-snug bg-slate-900 text-slate-100 rounded-lg p-2.5 overflow-x-auto max-h-64 whitespace-pre-wrap break-words">
+      <p className="text-xs font-medium text-ink-secondary mb-1">{label}</p>
+      <pre className="text-xs leading-snug bg-surface text-ink border border-line rounded-lg p-3 overflow-x-auto max-h-64 whitespace-pre-wrap break-words scroll-quiet">
         {JSON.stringify(value, null, 2)}
       </pre>
     </div>
@@ -43,37 +43,37 @@ const Row: React.FC<{ row: AuditRow; onFilter: (key: keyof Filters, value: strin
   const Chevron = open ? ChevronDown : ChevronRight;
   return (
     <>
-      <tr className="border-t border-slate-100 align-top hover:bg-slate-50">
+      <tr className="border-t border-line align-top hover:bg-subtle">
         <td className="pl-2 py-2 w-6">
           <button type="button" aria-expanded={open} aria-label={`${open ? "Hide" : "Show"} details of audit row ${row.id}`} onClick={() => setOpen(!open)}
-            className="p-0.5 rounded text-slate-500 hover:bg-slate-200">
-            <Chevron className="w-4 h-4" />
+            className="p-0.5 rounded-lg text-ink-muted hover:bg-line hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-navy">
+            <Chevron className="w-4 h-4" aria-hidden />
           </button>
         </td>
-        <td className="px-2 py-2 text-xs text-slate-500 tabular-nums whitespace-nowrap">#{row.id}</td>
-        <td className="px-2 py-2 text-xs text-slate-600 whitespace-nowrap">{formatDateTime(row.created_at)}</td>
-        <td className="px-2 py-2 text-xs text-slate-800 whitespace-nowrap max-w-[160px] truncate" title={row.actor}>{row.actor}</td>
+        <td className="px-2 py-2 text-xs text-ink-muted tabular-nums whitespace-nowrap">#{row.id}</td>
+        <td className="px-2 py-2 text-xs text-ink-secondary tabular-nums whitespace-nowrap">{formatDateTime(row.created_at)}</td>
+        <td className="px-2 py-2 text-xs text-ink whitespace-nowrap max-w-[160px] truncate" title={row.actor}>{row.actor}</td>
         <td className="px-2 py-2 whitespace-nowrap"><Badge tone={TONE[row.event_type] ?? "neutral"}>{row.event_type.replace(/_/g, " ")}</Badge></td>
-        <td className="px-2 py-2 text-xs font-mono text-slate-700 whitespace-nowrap max-w-[150px] truncate" title={row.tool_name ?? ""}>{row.tool_name ?? ""}</td>
-        <td className="px-2 py-2 text-xs text-slate-600 min-w-[180px]">{row.reasoning_step ?? ""}</td>
+        <td className="px-2 py-2 text-xs font-mono text-ink-secondary whitespace-nowrap max-w-[150px] truncate" title={row.tool_name ?? ""}>{row.tool_name ?? ""}</td>
+        <td className="px-2 py-2 text-xs text-ink-secondary min-w-[180px]">{row.reasoning_step ?? ""}</td>
         <td className="px-2 py-2 text-xs whitespace-nowrap">
-          {row.lead_id !== null && <Link to={`/leads/${row.lead_id}`} className="text-jklu-blue underline">#{row.lead_id}</Link>}
+          {row.lead_id !== null && <Link to={`/leads/${row.lead_id}`} className="text-navy underline underline-offset-2 tabular-nums">#{row.lead_id}</Link>}
         </td>
       </tr>
       {open && (
-        <tr className="bg-slate-50">
-          <td colSpan={8} className="px-3 pb-3 pt-1">
+        <tr className="bg-subtle">
+          <td colSpan={8} className="px-4 pb-4 pt-2">
             <div className="flex flex-wrap gap-2 mb-2 text-xs">
               {row.lead_id !== null && <Button small variant="secondary" onClick={() => onFilter("lead_id", String(row.lead_id))}>Only this lead</Button>}
               {row.session_id && <Button small variant="secondary" onClick={() => onFilter("session_id", row.session_id as string)}>Only this conversation</Button>}
-              {row.approval_id !== null && <Badge tone="amber">approval #{row.approval_id}</Badge>}
-              {row.request_id && <span className="text-slate-500 self-center break-all">request {row.request_id}</span>}
+              {row.approval_id !== null && <Badge tone="warning">approval #{row.approval_id}</Badge>}
+              {row.request_id && <span className="text-ink-secondary self-center break-all">request {row.request_id}</span>}
             </div>
             <div className="grid gap-2 md:grid-cols-2">
               <Json label="Input" value={row.input} />
               <Json label="Output" value={row.output} />
             </div>
-            {row.input === null && row.output === null && <p className="text-xs text-slate-500">No input or output recorded.</p>}
+            {row.input === null && row.output === null && <p className="text-xs text-ink-secondary">No input or output recorded.</p>}
           </td>
         </tr>
       )}
@@ -107,8 +107,8 @@ export const AuditPage: React.FC = () => {
 
   const update = (key: keyof Filters) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setDraft({ ...draft, [key]: e.target.value });
-  const field = "w-full text-sm rounded-lg border border-slate-300 px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500";
-  const label = "block text-xs font-medium text-slate-600 mb-1";
+  const field = "field py-1.5";
+  const label = "block text-xs font-medium text-ink-secondary mb-1";
   const filtered = FILTERS.some((k) => applied[k]);
 
   return (
@@ -116,12 +116,12 @@ export const AuditPage: React.FC = () => {
       <PageHeader eyebrow="Operations" title="Audit log" subtitle="Every agent step, tool call, decision and refusal, newest first."
         actions={
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center gap-1 text-xs text-slate-500"><Lock className="w-3.5 h-3.5" /> Append-only</span>
-            <Button variant="secondary" small onClick={() => void reload()}><RefreshCw className="w-3.5 h-3.5" /> Refresh</Button>
+            <span className="inline-flex items-center gap-1 text-xs text-ink-muted"><Lock className="w-4 h-4" aria-hidden /> Append-only</span>
+            <Button variant="secondary" small onClick={() => void reload()}><RefreshCw className="w-4 h-4" aria-hidden /> Refresh</Button>
           </div>
         } />
 
-      <Card className="p-3 mb-3">
+      <Card className="p-4 mb-4">
         <form onSubmit={(e) => { e.preventDefault(); apply(draft); }} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[90px_1fr_170px_190px_190px_auto] items-end">
           <div>
             <label htmlFor="f-lead" className={label}>Lead</label>
@@ -160,7 +160,7 @@ export const AuditPage: React.FC = () => {
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left">
-              <thead className="text-[11px] uppercase tracking-wide text-slate-500 bg-slate-50">
+              <thead className="text-xs text-ink-secondary bg-subtle border-b border-line">
                 <tr>
                   <th scope="col" className="pl-2 py-2"><span className="sr-only">Details</span></th>
                   <th scope="col" className="px-2 py-2 font-medium">Row</th>
@@ -177,8 +177,8 @@ export const AuditPage: React.FC = () => {
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-slate-100 text-xs text-slate-500">
-            <span>Showing {offset + 1}–{offset + data.length}</span>
+          <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-t border-line text-xs text-ink-secondary">
+            <span className="tabular-nums">Showing {offset + 1}–{offset + data.length}</span>
             <div className="flex gap-2">
               <Button small variant="secondary" disabled={offset === 0} onClick={() => apply(applied, Math.max(0, offset - PAGE_SIZE))}>Newer</Button>
               <Button small variant="secondary" disabled={data.length < PAGE_SIZE} onClick={() => apply(applied, offset + PAGE_SIZE)}>Older</Button>

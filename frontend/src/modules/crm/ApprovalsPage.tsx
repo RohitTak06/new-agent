@@ -13,7 +13,7 @@ const POLL_MS = 10_000;
 /** Fired after a decision, so the count in the navigation doesn't wait for its next refresh. */
 export const APPROVALS_CHANGED = "approvals-changed";
 
-const STATUS_TONE: Record<Approval["status"], Tone> = { pending: "amber", approved: "green", rejected: "red" };
+const STATUS_TONE: Record<Approval["status"], Tone> = { pending: "warning", approved: "success", rejected: "danger" };
 const TABS = [
   { key: "pending", label: "Pending" },
   { key: "approved", label: "Approved" },
@@ -61,8 +61,8 @@ function outcomeText(action: string, status: string, o: Outcome, unreachable: bo
 
 const Detail: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div>
-    <dt className="text-xs font-medium text-slate-500">{label}</dt>
-    <dd className="text-sm text-slate-900 whitespace-pre-wrap break-words">{children}</dd>
+    <dt className="text-xs font-medium text-ink-muted">{label}</dt>
+    <dd className="text-sm text-ink whitespace-pre-wrap break-words">{children}</dd>
   </div>
 );
 
@@ -120,19 +120,19 @@ const DecisionForm: React.FC<{
 
   const approve = () => decide("approve", { reply: reply.trim() || null, note: note.trim() || null }, "approved");
   const reject = () => decide("reject", { reason: reason.trim() }, "rejected");
-  const field = "w-full text-sm rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50";
+  const field = "field";
 
   return (
-    <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
-      <p className="text-xs text-slate-600">{APPROVE_EFFECT[approval.action] ?? "Runs this action."}</p>
+    <div className="mt-4 pt-4 border-t border-line space-y-3">
+      <p className="text-xs text-ink-secondary">{APPROVE_EFFECT[approval.action] ?? "Runs this action."}</p>
       {unreachable && (
-        <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-1.5">
+        <p className="text-xs text-warning bg-warning-soft border border-warning/20 rounded-lg px-3 py-2">
           This person has no contact details, so they won't see your message.
         </p>
       )}
       {TAKES_REPLY.has(approval.action) && !rejecting && (
         <div>
-          <label htmlFor={`reply-${approval.id}`} className="block text-xs font-medium text-slate-600 mb-1">
+          <label htmlFor={`reply-${approval.id}`} className="block text-xs font-medium text-ink-secondary mb-1">
             Your message to the student{needsReply ? " (required)" : " (optional)"}
           </label>
           <textarea id={`reply-${approval.id}`} rows={2} maxLength={2000} value={reply} disabled={busy}
@@ -141,14 +141,14 @@ const DecisionForm: React.FC<{
       )}
       {!rejecting && !needsReply && (
         <div>
-          <label htmlFor={`note-${approval.id}`} className="block text-xs font-medium text-slate-600 mb-1">Note for the record (optional)</label>
+          <label htmlFor={`note-${approval.id}`} className="block text-xs font-medium text-ink-secondary mb-1">Note for the record (optional)</label>
           <input id={`note-${approval.id}`} maxLength={2000} value={note} disabled={busy} autoComplete="off"
             onChange={(e) => setNote(e.target.value)} className={field} />
         </div>
       )}
       {rejecting && (
         <div>
-          <label htmlFor={`reason-${approval.id}`} className="block text-xs font-medium text-slate-600 mb-1">
+          <label htmlFor={`reason-${approval.id}`} className="block text-xs font-medium text-ink-secondary mb-1">
             Reason for rejecting (required; the student sees this)
           </label>
           <textarea id={`reason-${approval.id}`} rows={2} maxLength={2000} value={reason} disabled={busy}
@@ -165,10 +165,10 @@ const DecisionForm: React.FC<{
         ) : (
           <>
             <Button busy={busy} disabled={needsReply && !reply.trim()} onClick={() => void approve()}>
-              {!busy && <CheckCircle2 className="w-4 h-4" />} {needsReply ? "Approve and send reply" : "Approve"}
+              {!busy && <CheckCircle2 className="w-4 h-4" aria-hidden />} {needsReply ? "Approve and send reply" : "Approve"}
             </Button>
-            <Button variant="danger" disabled={busy} onClick={() => setRejecting(true)}>
-              <XCircle className="w-4 h-4" /> Reject
+            <Button variant="secondary" disabled={busy} onClick={() => setRejecting(true)}>
+              <XCircle className="w-4 h-4 text-danger" aria-hidden /> Reject
             </Button>
           </>
         )}
@@ -187,14 +187,14 @@ const ApprovalCard: React.FC<{
   <li>
     <Card className="p-4">
       <div className="flex flex-wrap items-center gap-2 mb-2">
-        <h2 className="text-sm font-semibold text-slate-900">#{approval.id} {ACTION_LABEL[approval.action] ?? approval.action.replace(/_/g, " ")}</h2>
+        <h2 className="text-sm font-semibold text-ink">#{approval.id} {ACTION_LABEL[approval.action] ?? approval.action.replace(/_/g, " ")}</h2>
         <Badge tone={STATUS_TONE[approval.status]}>{approval.status}</Badge>
-        {lead?.opted_out && <Badge tone="violet">opted out</Badge>}
-        <span className="ml-auto text-xs text-slate-500">{formatDateTime(approval.created_at)}</span>
+        {lead?.opted_out && <Badge tone="optout">opted out</Badge>}
+        <span className="ml-auto text-xs text-ink-muted tabular-nums">{formatDateTime(approval.created_at)}</span>
       </div>
-      <p className="text-xs text-slate-500 mb-2">
+      <p className="text-xs text-ink-secondary mb-3">
         {approval.lead_id !== null
-          ? <>For <Link to={`/leads/${approval.lead_id}`} className="font-medium text-jklu-blue underline">{lead ? leadName(lead) : `Lead #${approval.lead_id}`}</Link> · </>
+          ? <>For <Link to={`/leads/${approval.lead_id}`} className="font-medium text-navy underline underline-offset-2 hover:text-navy-hover">{lead ? leadName(lead) : `Lead #${approval.lead_id}`}</Link> · </>
           : null}
         requested by {approval.requested_by_actor}
       </p>
@@ -202,7 +202,7 @@ const ApprovalCard: React.FC<{
       {approval.status === "pending" ? (
         <DecisionForm approval={approval} unreachable={lead ? hasNoContact(lead) : false} onDone={(text) => onDone(approval.id, text)} onStale={(text) => onStale(approval.id, text)} />
       ) : (
-        <p className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-600">
+        <p className="mt-4 pt-4 border-t border-line text-xs text-ink-secondary">
           {approval.status === "approved" ? "Approved" : "Rejected"}{approval.resolved_at ? ` ${formatDateTime(approval.resolved_at)}` : ""}
           {approval.reason ? ` · ${approval.status === "approved" ? "Note" : "Reason"}: ${approval.reason}` : ""}
         </p>
@@ -231,11 +231,11 @@ export const ApprovalsPage: React.FC = () => {
     <div className="max-w-3xl mx-auto">
       <PageHeader eyebrow="Leads" title="Approvals" subtitle="The agent can't grant anything. These run only after a person approves." />
 
-      <div role="tablist" aria-label="Filter by status" className="flex gap-1 mb-4">
+      <div role="tablist" aria-label="Filter by status" className="inline-flex gap-1 mb-4 p-1 rounded-lg bg-subtle border border-line">
         {TABS.map((t) => (
           <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
-            className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-              tab === t.key ? "bg-jklu-blue text-white font-medium" : "text-slate-600 hover:bg-slate-200"}`}>
+            className={`px-3 py-1.5 rounded-lg text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-navy ${
+              tab === t.key ? "bg-surface text-navy font-medium shadow-card" : "text-ink-secondary hover:text-ink"}`}>
             {t.label}
           </button>
         ))}
@@ -245,8 +245,8 @@ export const ApprovalsPage: React.FC = () => {
         <ul className="space-y-2 mb-4">
           {results.map((r) => (
             <li key={r.id} role="status" className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm ${
-              r.conflict ? "border-amber-200 bg-amber-50 text-amber-900" : "border-emerald-200 bg-emerald-50 text-emerald-900"}`}>
-              {r.conflict ? <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" /> : <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" />}
+              r.conflict ? "border-warning/20 bg-warning-soft text-warning" : "border-success/20 bg-success-soft text-success"}`}>
+              {r.conflict ? <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden /> : <ShieldCheck className="w-4 h-4 mt-0.5 shrink-0" aria-hidden />}
               <span><strong className="font-semibold">#{r.id}:</strong> {r.text}</span>
             </li>
           ))}

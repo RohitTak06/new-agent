@@ -15,7 +15,7 @@ function inline(text: string, citations: string[]): React.ReactNode[] {
         const n = citations.indexOf(source) + 1;
         return (
           <sup key={`${i}-${source}`} title={source}
-            className="ml-0.5 px-1 rounded bg-blue-100 text-blue-800 text-[10px] font-semibold cursor-help">
+            className="ml-0.5 px-1 rounded bg-info-soft text-info text-xs font-semibold tabular-nums cursor-help">
             {n > 0 ? n : "src"}
           </sup>
         );
