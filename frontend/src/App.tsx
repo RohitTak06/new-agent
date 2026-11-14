@@ -141,7 +141,7 @@ const Header: React.FC<{ staff: boolean }> = ({ staff }) => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center gap-x-6 gap-y-2 py-3 min-h-16">
         <Brand subtitle={staff ? undefined : "Admissions assistant"} />
 
-        <nav aria-label="Main" className="flex items-center gap-1 order-3 sm:order-none w-full sm:w-auto sm:flex-1 overflow-x-auto">
+        <nav aria-label="Main" className="flex items-center gap-1 order-3 sm:order-none w-full sm:w-auto sm:flex-1 overflow-x-auto scroll-quiet pb-1">
           {itemsFor(viewer).map((item) => (
             <NavLink key={`${item.to}-${item.label}`} to={item.to} className={({ isActive }: { isActive: boolean }) =>
               `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors
