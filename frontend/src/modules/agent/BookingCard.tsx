@@ -34,18 +34,18 @@ export function bookThisMessage(slot: Slot): string {
 }
 
 const SlotLine: React.FC<{ slot: Slot }> = ({ slot }) => (
-  <p className="text-sm font-medium text-slate-800">
+  <p className="text-sm font-medium text-ink">
     {formatDateTime(slot.start)} – {formatTime(slot.end)} IST
-    <span className="block text-xs font-normal text-slate-600">with {slot.counsellor}</span>
+    <span className="block text-xs font-normal text-ink-secondary">with {slot.counsellor}</span>
   </p>
 );
 
 const Alternatives: React.FC<{ slots: Slot[]; disabled: boolean; onBook: (slot: Slot) => void }> = ({ slots, disabled, onBook }) => {
-  if (slots.length === 0) return <p className="text-xs text-slate-600">No other free sessions right now. A counsellor can help you find a time.</p>;
+  if (slots.length === 0) return <p className="text-xs text-ink-secondary">No other free sessions right now. A counsellor can help you find a time.</p>;
   return (
     <ul className="mt-2 space-y-1.5">
       {slots.map((s) => (
-        <li key={s.slot_id} className="flex items-center justify-between gap-3 rounded-lg bg-white border border-slate-200 px-2.5 py-1.5">
+        <li key={s.slot_id} className="flex items-center justify-between gap-3 rounded-lg bg-surface border border-line px-3 py-2">
           <SlotLine slot={s} />
           <Button small variant="secondary" className="shrink-0" disabled={disabled} onClick={() => onBook(s)}>Book this</Button>
         </li>
@@ -55,28 +55,28 @@ const Alternatives: React.FC<{ slots: Slot[]; disabled: boolean; onBook: (slot: 
 };
 
 export const BookingCard: React.FC<{ view: BookingView; disabled: boolean; onBook: (slot: Slot) => void }> = ({ view, disabled, onBook }) => {
-  const box = "mt-2 rounded-xl border p-3 text-slate-800";
-  const title = "flex items-center gap-1.5 text-xs font-semibold mb-1";
+  const box = "mt-3 rounded-xl border p-3.5 text-ink";
+  const title = "flex items-center gap-1.5 text-13 font-semibold mb-1.5";
   switch (view.kind) {
     case "confirmed":
       return (
-        <div className={`${box} border-emerald-200 bg-emerald-50`}>
-          <p className={`${title} text-emerald-800`}><CalendarCheck className="w-4 h-4" /> Session booked</p>
+        <div className={`${box} border-success/40 bg-success-soft`}>
+          <p className={`${title} text-success`}><CalendarCheck className="w-4 h-4" aria-hidden /> Session booked</p>
           <SlotLine slot={view.slot} />
         </div>
       );
     case "already_booked":
       return (
-        <div className={`${box} border-blue-200 bg-blue-50`}>
-          <p className={`${title} text-blue-800`}><CalendarClock className="w-4 h-4" /> You already have a session</p>
+        <div className={`${box} border-info/30 bg-info-soft`}>
+          <p className={`${title} text-info`}><CalendarClock className="w-4 h-4" aria-hidden /> You already have a session</p>
           <SlotLine slot={view.slot} />
         </div>
       );
     case "callback":
       return (
-        <div className={`${box} border-amber-200 bg-amber-50`}>
-          <p className={`${title} text-amber-800`}><PhoneCall className="w-4 h-4" /> Calendar unavailable</p>
-          <p className="text-xs text-slate-700">Your request went to a counsellor, who will arrange a time with you.</p>
+        <div className={`${box} border-warning/30 bg-warning-soft`}>
+          <p className={`${title} text-warning`}><PhoneCall className="w-4 h-4" aria-hidden /> Calendar unavailable</p>
+          <p className="text-xs text-ink-secondary">Your request went to a counsellor, who will arrange a time with you.</p>
         </div>
       );
     default: {
@@ -84,8 +84,8 @@ export const BookingCard: React.FC<{ view: BookingView; disabled: boolean; onBoo
         : view.kind === "past" ? "That time has passed. Nearest free sessions:"
         : "The calendar couldn't complete the booking. These sessions are open:";
       return (
-        <div className={`${box} border-amber-200 bg-amber-50`}>
-          <p className={`${title} text-amber-800`}><AlertTriangle className="w-4 h-4" /> {heading}</p>
+        <div className={`${box} border-warning/30 bg-warning-soft`}>
+          <p className={`${title} text-warning`}><AlertTriangle className="w-4 h-4" aria-hidden /> {heading}</p>
           <Alternatives slots={view.alternatives} disabled={disabled} onBook={onBook} />
         </div>
       );

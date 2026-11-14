@@ -67,16 +67,16 @@ const Bubble: React.FC<{ m: ChatMessage; waiting: boolean; disabled: boolean; on
   if (m.role === "student") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-br-md px-3.5 py-2 text-sm whitespace-pre-wrap break-words bg-jklu-blue text-white">{m.text}</div>
+        <div className="max-w-[85%] rounded-xl rounded-br-sm px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words bg-navy text-white">{m.text}</div>
       </div>
     );
   }
   if (m.role === "update") {
     return (
       <div className="flex justify-start">
-        <div className="max-w-[85%] rounded-2xl rounded-bl-md px-3.5 py-2 text-sm bg-amber-50 border border-amber-200">
-          <p className="flex items-center gap-1 text-[11px] font-medium text-amber-800 mb-1">
-            <Mail className="w-3.5 h-3.5" /> From JKLU Admissions, sent by {m.via}{m.time ? ` · ${formatDateTime(m.time)}` : ""}
+        <div className="max-w-[85%] rounded-xl rounded-bl-sm px-4 py-2.5 text-sm leading-relaxed bg-surface border border-line border-l-2 border-l-navy text-ink">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-ink-secondary mb-1">
+            <Mail className="w-4 h-4 text-ink-muted" aria-hidden /> From JKLU Admissions, sent by {m.via}{m.time ? ` · ${formatDateTime(m.time)}` : ""}
           </p>
           <RichText text={m.text} citations={m.citations} />
         </div>
@@ -87,24 +87,24 @@ const Bubble: React.FC<{ m: ChatMessage; waiting: boolean; disabled: boolean; on
   const cards = confirmed ? [confirmed] : m.bookings ?? [];
   return (
     <div className="flex justify-start">
-      <div className="max-w-[85%] rounded-2xl rounded-bl-md px-3.5 py-2 text-sm bg-slate-100 text-slate-800">
+      <div className="max-w-[85%] rounded-xl rounded-bl-sm px-4 py-2.5 text-sm leading-relaxed bg-surface border border-line text-ink">
         {m.text ? <RichText text={m.text} citations={m.citations} /> : waiting ? (
-          <span className="flex items-center gap-1.5 text-slate-500"><Loader2 className="w-3.5 h-3.5 animate-spin" />Checking…</span>
+          <span className="flex items-center gap-1.5 text-ink-muted"><Loader2 className="w-4 h-4 animate-spin" aria-hidden />Checking…</span>
         ) : null}
         {cards.map((b, i) => <BookingCard key={i} view={b} disabled={disabled} onBook={onBook} />)}
         {m.approvalId ? (
-          <p className="mt-2 flex items-center gap-1 text-[11px] font-medium text-amber-800">
-            <Clock className="w-3.5 h-3.5" /> Sent to a counsellor for a decision (request #{m.approvalId})
+          <p className="mt-2 flex items-center gap-1 text-xs font-medium text-warning">
+            <Clock className="w-4 h-4" aria-hidden /> Sent to a counsellor for a decision (request #{m.approvalId})
           </p>
         ) : m.escalated ? (
-          <p className="mt-2 flex items-center gap-1 text-[11px] font-medium text-rose-700">
-            <ShieldAlert className="w-3.5 h-3.5" /> Passed to a counsellor
+          <p className="mt-2 flex items-center gap-1 text-xs font-medium text-warning">
+            <ShieldAlert className="w-4 h-4" aria-hidden /> Passed to a counsellor
           </p>
         ) : null}
         {m.sources && m.sources.length > 0 ? <CitationDisplay chunks={m.sources} /> : m.citations && m.citations.length > 0 && (
           <ol className="mt-2 flex flex-wrap gap-1">
             {m.citations.map((c, i) => (
-              <li key={c} className="text-[10px] px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-600">{i + 1}. {c}</li>
+              <li key={c} className="text-xs px-2 py-0.5 rounded-lg bg-subtle border border-line text-ink-secondary">{i + 1}. {c}</li>
             ))}
           </ol>
         )}
@@ -225,33 +225,33 @@ export const ChatPage: React.FC = () => {
   return (
     <div className={`grid grid-cols-1 gap-4 lg:h-[calc(100dvh-5.5rem)] lg:min-h-[520px] ${
       showWork ? "lg:grid-cols-[1fr_380px]" : "max-w-4xl mx-auto"}`}>
-      <section aria-label="Chat" className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col min-h-0 h-[75dvh] lg:h-auto">
-        <div className="px-4 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+      <section aria-label="Chat" className="bg-surface rounded-xl border border-line shadow-card flex flex-col min-h-0 overflow-hidden h-[75dvh] lg:h-auto">
+        <div className="px-5 py-4 border-b border-line flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-sm font-semibold text-slate-800">Admissions chat</h1>
-            <p className="text-xs text-slate-500">Answers come only from the verified knowledge base, with sources</p>
+            <h1 className="text-base font-semibold text-ink">Admissions chat</h1>
+            <p className="text-13 text-ink-muted">Answers come only from the verified knowledge base, with sources</p>
           </div>
           <div className="flex items-center gap-1">
             <Button variant="ghost" small aria-expanded={showWork} aria-controls="agent-work" onClick={() => setShowWork(!showWork)} className="whitespace-nowrap">
-              <ListChecks className="w-3.5 h-3.5" /> {showWork ? "Hide how the agent worked" : "Show how the agent worked"}
+              <ListChecks className="w-4 h-4" aria-hidden /> {showWork ? "Hide how the agent worked" : "Show how the agent worked"}
             </Button>
             {!student && (
-              <Button variant="ghost" small onClick={reset} disabled={busy} className="whitespace-nowrap"><RotateCcw className="w-3.5 h-3.5" /> New chat</Button>
+              <Button variant="ghost" small onClick={reset} disabled={busy} className="whitespace-nowrap"><RotateCcw className="w-4 h-4" aria-hidden /> New chat</Button>
             )}
           </div>
         </div>
 
         {upcoming && (
-          <div className="px-4 py-2 border-b border-emerald-100 bg-emerald-50 text-xs text-emerald-900 flex items-center gap-1.5">
+          <div className="px-5 py-2 border-b border-success/20 bg-success-soft text-13 font-medium text-success flex items-center gap-2">
             <CalendarCheck className="w-4 h-4 shrink-0" />
             Your session: {formatDateTime(upcoming.start)} IST with {upcoming.counsellor}
           </div>
         )}
 
-        <div ref={list} className="flex-1 overflow-y-auto p-4 space-y-3" aria-live="polite">
+        <div ref={list} className="flex-1 overflow-y-auto bg-canvas px-5 py-5 space-y-4 scroll-quiet" aria-live="polite">
           {messages.length === 0 && (
             <div className="py-6">
-              <p className="text-sm text-slate-600 mb-3">Ask about programs, fees, eligibility or scholarships, or book a counsellor session.</p>
+              <p className="text-sm text-ink-secondary mb-3">Ask about programs, fees, eligibility or scholarships, or book a counsellor session.</p>
               <div className="flex flex-wrap gap-2">
                 {SUGGESTIONS.map((s) => (
                   <Button key={s} variant="secondary" small disabled={busy} onClick={() => void sendText(s)}>{s}</Button>
@@ -266,13 +266,13 @@ export const ChatPage: React.FC = () => {
         </div>
 
         {error && <div className="mx-4 mb-2"><ErrorBanner message={error} /></div>}
-        <form onSubmit={(e) => { e.preventDefault(); void sendText(input); }} className="p-3 border-t border-slate-100 flex gap-2">
+        <form onSubmit={(e) => { e.preventDefault(); void sendText(input); }} className="px-5 py-4 border-t border-line flex gap-2">
           <label htmlFor="chat-input" className="sr-only">Your message</label>
           <input id="chat-input" value={input} onChange={(e) => setInput(e.target.value)} disabled={busy} maxLength={2000} autoComplete="off"
             placeholder="Type your question…"
-            className="flex-1 min-w-0 text-sm rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-50" />
+            className="field flex-1 min-w-0" />
           <Button type="submit" busy={busy} disabled={!input.trim()}>
-            {!busy && <Send className="w-4 h-4" />} Send
+            {!busy && <Send className="w-4 h-4" aria-hidden />} Send
           </Button>
         </form>
       </section>

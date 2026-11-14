@@ -8,13 +8,18 @@ import type { AgentEvent } from "./sse";
 
 type RowKind = "plan" | "action" | "check" | "problem" | "counsellor" | "done";
 
+/** Most rows are quiet; only checks, problems and counsellor hand-offs get a status colour. */
 const STYLE: Record<RowKind, string> = {
-  plan: "border-indigo-200 bg-indigo-50 text-indigo-900",
-  action: "border-slate-200 bg-slate-50 text-slate-700",
-  check: "border-emerald-200 bg-emerald-50 text-emerald-900",
-  problem: "border-amber-200 bg-amber-50 text-amber-900",
-  counsellor: "border-rose-200 bg-rose-50 text-rose-900",
-  done: "border-blue-200 bg-blue-50 text-blue-900",
+  plan: "border-line bg-surface text-ink-secondary",
+  action: "border-line bg-surface text-ink-secondary",
+  check: "border-success/20 bg-success-soft text-success",
+  problem: "border-warning/20 bg-warning-soft text-warning",
+  counsellor: "border-info/20 bg-info-soft text-info",
+  done: "border-line bg-surface text-ink-secondary",
+};
+
+const ICON_TONE: Record<RowKind, string> = {
+  plan: "text-navy", action: "text-ink-muted", check: "", problem: "", counsellor: "", done: "text-success",
 };
 
 const ICON: Record<RowKind, React.ElementType> = {
@@ -145,13 +150,13 @@ const PHASES: { label: string; types: AgentEvent["type"][] }[] = [
 ];
 
 const PhaseStrip: React.FC<{ events: AgentEvent[] }> = ({ events }) => (
-  <ol aria-label="Agent progress" className="flex items-center gap-1 text-[11px]">
+  <ol aria-label="Agent progress" className="flex items-center gap-1 text-xs">
     {PHASES.map((p, i) => {
       const reached = events.some((e) => p.types.includes(e.type));
       return (
         <li key={p.label} className="flex items-center gap-1">
-          {i > 0 && <span aria-hidden className="text-slate-300">→</span>}
-          <span className={`rounded px-1.5 py-0.5 font-medium ${reached ? "bg-jklu-blue text-white" : "bg-slate-100 text-slate-500"}`}>
+          {i > 0 && <span aria-hidden className="text-ink-muted">→</span>}
+          <span className={`rounded-lg px-2 py-0.5 font-medium ${reached ? "bg-navy text-white" : "bg-subtle text-ink-secondary"}`}>
             {p.label}
           </span>
         </li>
@@ -165,7 +170,7 @@ const LeadState: React.FC<{ final?: AgentEvent }> = ({ final }) => {
   const missing: string[] = final?.data.missing_fields ?? [];
   if (!score && missing.length === 0) return null;
   return (
-    <div className="px-4 py-2 border-b border-slate-100 flex flex-wrap items-center gap-1.5 text-xs text-slate-600">
+    <div className="px-4 py-2 border-b border-line flex flex-wrap items-center gap-1.5 text-xs text-ink-secondary">
       {score && <Badge tone={TIER_TONE[score.tier as Tier]}>{score.tier} lead · {score.score}/100</Badge>}
       {missing.length > 0 && <span>Still needed: {missing.join(", ").replace(/_/g, " ")}</span>}
     </div>
@@ -182,32 +187,32 @@ export const TracePanel: React.FC<{ events: AgentEvent[]; busy?: boolean; id?: s
   }, [shown.length, busy]);
 
   return (
-    <aside id={id} aria-label="How the agent worked" className={`bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col min-h-0 ${className}`}>
-      <div className="px-4 py-3 border-b border-slate-100 space-y-2">
+    <aside id={id} aria-label="How the agent worked" className={`bg-surface rounded-xl border border-line shadow-card flex flex-col min-h-0 overflow-hidden ${className}`}>
+      <div className="px-4 py-4 border-b border-line space-y-3">
         <div>
-          <h2 className="text-sm font-semibold text-slate-800">How the agent worked</h2>
-          <p className="text-xs text-slate-500">What it planned, did and checked for the latest message</p>
+          <h2 className="text-sm font-semibold text-ink">How the agent worked</h2>
+          <p className="text-13 text-ink-muted">What it planned, did and checked for the latest message</p>
         </div>
         <PhaseStrip events={shown} />
       </div>
       <LeadState final={shown.find((e) => e.type === "final")} />
-      <ol ref={list} className="flex-1 overflow-y-auto p-3 space-y-1.5 text-xs">
-        {rows.length === 0 && !busy && <li className="text-slate-500 px-1">Send a message to see the agent work.</li>}
+      <ol ref={list} className="flex-1 overflow-y-auto p-3 space-y-2 text-13 scroll-quiet">
+        {rows.length === 0 && !busy && <li className="text-ink-muted px-1">Send a message to see the agent work.</li>}
         {rows.map((row, i) => {
           const Icon = row.failed ? XCircle : row.title === "Retrying" ? RotateCw : ICON[row.kind];
           return (
-            <li key={i} className={`border rounded-lg px-2.5 py-1.5 flex gap-2 ${STYLE[row.kind]}`}>
-              <Icon className="w-3.5 h-3.5 shrink-0 mt-0.5" aria-hidden />
+            <li key={i} className={`border rounded-lg px-3 py-2 flex gap-2.5 ${STYLE[row.kind]}`}>
+              <Icon className={`w-4 h-4 shrink-0 mt-0.5 ${ICON_TONE[row.kind]}`} aria-hidden />
               <div className="min-w-0">
-                <div className="font-semibold">{row.title}</div>
+                <div className="font-semibold text-ink">{row.title}</div>
                 <div className="break-words">{row.passed ? row.passed.join(", ") : row.text}</div>
               </div>
             </li>
           );
         })}
         {busy && (
-          <li className="flex items-center gap-1.5 text-slate-500 px-1 py-1">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Working…
+          <li className="flex items-center gap-1.5 text-ink-muted px-1 py-1">
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden /> Working…
           </li>
         )}
       </ol>
