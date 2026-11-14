@@ -12,10 +12,23 @@ from app.contracts.models import Chunk, KnowledgeResult
 DATA_DIR = Path(__file__).resolve().parent / "data"
 
 OUT_OF_SCOPE_KEYWORDS = [
-    "mbbs", "medical", "nursing", "pharmacy", "b.pharm", "bds", "dentistry", "aviation",
+    "mbbs", "nursing", "pharmacy", "b.pharm", "bds", "dentistry", "aviation",
     "pilot", "nasa", "free laptop", "free ipad", "free flight", "free accommodation",
-    "stipend", "salary for students", "cricket coach", "celebrity visit"
+    "salary for students", "cricket coach", "celebrity visit"
 ]
+# Whole phrases, not bare words: the KB does cover the campus medical centre and the M.Tech GATE stipend.
+OUT_OF_SCOPE_PATTERNS = [
+    re.compile(r"\bmedical\s+(?:college|course|degree|seat|admission|program\w*|stream)\b"),
+    re.compile(r"\bstipend\b(?!.*\b(?:gate|m\.?\s?tech)\b)"),
+]
+# A keyword boost may reorder matches but can't create one: below this raw TF-IDF score the
+# question shares no real words with the section. The weakest real benchmark match scores 0.081.
+MIN_RAW_SCORE = 0.06
+
+
+def _has(term: str, text: str) -> bool:
+    """Whole-word match, so "mess" doesn't fire on "message" or "room" on "classroom"."""
+    return re.search(rf"(?<![a-z]){re.escape(term)}(?![a-z])", text) is not None
 
 
 class KnowledgeStore:
@@ -87,9 +100,8 @@ class KnowledgeStore:
         q_lower = q_clean.lower()
 
         # 1. Out-of-scope / Hallucination trap guard
-        for bad_kw in OUT_OF_SCOPE_KEYWORDS:
-            if bad_kw in q_lower:
-                return KnowledgeResult(answer_found=False, chunks=[])
+        if any(_has(kw, q_lower) for kw in OUT_OF_SCOPE_KEYWORDS) or any(p.search(q_lower) for p in OUT_OF_SCOPE_PATTERNS):
+            return KnowledgeResult(answer_found=False, chunks=[])
 
         if not self.raw_chunks or self.vectorizer is None or self.tfidf_matrix is None:
             return KnowledgeResult(answer_found=False, chunks=[])
@@ -103,31 +115,31 @@ class KnowledgeStore:
         for idx, (text, source) in enumerate(self.raw_chunks):
             txt_lower = text.lower()
             # Scholarship specific boosts
-            if "scholarship" in q_lower and "scholarship" in txt_lower:
+            if (_has("scholarship", q_lower) or _has("scholarships", q_lower)) and (_has("scholarship", txt_lower) or _has("scholarships", txt_lower)):
                 boosted_scores[idx] += 0.15
-            if "b.tech" in q_lower or "btech" in q_lower or "engineering" in q_lower:
-                if "b.tech" in txt_lower or "bachelor of technology" in txt_lower:
+            if _has("b.tech", q_lower) or _has("btech", q_lower) or _has("engineering", q_lower):
+                if _has("b.tech", txt_lower) or _has("bachelor of technology", txt_lower):
                     boosted_scores[idx] += 0.15
-            if "bba" in q_lower or "business" in q_lower or "management" in q_lower:
-                if "bba" in txt_lower or "business administration" in txt_lower:
+            if _has("bba", q_lower) or _has("business", q_lower) or _has("management", q_lower):
+                if _has("bba", txt_lower) or _has("business administration", txt_lower):
                     boosted_scores[idx] += 0.15
-            if "b.des" in q_lower or "bdes" in q_lower or "design" in q_lower:
-                if "b.des" in txt_lower or "design" in txt_lower:
+            if _has("b.des", q_lower) or _has("bdes", q_lower) or _has("design", q_lower) or _has("designer", q_lower):
+                if _has("b.des", txt_lower) or _has("design", txt_lower):
                     boosted_scores[idx] += 0.15
-            if "continuation" in q_lower or "cgpa" in q_lower or "subsequent year" in q_lower or "second year" in q_lower:
-                if "continuation" in txt_lower or "cgpa" in txt_lower:
+            if _has("continuation", q_lower) or _has("cgpa", q_lower) or _has("subsequent year", q_lower) or _has("second year", q_lower):
+                if _has("continuation", txt_lower) or _has("cgpa", txt_lower):
                     boosted_scores[idx] += 0.20
-            if "sibling" in q_lower or "alumni" in q_lower:
-                if "sibling" in txt_lower or "alumni" in txt_lower:
+            if _has("sibling", q_lower) or _has("siblings", q_lower) or _has("alumni", q_lower):
+                if _has("sibling", txt_lower) or _has("alumni", txt_lower):
                     boosted_scores[idx] += 0.25
-            if "math" in q_lower or "mathematics" in q_lower:
-                if "mathematics" in txt_lower or "math" in txt_lower:
+            if _has("math", q_lower) or _has("maths", q_lower) or _has("mathematics", q_lower):
+                if _has("mathematics", txt_lower) or _has("math", txt_lower):
                     boosted_scores[idx] += 0.20
-            if "hostel" in q_lower or "room" in q_lower or "mess" in q_lower:
-                if "hostel" in txt_lower:
+            if _has("hostel", q_lower) or _has("hostels", q_lower) or _has("room", q_lower) or _has("rooms", q_lower) or _has("mess", q_lower):
+                if _has("hostel", txt_lower) or _has("hostels", txt_lower):
                     boosted_scores[idx] += 0.20
-            if "fee" in q_lower or "fees" in q_lower or "cost" in q_lower:
-                if "fee" in txt_lower:
+            if _has("fee", q_lower) or _has("fees", q_lower) or _has("cost", q_lower):
+                if _has("fee", txt_lower):
                     boosted_scores[idx] += 0.10
 
         # Rank candidates
@@ -136,7 +148,7 @@ class KnowledgeStore:
 
         for idx in ranked_indices[:top_k]:
             sc = float(boosted_scores[idx])
-            if sc >= threshold:
+            if sc >= threshold and scores[idx] >= MIN_RAW_SCORE:
                 text, source = self.raw_chunks[idx]
                 results.append(Chunk(text=text, source=source, score=round(sc, 3)))
 
