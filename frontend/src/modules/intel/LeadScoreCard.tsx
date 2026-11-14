@@ -14,16 +14,16 @@ interface LeadScoreCardProps {
 export const LeadScoreCard: React.FC<LeadScoreCardProps> = ({ scoreData, loading }) => {
   if (loading) {
     return (
-      <div className="p-4 bg-white rounded-xl shadow-sm border border-slate-200 animate-pulse">
-        <div className="h-6 bg-slate-200 rounded w-1/3 mb-4"></div>
-        <div className="h-10 bg-slate-100 rounded mb-2"></div>
+      <div className="p-4 bg-surface rounded-xl shadow-card border border-line animate-pulse">
+        <div className="h-6 bg-line rounded-lg w-1/3 mb-4"></div>
+        <div className="h-10 bg-subtle rounded-lg mb-2"></div>
       </div>
     );
   }
 
   if (!scoreData) {
     return (
-      <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 text-slate-500 text-sm">
+      <div className="p-4 bg-surface rounded-xl border border-dashed border-line-strong text-ink-secondary text-sm">
         No lead profile scored yet.
       </div>
     );
@@ -33,33 +33,33 @@ export const LeadScoreCard: React.FC<LeadScoreCardProps> = ({ scoreData, loading
 
   const tierStyles = {
     hot: {
-      badge: "bg-red-100 text-red-700 border-red-200",
-      bar: "bg-red-500",
-      label: "HOT LEAD",
+      badge: "bg-danger-soft text-danger border-danger/30",
+      bar: "bg-danger",
+      label: "Hot lead",
     },
     warm: {
-      badge: "bg-amber-100 text-amber-700 border-amber-200",
-      bar: "bg-amber-500",
-      label: "WARM LEAD",
+      badge: "bg-warning-soft text-warning border-warning/30",
+      bar: "bg-warning",
+      label: "Warm lead",
     },
     cold: {
-      badge: "bg-blue-100 text-blue-700 border-blue-200",
-      bar: "bg-blue-500",
-      label: "COLD LEAD",
+      badge: "bg-info-soft text-info border-info/30",
+      bar: "bg-info",
+      label: "Cold lead",
     },
   }[tier];
 
   return (
-    <div className="p-5 bg-white rounded-xl shadow-sm border border-slate-200 space-y-4">
+    <div className="p-4 bg-surface rounded-xl shadow-card border border-line space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          <span className="text-xs font-medium text-ink-muted">
             Qualification Engine
           </span>
-          <h3 className="text-lg font-bold text-slate-800">Lead Health & Fit</h3>
+          <h3 className="text-sm font-semibold text-ink">Lead Health & Fit</h3>
         </div>
         <span
-          className={`px-3 py-1 rounded-full text-xs font-bold border tracking-wide ${tierStyles.badge}`}
+          className={`px-2 py-0.5 rounded-lg text-xs font-medium border ${tierStyles.badge}`}
         >
           {tierStyles.label}
         </span>
@@ -67,10 +67,10 @@ export const LeadScoreCard: React.FC<LeadScoreCardProps> = ({ scoreData, loading
 
       <div>
         <div className="flex justify-between items-baseline mb-1">
-          <span className="text-2xl font-black text-slate-900">{score}</span>
-          <span className="text-xs text-slate-400 font-medium">/ 100 Points</span>
+          <span className="text-2xl font-semibold tabular-nums text-ink">{score}</span>
+          <span className="text-xs text-ink-muted tabular-nums">/ 100 Points</span>
         </div>
-        <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+        <div className="w-full bg-subtle h-2 rounded-full overflow-hidden">
           <div
             className={`h-full transition-all duration-500 ease-out rounded-full ${tierStyles.bar}`}
             style={{ width: `${Math.min(100, Math.max(0, score))}%` }}
@@ -78,17 +78,17 @@ export const LeadScoreCard: React.FC<LeadScoreCardProps> = ({ scoreData, loading
         </div>
       </div>
 
-      <div className="space-y-1.5 pt-2 border-t border-slate-100">
-        <h4 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+      <div className="space-y-1.5 pt-2 border-t border-line">
+        <h4 className="text-13 font-semibold text-ink">
           Scoring Rationale:
         </h4>
         <ul className="space-y-1">
           {reasons.map((reason, idx) => (
             <li
               key={idx}
-              className="text-xs text-slate-600 flex items-start gap-1.5 leading-relaxed"
+              className="text-13 text-ink-secondary flex items-start gap-2 leading-relaxed"
             >
-              <span className="text-emerald-500 font-bold mt-0.5">•</span>
+              <span className="text-ink-muted" aria-hidden>•</span>
               <span>{reason}</span>
             </li>
           ))}

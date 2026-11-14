@@ -53,23 +53,22 @@ const StageSelect: React.FC<{ lead: Lead; onChanged: () => void }> = ({ lead, on
 
   return (
     <span className="inline-flex items-center gap-1.5">
-      <label htmlFor="lead-stage" className="text-xs text-slate-500">Stage</label>
+      <label htmlFor="lead-stage" className="text-xs font-medium text-ink-secondary">Stage</label>
       <select id="lead-stage" value={lead.status} disabled={busy} onChange={(e) => void change(e.target.value)}
-        className="text-sm rounded-lg border border-slate-300 bg-white pl-2.5 pr-8 py-1 font-medium text-slate-800
-          focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60">
+        className="field w-auto pl-2.5 pr-8 py-1.5 font-medium disabled:opacity-60">
         {STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
       </select>
-      {busy && <Loader2 className="w-4 h-4 animate-spin text-slate-400" aria-label="Saving" />}
-      {error && <span role="alert" className="text-xs text-rose-700">{error}</span>}
+      {busy && <Loader2 className="w-4 h-4 animate-spin text-ink-muted" aria-label="Saving" />}
+      {error && <span role="alert" className="text-xs text-danger">{error}</span>}
     </span>
   );
 };
 
 const Field: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="flex justify-between gap-4 py-1.5 border-b border-slate-100 last:border-0 text-sm">
-    <dt className="text-slate-500 shrink-0">{label}</dt>
-    <dd className="text-right text-slate-900 min-w-0 break-words">
-      {value === null || value === undefined || value === "" ? <span className="text-slate-400">Not provided</span> : value}
+  <div className="flex justify-between gap-4 py-1.5 border-b border-line last:border-0 text-sm">
+    <dt className="text-ink-secondary shrink-0">{label}</dt>
+    <dd className="text-right text-ink min-w-0 break-words">
+      {value === null || value === undefined || value === "" ? <span className="text-ink-muted">Not provided</span> : value}
     </dd>
   </div>
 );
@@ -78,7 +77,7 @@ const Profile: React.FC<{ lead: Lead }> = ({ lead }) => {
   const p = lead.profile;
   return (
     <Card className="p-4">
-      <h2 className="text-sm font-semibold text-slate-800 mb-1">Profile</h2>
+      <h2 className="text-sm font-semibold text-ink mb-2">Profile</h2>
       <dl>
         <Field label="Email" value={p.email} />
         <Field label="Phone" value={p.phone} />
@@ -96,15 +95,15 @@ const Profile: React.FC<{ lead: Lead }> = ({ lead }) => {
 
 const Bookings: React.FC<{ bookings: Booking[] | null }> = ({ bookings }) => (
   <Card className="p-4">
-    <h2 className="text-sm font-semibold text-slate-800 mb-2">Counsellor sessions</h2>
-    {!bookings || bookings.length === 0 ? <p className="text-sm text-slate-500">No sessions booked.</p> : (
+    <h2 className="text-sm font-semibold text-ink mb-2">Counsellor sessions</h2>
+    {!bookings || bookings.length === 0 ? <p className="text-sm text-ink-muted">No sessions booked.</p> : (
       <ul className="space-y-2">
         {bookings.map((b) => (
           <li key={b.slot_id} className="flex items-start gap-2 text-sm">
-            <CalendarCheck className={`w-4 h-4 mt-0.5 shrink-0 ${b.upcoming ? "text-emerald-600" : "text-slate-400"}`} aria-hidden />
+            <CalendarCheck className={`w-4 h-4 mt-0.5 shrink-0 ${b.upcoming ? "text-success" : "text-ink-muted"}`} aria-hidden />
             <span>
-              {formatDateTime(b.start)} – {formatTime(b.end)} IST
-              <span className="block text-xs text-slate-500">with {b.counsellor}{b.upcoming ? "" : " · past"}</span>
+              <span className="tabular-nums">{formatDateTime(b.start)} – {formatTime(b.end)} IST</span>
+              <span className="block text-xs text-ink-muted">with {b.counsellor}{b.upcoming ? "" : " · past"}</span>
             </span>
           </li>
         ))}
@@ -114,10 +113,10 @@ const Bookings: React.FC<{ bookings: Booking[] | null }> = ({ bookings }) => (
 );
 
 const Row: React.FC<{ badges: React.ReactNode; when?: string; children: React.ReactNode }> = ({ badges, when, children }) => (
-  <li className="px-4 py-3">
+  <li className="px-4 py-3.5">
     <div className="flex flex-wrap items-center gap-1.5 mb-1">
       {badges}
-      {when && <span className="ml-auto text-[11px] text-slate-500 whitespace-nowrap">{formatDateTime(when)}</span>}
+      {when && <span className="ml-auto text-xs text-ink-muted tabular-nums whitespace-nowrap">{formatDateTime(when)}</span>}
     </div>
     {children}
   </li>
@@ -130,7 +129,7 @@ function renderInteractions(rows: Interaction[]) {
       <Badge>{r.channel}</Badge>
       {r.meta?.escalated && <Badge tone="warning">escalated</Badge>}
     </>}>
-      <div className="text-sm text-slate-800"><RichText text={r.message} citations={r.meta?.citations} /></div>
+      <div className="text-sm text-ink"><RichText text={r.message} citations={r.meta?.citations} /></div>
     </Row>
   ));
 }
@@ -139,9 +138,9 @@ function renderMessages(rows: ChannelMessage[]) {
   return rows.map((m) => (
     <Row key={m.id} when={m.sent_at} badges={<>
       <Badge>{m.channel}</Badge>
-      <span className="text-xs text-slate-500">{messageSource(m)}</span>
+      <span className="text-xs text-ink-muted">{messageSource(m)}</span>
     </>}>
-      <div className="text-sm text-slate-800"><RichText text={m.text} citations={m.meta?.citations} /></div>
+      <div className="text-sm text-ink"><RichText text={m.text} citations={m.meta?.citations} /></div>
     </Row>
   ));
 }
@@ -150,12 +149,12 @@ function renderApprovals(rows: Approval[]) {
   return rows.map((a) => (
     <Row key={a.id} when={a.created_at} badges={<>
       <Badge tone={STATUS_TONE[a.status]}>{a.status}</Badge>
-      <span className="text-sm font-medium text-slate-800">#{a.id} {humanize(a.action)}</span>
+      <span className="text-sm font-medium text-ink">#{a.id} {humanize(a.action)}</span>
     </>}>
       {(a.payload.question || a.payload.reason) && (
-        <p className="text-sm text-slate-700">{a.payload.question ?? a.payload.reason}</p>
+        <p className="text-sm text-ink-secondary">{a.payload.question ?? a.payload.reason}</p>
       )}
-      {a.reason && <p className="text-xs text-slate-500 mt-1">Counsellor's note: {a.reason}</p>}
+      {a.reason && <p className="text-xs text-ink-muted mt-1">Counsellor's note: {a.reason}</p>}
     </Row>
   ));
 }
@@ -164,9 +163,9 @@ function renderFollowups(rows: Followup[]) {
   return rows.map((f) => (
     <Row key={f.id} when={f.due_at} badges={<>
       <Badge tone={STATUS_TONE[f.status]}>{f.status}</Badge>
-      <span className="text-sm font-medium text-slate-800">{humanize(f.template)}</span>
+      <span className="text-sm font-medium text-ink">{humanize(f.template)}</span>
     </>}>
-      {f.payload?.outcome && <p className="text-xs text-slate-500">Outcome: {humanize(String(f.payload.outcome))}</p>}
+      {f.payload?.outcome && <p className="text-xs text-ink-muted">Outcome: {humanize(String(f.payload.outcome))}</p>}
     </Row>
   ));
 }
@@ -185,8 +184,8 @@ export const LeadDetailPage: React.FC = () => {
   const [tab, setTab] = useState("conversation");
 
   const back = (
-    <Link to="/pipeline" className="inline-flex items-center gap-1 text-sm text-slate-600 hover:text-jklu-blue mb-3">
-      <ArrowLeft className="w-4 h-4" /> Pipeline
+    <Link to="/pipeline" className="inline-flex items-center gap-1 rounded-lg text-sm text-ink-secondary hover:text-navy mb-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-navy">
+      <ArrowLeft className="w-4 h-4" aria-hidden /> Pipeline
     </Link>
   );
   if (leadId === null) return <>{back}<ErrorBanner message="That isn't a valid lead link." /></>;
@@ -205,17 +204,17 @@ export const LeadDetailPage: React.FC = () => {
   return (
     <>
       {back}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-5 pb-4 border-b border-slate-200/70">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-6">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Lead #{lead.data.id}</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{leadName(lead.data)}</h1>
+          <p className="text-13 font-medium text-ink-muted tabular-nums mb-1">Lead #{lead.data.id}</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">{leadName(lead.data)}</h1>
         </div>
         {lead.data.opted_out && <Badge tone="optout"><BellOff className="w-3 h-3" aria-hidden /> opted out of follow-ups</Badge>}
         <div className="ml-auto flex flex-wrap items-center gap-3">
           <StageSelect lead={lead.data} onChanged={() => void lead.reload()} />
           <Link to={`/audit?lead_id=${leadId}`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
-            <ScrollText className="w-4 h-4" /> Audit trail
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 py-1.5 text-sm font-medium text-ink-secondary hover:bg-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-navy focus-visible:ring-offset-1">
+            <ScrollText className="w-4 h-4" aria-hidden /> Audit trail
           </Link>
         </div>
       </div>
@@ -229,11 +228,11 @@ export const LeadDetailPage: React.FC = () => {
         </div>
 
         <Card className="min-w-0">
-          <div role="tablist" aria-label="Lead activity" className="flex overflow-x-auto overflow-y-hidden border-b border-slate-200 px-2">
+          <div role="tablist" aria-label="Lead activity" className="flex overflow-x-auto overflow-y-hidden border-b border-line px-2 scroll-quiet">
             {tabs.map((t) => (
               <button key={t.key} type="button" role="tab" aria-selected={t.key === active.key} onClick={() => setTab(t.key)}
-                className={`px-3 py-2.5 text-sm whitespace-nowrap border-b-2 transition-colors ${
-                  t.key === active.key ? "border-jklu-blue text-jklu-blue font-semibold" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
+                className={`px-3 py-3 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors tabular-nums focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-navy ${
+                  t.key === active.key ? "border-navy text-navy font-semibold" : "border-transparent text-ink-secondary hover:text-ink"}`}>
                 {t.label}{t.state.data ? ` (${(t.state.data as unknown[]).length})` : ""}
               </button>
             ))}
@@ -243,7 +242,7 @@ export const LeadDetailPage: React.FC = () => {
             {active.state.loading && !rows && <Loading />}
             {rows && rows.length === 0 && <EmptyState title={active.empty} />}
             {rows && rows.length > 0 && (
-              <ul className="divide-y divide-slate-100 max-h-[calc(100dvh-13rem)] overflow-y-auto">{active.render(rows)}</ul>
+              <ul className="divide-y divide-line max-h-[calc(100dvh-13rem)] overflow-y-auto scroll-quiet">{active.render(rows)}</ul>
             )}
           </div>
         </Card>
