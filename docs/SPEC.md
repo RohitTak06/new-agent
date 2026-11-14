@@ -2,8 +2,8 @@
 
 ## 1. Actors and roles
 - **student** (prospect): chats on web, simulated WhatsApp, or email. Sees only their own data.
-- **counsellor**: sees leads, books/overrides slots, approves or rejects sensitive actions, reads audit log.
-- **admin**: everything counsellor can do + user management + knowledge base admin.
+- **counsellor**: the everyday screens only: lead pipeline and lead details, approvals (approve or reject sensitive actions), scheduling.
+- **admin**: everything a counsellor can do, plus oversight and demo tools: audit log, analytics, knowledge base (search, benchmark, reload), staff test chat, the read-only Users page, clock fast-forward and fault injection. The server enforces this split (403 for a counsellor).
 
 ## 2. Agent design (the 30-point core)
 
@@ -13,6 +13,8 @@
 3. **Verify (deterministic code, not just prompting):**
    - Institutional claims require a prior `search_knowledge` result with `answer_found=True`; the final answer must cite `chunk.source` values. If the KB had no answer, discard any drafted answer and respond with the escalation message + create an escalation (`request_approval("escalate_question", ...)` or interaction note). Emit `verify` event with pass/fail and reason.
    - `book_slot` result must be checked: `ok=False` -> offer `alternatives`; never claim a booking that did not succeed.
+   - A question about a counsellor may be answered from `get_counsellors` alone: the answer must name a counsellor it returned, cite nothing, and use no number it or the student didn't give.
+   - Never claim a cancellation unless `cancel_booking` returned `ok=True`. After `already_booked`, further `book_slot` calls in that turn are refused until the session is cancelled.
    - Sensitive actions never execute directly; they return `pending` approval. Tell the student it is awaiting counsellor approval.
 4. **Retry/recover:** tool exceptions or timeouts are retried up to 2 times with backoff (emit `retry`), then fall back: tell the user, log the failure, offer an alternative (e.g., other slots, human callback). The chat must never crash or hang.
 5. **Clarify:** if required info is missing (e.g., which program, which date), ask one or two short questions instead of guessing.
@@ -29,7 +31,7 @@ Every event is also written to `audit_log` with `lead_id`, `session_id`, actor `
 | `search_knowledge(query)` | intel.service |
 | `score_lead(profile)` | intel.service |
 | `upsert_lead(profile)`, `get_lead(lead_id)` | crm.service |
-| `get_slots(date_from, date_to)`, `book_slot(lead_id, slot_id)` | scheduling.service |
+| `get_slots(date_from, date_to)`, `book_slot(lead_id, slot_id)`, `cancel_booking(lead_id)`, `get_counsellors()` | scheduling.service |
 | `send_message(channel, lead_id, text)` | scheduling.service (mock) |
 | `schedule_followup(lead_id, when, template)` | scheduling.service |
 | `request_approval(action, payload)` and wrappers `request_fee_waiver`, `request_booking_override`, `request_bulk_message` | crm.service |

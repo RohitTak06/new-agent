@@ -245,7 +245,7 @@ def test_missing_llm_config_streams_an_error(client, monkeypatch):
 
 
 def test_unknown_lead_is_404(client, users):
-    res = client.post("/agent/chat", json={"message": "hi", "lead_id": 999999}, headers=users.counsellor.headers)
+    res = client.post("/agent/chat", json={"message": "hi", "lead_id": 999999}, headers=users.admin.headers)
     assert res.status_code == 404
 
 
@@ -261,7 +261,7 @@ def test_session_of_another_lead_is_rejected(client, monkeypatch, users):
     first = chat(client, monkeypatch, FakeLLM({"intent": "chitchat", "steps": []}, [says("Hi!")]), "Hello")[-1]["data"]
     other = crm_service.upsert_lead(LeadProfile(email=f"{uuid.uuid4().hex[:8]}@example.test")).id
     res = client.post("/agent/chat", json={"message": "hi", "session_id": first["session_id"], "lead_id": other},
-                      headers=users.counsellor.headers)
+                      headers=users.admin.headers)
     assert res.status_code == 409
 
 
@@ -293,3 +293,85 @@ def test_booking_clash_offers_real_alternatives_and_never_claims_booking(client,
     assert "booked" not in final and all(a["start"] in final for a in result["alternatives"])
     with SessionLocal() as db:
         assert db.scalars(select(SlotRow).where(SlotRow.lead_id == events[-1]["data"]["lead_id"])).all() == []
+
+
+# ---------------------------------------------------------------- cancelling and re-booking (seen live)
+def _student_with_session(client, monkeypatch):
+    """A chat whose lead holds an upcoming session, and two other free slots."""
+    seed_slots()
+    first = chat(client, monkeypatch, FakeLLM({"intent": "chitchat", "steps": []}, [says("Hi!")]), "Hello")[-1]["data"]
+    now = clock.now().astimezone(clock.IST)
+    free = sched_service.get_slots(now.date().isoformat(), (now + timedelta(days=7)).date().isoformat())
+    held, other, third = free[0], free[1], free[2]
+    assert sched_service.book_slot(first["lead_id"], held.slot_id).ok
+    return first, held, other, third
+
+
+def test_a_cancellation_is_never_claimed_without_cancelling(client, monkeypatch):
+    first, held, _, _ = _student_with_session(client, monkeypatch)
+    llm = FakeLLM({"intent": "booking", "steps": []},
+                  [says("Your 10:00 AM counselling session has been cancelled."),     # the live bug: nothing was cancelled
+                   calls(("cancel_booking", {})),
+                   says("Done: your counselling session has been cancelled.")])
+    events = chat(client, monkeypatch, llm, "delete my 10 am slot", session_id=first["session_id"])
+
+    booking_checks = [v["data"] for v in by_type(events, "verify") if v["data"]["check"] == "booking"]
+    assert booking_checks[0]["ok"] is False and "cancel" in booking_checks[0]["reason"]
+    assert booking_checks[-1]["ok"] is True
+    result = next(e["data"] for e in by_type(events, "tool_result") if e["data"]["name"] == "cancel_booking")
+    assert result["result"]["ok"] is True and result["result"]["slot"]["slot_id"] == held.slot_id
+    with SessionLocal() as db:
+        row = db.get(SlotRow, int(held.slot_id))
+        assert row.status == "free" and row.lead_id is None
+
+
+def test_after_already_booked_the_agent_cannot_try_slot_after_slot(client, monkeypatch):
+    first, held, other, third = _student_with_session(client, monkeypatch)
+    llm = FakeLLM({"intent": "booking", "steps": []},
+                  [calls(("book_slot", {"slot_id": other.slot_id})),
+                   calls(("book_slot", {"slot_id": third.slot_id})),
+                   says(f"You already have a session with {held.counsellor}. Would you like me to move it?")])
+    events = chat(client, monkeypatch, llm, "book the 11:30 one", session_id=first["session_id"])
+
+    books = [e["data"] for e in by_type(events, "tool_result") if e["data"]["name"] == "book_slot"]
+    assert books[0]["result"]["reason"] == "already_booked"
+    assert books[1]["result"]["ok"] is False and "already has a session" in books[1]["result"]["error"]
+    assert books[1]["result"]["slot"]["slot_id"] == held.slot_id
+    with SessionLocal() as db:
+        assert db.get(SlotRow, int(third.slot_id)).status == "free"
+
+
+def test_moving_a_session_cancels_then_books(client, monkeypatch):
+    first, held, other, _ = _student_with_session(client, monkeypatch)
+    llm = FakeLLM({"intent": "booking", "steps": []},
+                  [calls(("book_slot", {"slot_id": other.slot_id})),
+                   calls(("cancel_booking", {})),
+                   calls(("book_slot", {"slot_id": other.slot_id})),
+                   says(f"Your old session was cancelled and you're booked with {other.counsellor} instead.")])
+    events = chat(client, monkeypatch, llm, "move my session to the other time", session_id=first["session_id"])
+
+    assert all(v["data"]["ok"] for v in by_type(events, "verify"))
+    with SessionLocal() as db:
+        assert db.get(SlotRow, int(held.slot_id)).status == "free"
+        assert db.get(SlotRow, int(other.slot_id)).lead_id == first["lead_id"]
+
+
+def test_who_is_a_counsellor_is_answered_from_the_counsellor_list(client, monkeypatch):
+    seed_slots()
+    person = sched_service.get_counsellors()[0]
+
+    def answer(convo):
+        info = next(r for name, r, _ in llm.tool_results if name == "get_counsellors")
+        mine = next(c for c in info if c["name"] == person.name)
+        return says(f"{person.name} is one of our admissions counsellors. Their next free session starts {mine['next_free']}. "
+                    "Would you like to book it?")
+
+    llm = FakeLLM({"intent": "institutional_question", "steps": [{"goal": "look up", "tool": "get_counsellors"}]},
+                  [calls(("get_counsellors", {})), answer])
+    events = chat(client, monkeypatch, llm, f"who is {person.name}")
+
+    final = events[-1]["data"]
+    assert final["escalated"] is False and final["approval_id"] is None
+    assert person.name in final["text"]
+    grounding = [v["data"] for v in by_type(events, "verify") if v["data"]["check"] == "grounding"]
+    assert grounding[-1]["ok"] is True and "counsellor list" in grounding[-1]["reason"]

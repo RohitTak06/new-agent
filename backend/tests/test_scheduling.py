@@ -52,7 +52,7 @@ def slot_row(slot_id: str) -> SlotRow:
 
 
 # ------------------------------------------------------------------ contract
-@pytest.mark.parametrize("name", ["get_slots", "book_slot", "send_message", "schedule_followup"])
+@pytest.mark.parametrize("name", ["get_slots", "get_counsellors", "book_slot", "cancel_booking", "send_message", "schedule_followup"])
 def test_real_service_matches_stub_signature(name):
     stub, real = inspect.signature(getattr(stubs, name)), inspect.signature(getattr(service, name))
     assert [(p.name, p.default) for p in stub.parameters.values()] == \
@@ -164,7 +164,7 @@ def test_s6_due_followup_fires_after_clock_advance(restore_clock, users):
     assert f["ok"]
 
     assert f["followup_id"] not in [o["followup_id"] for o in followups.dispatch_due()["processed"]]
-    res = TestClient(app).post("/scheduling/clock/advance", json={"hours": 24}, headers=users.counsellor.headers)
+    res = TestClient(app).post("/scheduling/clock/advance", json={"hours": 24}, headers=users.admin.headers)
     assert res.status_code == 200
     outcome = next(o for o in res.json()["followups"]["processed"] if o["followup_id"] == f["followup_id"])
     assert outcome["status"] == "sent" and outcome["detail"] == "email"
@@ -213,7 +213,7 @@ def test_concurrent_dispatch_sends_once(restore_clock):
 
 # ------------------------------------------------------------------ endpoints
 def test_endpoints_book_clash_and_clock_validation(restore_clock, users):
-    client = TestClient(app, headers=users.counsellor.headers)
+    client = TestClient(app, headers=users.admin.headers)
     slot = free_slots(1)[0]
     a, b = new_lead(), new_lead()
     assert client.post("/scheduling/book", json={"lead_id": a, "slot_id": slot.slot_id}).json()["ok"] is True
@@ -223,3 +223,34 @@ def test_endpoints_book_clash_and_clock_validation(restore_clock, users):
     assert client.post("/scheduling/followups", json={"lead_id": 999999, "when": _due_in_24h(),
                                                       "template": "hot_reminder"}).status_code == 404
     assert client.get("/scheduling/clock").json()["now"].endswith("+05:30")
+
+
+def test_cancel_booking_frees_the_slot_and_allows_a_new_booking():
+    lead, (first, second) = new_lead(), free_slots(2)
+    assert service.book_slot(lead, first.slot_id).ok
+    assert service.book_slot(lead, second.slot_id).reason == "already_booked"
+
+    res = service.cancel_booking(lead)
+    assert res.ok and res.slot.slot_id == first.slot_id
+    row = slot_row(first.slot_id)
+    assert row.status == "free" and row.lead_id is None and row.booked_at is None
+    assert service.book_slot(lead, second.slot_id).ok
+    with SessionLocal() as db:
+        logged = db.scalars(select(AuditLog).where(AuditLog.tool_name == "cancel_booking", AuditLog.lead_id == lead)).all()
+    assert len(logged) == 1
+
+
+def test_cancel_booking_with_nothing_booked_says_so():
+    assert service.cancel_booking(new_lead()).reason == "no_booking"
+    assert service.cancel_booking(999_999_999).reason == "lead_not_found"
+
+
+def test_get_counsellors_lists_each_active_counsellor_with_their_next_free_session():
+    found = service.get_counsellors()
+    names = [c.name for c in found]
+    assert names == sorted(names) and len(names) == len(set(names)) > 0
+    upcoming = free_slots(50)
+    for c in found:
+        theirs = [s.start for s in upcoming if s.counsellor == c.name]
+        if theirs:
+            assert c.next_free is not None and clock.parse(c.next_free) == min(clock.parse(t) for t in theirs)

@@ -15,7 +15,7 @@ from typing import Optional
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
-from app.contracts.models import BookingResult, MessageResult, Slot
+from app.contracts.models import BookingResult, CancelResult, CounsellorInfo, MessageResult, Slot
 from app.crm.db.base import SessionLocal
 from app.crm.db.models import Lead as LeadRow
 from app.crm.service import log_event
@@ -51,6 +51,19 @@ def get_slots(date_from: str, date_to: str) -> list[Slot]:
                           .where(SlotRow.start_at >= start, SlotRow.start_at < end)
                           .order_by(SlotRow.start_at, SlotRow.counsellor_id).limit(MAX_SLOTS)).all()
     return [_slot(r, name) for r, name in rows]
+
+
+def get_counsellors() -> list[CounsellorInfo]:
+    """The active admissions counsellors, with each one's next free future session (None if fully booked)."""
+    now = clock.now()
+    with SessionLocal() as db:
+        names = db.scalars(select(Counsellor.name).where(Counsellor.active.is_(True)).order_by(Counsellor.name)).all()
+        first_free = dict(db.execute(
+            select(Counsellor.name, func.min(SlotRow.start_at))
+            .join(SlotRow, SlotRow.counsellor_id == Counsellor.id)
+            .where(Counsellor.active.is_(True), SlotRow.status == "free", SlotRow.start_at > now)
+            .group_by(Counsellor.name)).all())
+    return [CounsellorInfo(name=n, next_free=clock.to_ist(first_free[n]) if n in first_free else None) for n in names]
 
 
 def _alternatives(db: Session, target: datetime, exclude: int, now: datetime) -> list[Slot]:
@@ -121,6 +134,31 @@ def _book(lead_id: int, slot_id: str) -> BookingResult:
         db.commit()
         db.refresh(target)
         return BookingResult(ok=True, slot=_slot(target, _counsellor_name(db, target)))
+
+
+def cancel_booking(lead_id: int) -> CancelResult:
+    """Release the lead's upcoming session so the slot is free again.
+
+    A student may cancel only their own session: the agent passes the chat's lead,
+    never an id from the conversation. Past sessions stay as they are.
+    """
+    with SessionLocal() as db:
+        if db.get(LeadRow, lead_id, with_for_update=True) is None:
+            result = CancelResult(ok=False, reason="lead_not_found")
+        else:
+            held = db.scalars(select(SlotRow).where(SlotRow.lead_id == lead_id, SlotRow.status == "booked",
+                                                    SlotRow.start_at > clock.now()).with_for_update()).first()
+            if held is None:
+                result = CancelResult(ok=False, reason="no_booking")
+            else:
+                released = _slot(held, _counsellor_name(db, held))
+                held.status, held.lead_id, held.booked_at = "free", None, None
+                db.commit()
+                result = CancelResult(ok=True, slot=released)
+    log_event(actor="system", event_type="tool_call", tool_name="cancel_booking", input={"lead_id": lead_id},
+              output=result.model_dump(), reasoning_step=result.reason, request_id=None,
+              lead_id=None if result.reason == "lead_not_found" else lead_id)
+    return result
 
 
 def override_booking(lead_id: int, slot_id: str) -> dict:

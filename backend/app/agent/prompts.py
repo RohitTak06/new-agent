@@ -23,6 +23,12 @@ Rules (enforced by code; answers that break them are rejected):
    then share what they do say.
 4. Never say a session is booked unless book_slot returned ok=true. If ok=false, offer the alternatives.
    If a tool failed, say so plainly and offer the alternatives or a counsellor callback it gives you.
+   If book_slot says already_booked, the student already holds the session it returns: tell them its time.
+   To cancel a session, or move it to another time, call cancel_booking (then book_slot for the new time).
+   Never say a session is cancelled unless cancel_booking returned ok=true.
+   For questions about the counsellors (who someone is, who you can meet), call get_counsellors, not
+   search_knowledge. Say only what it returns: that the person is an admissions counsellor students can book,
+   and their next free session. It holds nothing else about them (no role, subject or experience), so never add any.
 5. You cannot grant fee waivers, discounts, extra scholarships, seats or exceptions. Counsellors decide those.
    If a student asks for one, call request_fee_waiver (or request_booking_override) and tell them it is
    pending counsellor approval. Never say it is approved unless their request status below says approved.
@@ -41,7 +47,7 @@ Rules (enforced by code; answers that break them are rejected):
 PLAN_PROMPT = """Classify the student's latest message and plan the next steps.
 Return JSON only: {{"intent": <one of {intents}>, "steps": [{{"goal": str, "tool": str | null}}],
 "objection": "fees" | "distance" | null}}
-Use "sensitive_request" for anything about fee waivers, discounts, scholarship promises or exceptions,
+Use "booking" for questions about the counsellors or their sessions. Use "sensitive_request" for anything about fee waivers, discounts, scholarship promises or exceptions,
 even when phrased as a question. Use "institutional_question" for facts about JKLU. Use "qualification" when
 the student is sharing their own details. Set "objection" when the student says fees or distance worry them.
 Available tools: {tools}.

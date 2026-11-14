@@ -99,7 +99,7 @@ Click **Approve**.
 *Staff window.* **Pipeline**, click **Test Student**, then **Audit trail**. Expand a **verify** row and the **approval decision** row, which names who approved it.
 
 - "Every plan, tool call, check and decision is here, and the database itself rejects edits or deletes to this log."
-- Point at the student window's menu: "Students see only their chat and messages. Roles are enforced on the server: a student's token gets a 403 on these screens."
+- Point at the student window's menu: "Students see only their chat and messages. Counsellors see only their everyday work: leads, approvals and scheduling. The audit log, analytics, knowledge base and these demo tools are admin-only. Roles are enforced on the server: a student's or counsellor's token gets a 403 on screens they don't have."
 
 Close: "Plan, act, verify, recover, and a human for anything sensitive."
 

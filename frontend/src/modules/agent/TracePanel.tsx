@@ -46,7 +46,7 @@ const BOOKING_REFUSAL: Record<string, string> = {
 };
 
 const WORKING: Record<string, string> = {
-  search_knowledge: "Searching the knowledge base…", book_slot: "Trying to book the session…", get_slots: "Checking free sessions…",
+  search_knowledge: "Searching the knowledge base…", book_slot: "Trying to book the session…", cancel_booking: "Cancelling the session…", get_counsellors: "Looking up the counsellors…", get_slots: "Checking free sessions…",
   upsert_lead: "Saving the student's details…", score_lead: "Scoring the lead…", get_lead: "Reading the student's record…",
   request_fee_waiver: "Sending the request to a counsellor…", request_booking_override: "Sending the request to a counsellor…",
   request_bulk_message: "Sending the request to a counsellor…", plan_followup: "Planning a follow-up…",
@@ -66,7 +66,11 @@ function resultText(name: string, r: any): string {
     const files: string[] = r.chunks.map((c: any) => String(c.source).split(".md")[0]);
     return `Searched the knowledge base: found it under ${Array.from(new Set(files)).map((f) => SOURCE_NAME[f] ?? humanize(f)).join(", ")}.`;
   }
-  if (name === "book_slot") return r.ok ? "Booked the session." : BOOKING_REFUSAL[r.reason] ?? "The booking was refused.";
+  if (name === "book_slot") {
+    return r.ok ? "Booked the session." : BOOKING_REFUSAL[r.reason] ?? (r.slot ? "Not tried: the student already has a session." : "The booking was refused.");
+  }
+  if (name === "get_counsellors" && Array.isArray(r)) return `Found ${r.length} counsellor${r.length === 1 ? "" : "s"}.`;
+  if (name === "cancel_booking") return r.ok ? "Cancelled the session." : "There was no session to cancel.";
   if (name === "get_slots" && Array.isArray(r)) return `Found ${r.length} free session${r.length === 1 ? "" : "s"}.`;
   if (name === "score_lead") return `Scored the lead: ${r.score}/100, ${r.tier}.`;
   if (name === "upsert_lead") return "Saved the student's details.";

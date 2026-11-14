@@ -42,6 +42,8 @@ lead_requests = _resolve("USE_REAL_CRM", "app.crm.service", "lead_requests")
 # scheduling
 get_slots = _resolve("USE_REAL_SCHEDULING", "app.scheduling.service", "get_slots")
 book_slot = _resolve("USE_REAL_SCHEDULING", "app.scheduling.service", "book_slot")
+cancel_booking = _resolve("USE_REAL_SCHEDULING", "app.scheduling.service", "cancel_booking")
+get_counsellors = _resolve("USE_REAL_SCHEDULING", "app.scheduling.service", "get_counsellors")
 send_message = _resolve("USE_REAL_SCHEDULING", "app.scheduling.service", "send_message")
 schedule_followup = _resolve("USE_REAL_SCHEDULING", "app.scheduling.service", "schedule_followup")
 plan_followup = _resolve("USE_REAL_SCHEDULING", "app.scheduling.planner", "plan_followup")
