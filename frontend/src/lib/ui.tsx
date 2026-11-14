@@ -1,14 +1,15 @@
 import React from "react";
-import { AlertCircle, Inbox, Loader2, RefreshCw } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AlertCircle, ArrowUpRight, Inbox, Loader2, RefreshCw, type LucideIcon } from "lucide-react";
 
 export const Card: React.FC<{ className?: string; children: React.ReactNode }> = ({ className = "", children }) => (
-  <div className={`bg-white rounded-xl border border-slate-200 shadow-sm ${className}`}>{children}</div>
+  <div className={`bg-white rounded-xl border border-slate-200/80 shadow-card ${className}`}>{children}</div>
 );
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 
 const BUTTON: Record<ButtonVariant, string> = {
-  primary: "bg-jklu-blue text-white hover:bg-[#123a63]",
+  primary: "bg-jklu-blue text-white shadow-sm hover:bg-jklu-ink",
   secondary: "bg-white text-slate-700 border border-slate-300 hover:bg-slate-50",
   ghost: "text-slate-600 hover:bg-slate-100",
   danger: "bg-white text-rose-700 border border-rose-300 hover:bg-rose-50",
@@ -74,14 +75,38 @@ export const EmptyState: React.FC<{ title: string; hint?: string }> = ({ title, 
   </div>
 );
 
-export const PageHeader: React.FC<{ title: string; subtitle?: string; actions?: React.ReactNode }> = ({
-  title, subtitle, actions,
+export const PageHeader: React.FC<{ title: string; subtitle?: string; eyebrow?: string; actions?: React.ReactNode }> = ({
+  title, subtitle, eyebrow, actions,
 }) => (
-  <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-    <div>
-      <h1 className="text-xl font-bold text-jklu-blue">{title}</h1>
-      {subtitle && <p className="text-sm text-slate-500 mt-0.5">{subtitle}</p>}
+  <div className="flex flex-wrap items-end justify-between gap-3 mb-5 pb-4 border-b border-slate-200/70">
+    <div className="min-w-0">
+      {eyebrow && <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">{eyebrow}</p>}
+      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
+      {subtitle && <p className="text-sm text-slate-500 mt-1">{subtitle}</p>}
     </div>
     {actions}
   </div>
 );
+
+/** A headline number. With `to`, the whole tile opens the list behind the number. */
+export const StatTile: React.FC<{ label: string; value: number | string; note?: string; icon?: LucideIcon;
+  accent?: string; to?: string }> = ({ label, value, note, icon: Icon, accent = "text-jklu-blue bg-slate-100", to }) => {
+  const body = (
+    <>
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-xs font-medium text-slate-500">{label}</p>
+        {Icon && <span className={`rounded-lg p-1.5 ${accent}`}><Icon className="w-4 h-4" aria-hidden /></span>}
+      </div>
+      <p className="text-3xl font-semibold tracking-tight text-slate-900 mt-1 tabular-nums">{value}</p>
+      <div className="mt-1 flex items-center justify-between gap-2 min-h-[1rem]">
+        {note ? <p className="text-xs text-slate-500">{note}</p> : <span />}
+        {to && <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-jklu-blue transition-colors" aria-hidden />}
+      </div>
+    </>
+  );
+  const frame = "block bg-white rounded-xl border border-slate-200/80 shadow-card p-4";
+  return to ? (
+    <Link to={to} className={`group ${frame} hover:border-slate-300 hover:shadow-raised transition
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}>{body}</Link>
+  ) : <div className={frame}>{body}</div>;
+};

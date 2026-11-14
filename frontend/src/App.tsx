@@ -19,18 +19,19 @@ interface NavItem {
   label: string;
   icon: LucideIcon;
   viewers: Viewer[];
+  group?: string;
 }
 
 const NAV: NavItem[] = [
   { to: "/chat", label: "Chat", icon: MessageSquare, viewers: ["anonymous", "student"] },
   { to: "/messages", label: "My messages", icon: Inbox, viewers: ["student"] },
-  { to: "/pipeline", label: "Pipeline", icon: KanbanSquare, viewers: STAFF },
-  { to: "/approvals", label: "Approvals", icon: ShieldCheck, viewers: STAFF },
-  { to: "/scheduling", label: "Scheduling", icon: CalendarClock, viewers: STAFF },
-  { to: "/audit", label: "Audit", icon: ScrollText, viewers: STAFF },
-  { to: "/analytics", label: "Analytics", icon: BarChart3, viewers: STAFF },
-  { to: "/knowledge", label: "Knowledge", icon: BookOpen, viewers: STAFF },
-  { to: "/chat", label: "Test chat", icon: MessageSquare, viewers: STAFF },
+  { to: "/pipeline", label: "Pipeline", icon: KanbanSquare, viewers: STAFF, group: "Leads" },
+  { to: "/approvals", label: "Approvals", icon: ShieldCheck, viewers: STAFF, group: "Leads" },
+  { to: "/scheduling", label: "Scheduling", icon: CalendarClock, viewers: STAFF, group: "Operations" },
+  { to: "/audit", label: "Audit log", icon: ScrollText, viewers: STAFF, group: "Operations" },
+  { to: "/analytics", label: "Analytics", icon: BarChart3, viewers: STAFF, group: "Insights" },
+  { to: "/knowledge", label: "Knowledge base", icon: BookOpen, viewers: STAFF, group: "Insights" },
+  { to: "/chat", label: "Test chat", icon: MessageSquare, viewers: STAFF, group: "Agent" },
 ];
 
 /** Hides a screen from roles that can't use it. The server still refuses them on every request. */
@@ -50,26 +51,91 @@ const PendingCount: React.FC = () => {
   }, [reload]);
   if (!data?.length) return null;
   return (
-    <span aria-label={`${data.length} pending`} className="ml-0.5 min-w-[18px] rounded-full bg-jklu-gold px-1 text-center text-[11px] font-bold text-jklu-blue">
+    <span aria-label={`${data.length} pending`} className="ml-auto min-w-[20px] rounded-full bg-jklu-gold px-1.5 text-center text-[11px] font-bold leading-5 text-jklu-blue">
       {data.length}
     </span>
   );
 };
 
-const Header: React.FC = () => {
+const Brand: React.FC<{ subtitle?: string }> = ({ subtitle }) => (
+  <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
+    <span className="w-8 h-8 rounded-lg bg-jklu-gold text-jklu-blue font-black text-sm flex items-center justify-center shadow-sm">JK</span>
+    <span className="leading-tight">
+      <span className="block font-semibold text-sm text-white">JKLU Admissions</span>
+      {subtitle && <span className="block text-[11px] text-slate-400">{subtitle}</span>}
+    </span>
+  </NavLink>
+);
+
+function itemsFor(viewer: Viewer): NavItem[] {
+  return NAV.filter((item) => item.viewers.includes(viewer));
+}
+
+const Initials: React.FC<{ name: string }> = ({ name }) => (
+  <span aria-hidden className="w-8 h-8 rounded-full bg-jklu-line text-[11px] font-semibold text-white flex items-center justify-center shrink-0">
+    {name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("")}
+  </span>
+);
+
+/** Staff on a wide screen: a fixed sidebar, grouped by what the counsellor is doing. */
+const Sidebar: React.FC = () => {
+  const { user, logout } = useAuth();
+  const items = itemsFor(user?.role ?? "anonymous");
+  const groups = Array.from(new Set(items.map((i) => i.group ?? "")));
+  return (
+    <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-60 flex-col bg-jklu-blue text-white">
+      <div className="px-4 h-16 flex items-center border-b border-jklu-line">
+        <Brand subtitle="Counsellor workspace" />
+      </div>
+      <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-4 space-y-5 scroll-quiet">
+        {groups.map((group) => (
+          <div key={group}>
+            {group && <p className="px-2 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">{group}</p>}
+            <ul className="space-y-0.5">
+              {items.filter((i) => (i.group ?? "") === group).map((item) => (
+                <li key={`${item.to}-${item.label}`}>
+                  <NavLink to={item.to} className={({ isActive }: { isActive: boolean }) =>
+                    `relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors ${
+                      isActive ? "bg-white/10 text-white font-medium before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-full before:bg-jklu-gold"
+                               : "text-slate-300 hover:text-white hover:bg-white/5"}`}>
+                    <item.icon className="w-4 h-4 shrink-0" /> {item.label}
+                    {item.to === "/approvals" && <PendingCount />}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </nav>
+      {user && (
+        <div className="border-t border-jklu-line p-3 flex items-center gap-2.5">
+          <Initials name={user.full_name} />
+          <div className="min-w-0 flex-1 leading-tight">
+            <p className="text-xs font-medium truncate">{user.full_name}</p>
+            <p className="text-[11px] text-jklu-gold capitalize">{user.role}</p>
+          </div>
+          <button type="button" onClick={logout} aria-label="Log out" title="Log out"
+            className="rounded-md p-1.5 text-slate-300 hover:text-white hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-jklu-gold">
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+    </aside>
+  );
+};
+
+/** Students and visitors everywhere, and staff on narrow screens. */
+const Header: React.FC<{ staff: boolean }> = ({ staff }) => {
   const { user, logout } = useAuth();
   const viewer: Viewer = user?.role ?? "anonymous";
   return (
-    <header className="bg-jklu-blue text-white sticky top-0 z-50">
+    <header className={`bg-jklu-blue text-white sticky top-0 z-50 shadow-sm ${staff ? "lg:hidden" : ""}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center gap-x-6 gap-y-1 py-2 min-h-14">
-        <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
-          <span className="w-8 h-8 rounded-md bg-jklu-gold text-jklu-blue font-black text-sm flex items-center justify-center">JK</span>
-          <span className="font-semibold text-sm">JKLU Admissions</span>
-        </NavLink>
+        <Brand subtitle={staff ? undefined : "Admissions assistant"} />
 
         <nav aria-label="Main" className="flex items-center gap-1 order-3 sm:order-none w-full sm:w-auto sm:flex-1 overflow-x-auto">
-          {NAV.filter((item) => item.viewers.includes(viewer)).map((item) => (
-            <NavLink key={item.to} to={item.to} className={({ isActive }) =>
+          {itemsFor(viewer).map((item) => (
+            <NavLink key={`${item.to}-${item.label}`} to={item.to} className={({ isActive }: { isActive: boolean }) =>
               `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm whitespace-nowrap transition-colors ${
                 isActive ? "bg-white/15 text-white font-medium" : "text-slate-300 hover:text-white hover:bg-white/10"}`}>
               <item.icon className="w-4 h-4" /> {item.label}
@@ -90,8 +156,8 @@ const Header: React.FC = () => {
               </button>
             </>
           ) : (
-            <NavLink to="/login" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-slate-300 hover:text-white hover:bg-white/10">
-              <LogIn className="w-4 h-4" /> Log in
+            <NavLink to="/login" className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white/10 text-white hover:bg-white/15">
+              <LogIn className="w-4 h-4" /> Staff or student log in
             </NavLink>
           )}
         </div>
@@ -125,18 +191,29 @@ const AppRoutes: React.FC = () => {
   );
 };
 
+const Shell: React.FC = () => {
+  const { user } = useAuth();
+  const staff = Boolean(user && user.role !== "student");
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
+      {staff && <Sidebar />}
+      <Header staff={staff} />
+      <main className={`flex-1 w-full ${staff ? "lg:pl-60" : ""}`}>
+        <div className={`mx-auto px-4 sm:px-6 py-4 ${staff ? "max-w-[1400px] lg:px-8 lg:py-6" : "max-w-7xl"}`}>
+          <ErrorBoundary>
+            <AppRoutes />
+          </ErrorBoundary>
+        </div>
+      </main>
+    </div>
+  );
+};
+
 export function App() {
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
-        <div className="min-h-screen bg-slate-50 flex flex-col font-sans text-slate-800">
-          <Header />
-          <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-4">
-            <ErrorBoundary>
-              <AppRoutes />
-            </ErrorBoundary>
-          </main>
-        </div>
+        <Shell />
       </AuthProvider>
     </BrowserRouter>
   );

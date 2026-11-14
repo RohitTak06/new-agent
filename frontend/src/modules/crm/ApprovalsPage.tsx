@@ -229,7 +229,7 @@ export const ApprovalsPage: React.FC = () => {
 
   return (
     <div className="max-w-3xl mx-auto">
-      <PageHeader title="Approvals" subtitle="The agent can't grant anything. These run only after a person approves." />
+      <PageHeader eyebrow="Leads" title="Approvals" subtitle="The agent can't grant anything. These run only after a person approves." />
 
       <div role="tablist" aria-label="Filter by status" className="flex gap-1 mb-4">
         {TABS.map((t) => (

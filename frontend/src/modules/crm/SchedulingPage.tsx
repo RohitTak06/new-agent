@@ -210,7 +210,7 @@ export const SchedulingPage: React.FC = () => {
 
   return (
     <>
-      <PageHeader title="Scheduling" subtitle="Counsellor sessions and follow-ups, on the demo's virtual clock." />
+      <PageHeader eyebrow="Operations" title="Scheduling" subtitle="Counsellor sessions and follow-ups, on the demo's virtual clock." />
 
       <Card className="p-4 mb-4">
         <div className="flex flex-wrap items-center gap-4">

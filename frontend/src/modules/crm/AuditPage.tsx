@@ -113,7 +113,7 @@ export const AuditPage: React.FC = () => {
 
   return (
     <>
-      <PageHeader title="Audit log" subtitle="Every agent step, tool call, decision and refusal, newest first."
+      <PageHeader eyebrow="Operations" title="Audit log" subtitle="Every agent step, tool call, decision and refusal, newest first."
         actions={
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1 text-xs text-slate-500"><Lock className="w-3.5 h-3.5" /> Append-only</span>

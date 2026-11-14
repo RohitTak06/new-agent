@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { BellOff, Globe, Mail, MessageCircle, Search, Sparkles } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { BellOff, Globe, Mail, MessageCircle, Search, Sparkles, X } from "lucide-react";
 import { isAnonymous, leadName, TIER_TONE } from "../../lib/leads";
 import { Badge, Card, EmptyState, ErrorBanner, Loading, PageHeader, type Tone } from "../../lib/ui";
 import { useApi } from "../../lib/useApi";
@@ -23,6 +23,14 @@ const CHANNEL_ICON: Record<Channel, React.ElementType> = { web: Globe, whatsapp:
 function columnOf(lead: Lead): Column {
   return lead.score?.tier ?? "unscored";
 }
+
+/** Filters that Analytics links to, e.g. /pipeline?tier=hot or ?status=qualified. All applied here, on the loaded leads. */
+const FILTERS: { key: string; label: (v: string) => string; test: (lead: Lead, v: string) => boolean }[] = [
+  { key: "tier", label: (v) => (v === "unscored" ? "Not scored" : `${v[0].toUpperCase()}${v.slice(1)} leads`), test: (l, v) => columnOf(l) === v },
+  { key: "status", label: (v) => `Stage: ${v}`, test: (l, v) => l.status === v },
+  { key: "channel", label: (v) => `Channel: ${v === "web" ? "website" : v}`, test: (l, v) => l.profile.channel === v },
+  { key: "opted_out", label: () => "Opted out", test: (l) => l.opted_out },
+];
 
 /** Highest score first; anonymous visitors go last, because there's nobody to contact yet. */
 function byPriority(a: Lead, b: Lead): number {
@@ -64,7 +72,7 @@ const LeadCard: React.FC<{ lead: Lead; highlighted: boolean }> = ({ lead, highli
   return (
     <li>
       <Link to={`/leads/${lead.id}`}
-        className={`block rounded-lg border bg-white p-3 hover:border-slate-400 hover:shadow-sm transition
+        className={`block rounded-lg border bg-white p-3 shadow-card hover:border-slate-300 hover:shadow-raised transition
           focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500
           ${highlighted ? "border-jklu-gold ring-2 ring-jklu-gold/40" : "border-slate-200"}`}>
         <div className="flex items-start justify-between gap-2">
@@ -89,18 +97,31 @@ const LeadCard: React.FC<{ lead: Lead; highlighted: boolean }> = ({ lead, highli
 export const PipelinePage: React.FC = () => {
   const { data, error, loading, reload } = useApi<Lead[]>("/crm/leads", POLL_MS);
   const [search, setSearch] = useState("");
+  const [params, setParams] = useSearchParams();
   const recent = useRecentChanges(data);
   const term = search.trim().toLowerCase();
+  const active = FILTERS.filter((f) => params.get(f.key)).map((f) => ({ ...f, value: params.get(f.key) ?? "" }));
+  const filterKey = active.map((f) => `${f.key}=${f.value}`).join("&");
 
   const columns = useMemo(() => {
-    const shown = (data ?? []).filter((l) => !term || matches(l, term)).sort(byPriority);
+    const shown = (data ?? [])
+      .filter((l) => !term || matches(l, term))
+      .filter((l) => active.every((f) => f.test(l, f.value)))
+      .sort(byPriority);
     return COLUMNS.map((c) => ({ ...c, leads: shown.filter((l) => columnOf(l) === c.key) }));
-  }, [data, term]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, term, filterKey]);
   const shownCount = columns.reduce((n, c) => n + c.leads.length, 0);
+
+  function clear(key?: string) {
+    const next = new URLSearchParams(params);
+    for (const f of FILTERS) if (!key || f.key === key) next.delete(f.key);
+    setParams(next, { replace: true });
+  }
 
   return (
     <>
-      <PageHeader title="Lead pipeline" subtitle={data ? `${data.length} leads, refreshed every 10 seconds` : undefined}
+      <PageHeader eyebrow="Leads" title="Lead pipeline" subtitle={data ? `${data.length} leads by score, refreshed every 10 seconds` : undefined}
         actions={
           <div className="relative w-full sm:w-72">
             <Search className="w-4 h-4 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" aria-hidden />
@@ -111,24 +132,39 @@ export const PipelinePage: React.FC = () => {
           </div>
         } />
 
+      {active.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-xs text-slate-500">Showing</span>
+          {active.map((f) => (
+            <button key={f.key} type="button" onClick={() => clear(f.key)} aria-label={`Remove filter ${f.label(f.value)}`}
+              className="inline-flex items-center gap-1 rounded-full border border-jklu-blue/20 bg-jklu-blue/5 px-2.5 py-0.5 text-xs font-medium text-jklu-blue hover:bg-jklu-blue/10">
+              {f.label(f.value)} <X className="w-3 h-3" aria-hidden />
+            </button>
+          ))}
+          <span className="text-xs text-slate-500">· {shownCount} of {data?.length ?? 0}</span>
+          <button type="button" onClick={() => clear()} className="text-xs text-slate-600 underline hover:text-jklu-blue">Show all</button>
+        </div>
+      )}
       {error && <div className="mb-3"><ErrorBanner message={error} onRetry={() => void reload()} /></div>}
       {loading && !data && <Loading label="Loading leads…" />}
-      {data && term && shownCount === 0 && <Card><EmptyState title={`No leads match "${search.trim()}"`} /></Card>}
+      {data && (term || active.length > 0) && shownCount === 0 && (
+        <Card><EmptyState title={term ? `No leads match "${search.trim()}"` : "No leads match these filters"} /></Card>
+      )}
       {data && data.length === 0 && <Card><EmptyState title="No leads yet" hint="A lead appears here when someone starts a chat." /></Card>}
 
       {data && data.length > 0 && shownCount > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 items-start">
           {columns.map((c) => (
             <section key={c.key} aria-label={`${c.label} leads`}
-              className={`rounded-xl border border-slate-200 border-t-4 ${c.rule} bg-slate-100/70 flex flex-col xl:max-h-[calc(100dvh-10.5rem)]`}>
-              <h2 className="px-3 py-2 flex items-center justify-between text-sm font-semibold text-slate-800">
+              className={`rounded-xl border border-slate-200/80 border-t-4 ${c.rule} bg-slate-100/60 flex flex-col xl:max-h-[calc(100dvh-12rem)]`}>
+              <h2 className="px-3 py-2.5 flex items-center justify-between text-sm font-semibold text-slate-800">
                 {c.label}
                 <Badge tone={c.tone}>{c.leads.length}</Badge>
               </h2>
               {c.leads.length === 0 ? (
                 <p className="px-3 pb-3 text-xs text-slate-500">None</p>
               ) : (
-                <ul className="px-2 pb-2 space-y-1.5 overflow-y-auto">
+                <ul className="px-2 pb-2 space-y-1.5 overflow-y-auto scroll-quiet">
                   {c.leads.map((lead) => <LeadCard key={lead.id} lead={lead} highlighted={recent.has(lead.id)} />)}
                 </ul>
               )}
