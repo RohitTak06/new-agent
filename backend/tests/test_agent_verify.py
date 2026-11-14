@@ -208,3 +208,19 @@ def test_a_booking_word_outside_a_session_sentence_is_not_a_claim(answer):
 ])
 def test_a_session_claim_without_a_booking_is_caught(answer):
     assert not check_booking(answer, ev()).ok
+
+
+# ---------------------------------------------------------------- school years aren't figures (seen live)
+def test_a_school_year_is_not_an_invented_figure():
+    for text in (f"The fee is INR 2,65,000 per year for students who passed Class 12 [{SRC}].",
+                 f"You need good 12th marks; the fee is INR 2,65,000 [{SRC}].",
+                 f"After Class 10 and Class 12th, the fee is INR 2,65,000 [{SRC}]."):
+        assert check_grounding(text, ev(KB), "institutional_question").ok, text
+
+
+def test_invented_figures_beside_a_school_year_still_fail():
+    for text in (f"Class 12 students pay INR 12,000 extra [{SRC}].",
+                 f"Classes start on 12th March; the fee is INR 2,65,000 [{SRC}].",
+                 f"You get 12 free credits and the fee is INR 2,65,000 [{SRC}]."):
+        verdict = check_grounding(text, ev(KB), "institutional_question")
+        assert not verdict.ok and verdict.details["ungrounded_numbers"], text

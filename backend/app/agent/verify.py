@@ -20,6 +20,12 @@ GROUNDED_INTENTS = {"institutional_question", "sensitive_request"}
 _SOURCE = r"[^\[\]\s,;]+\.md(?:#[^\[\]\s,;]*)?"
 _CITATION = re.compile(rf"\[\s*({_SOURCE}(?:\s*[,;]\s*{_SOURCE})*)\s*\]")
 _NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+# "Class 12", "12th marks" and the like name a school year. Only 10 and 12, so a date like "12th March" stays checked.
+_SCHOOL_YEAR = re.compile(
+    r"\b(?:class|grade|std\.?|standard)\s+(?:10|12)(?:th)?\b"
+    r"|\b(?:10|12)th\s+(?=(?:class|grade|standard|board|marks|exams?|results?|subjects?)\b)",
+    re.IGNORECASE,
+)
 _FEE_GRANT = re.compile(r"\b(?:waiver|discount|concession)\b", re.IGNORECASE)
 GRANTING_ACTIONS = {"fee_waiver", "booking_override"}
 _BOOKING_CLAIM = re.compile(r"\b(booked|confirmed|reserved|scheduled)\b", re.IGNORECASE)
@@ -96,6 +102,11 @@ def citations(text: str) -> list[str]:
     return list(dict.fromkeys(sources))
 
 
+def _without_school_years(text: str) -> str:
+    """Drop school-year names like "Class 12" or "12th marks": they name a year, they don't state a figure."""
+    return _SCHOOL_YEAR.sub(" ", text)
+
+
 def _numbers(text: str) -> set[str]:
     out = set()
     for raw in _NUMBER.findall(text):
@@ -148,7 +159,7 @@ def check_grounding(answer: str, evidence: TurnEvidence, intent: str, question: 
         return Verdict("grounding", False, "answer cites sources that were not retrieved", "replan",
                        {"unknown_sources": unknown})
 
-    body = _CITATION.sub("", answer)
+    body = _without_school_years(_CITATION.sub("", answer))
     kb_numbers = _numbers(" ".join(c.text for c in evidence.found_chunks))
     ungrounded = sorted(_numbers(body) - kb_numbers - _numbers(question))
     if ungrounded:
