@@ -122,11 +122,11 @@ def test_without_a_fallback_there_is_only_one_attempt(monkeypatch):
 @pytest.fixture
 def limits_on(monkeypatch):
     monkeypatch.setenv("RATE_LIMITS_ENABLED", "1")
-    ratelimit.login_failures.reset()
-    ratelimit.chat_requests.reset()
+    for window in (ratelimit.login_failures, ratelimit.chat_requests, ratelimit.anonymous_chat):
+        window.reset()
     yield
-    ratelimit.login_failures.reset()
-    ratelimit.chat_requests.reset()
+    for window in (ratelimit.login_failures, ratelimit.chat_requests, ratelimit.anonymous_chat):
+        window.reset()
 
 
 @pytest.fixture
@@ -163,9 +163,18 @@ def test_chat_is_limited_before_any_model_call(client, monkeypatch, limits_on):
         raise AssertionError("the model must not be reached")
 
     monkeypatch.setattr(agent_router, "get_llm", no_model)
-    for _ in range(ratelimit.chat_requests.limit):
-        ratelimit.chat_requests.hit("testclient")
+    for _ in range(ratelimit.anonymous_chat.limit):
+        ratelimit.anonymous_chat.hit("testclient")
     assert client.post("/agent/chat", json={"message": "hello"}).status_code == 429
+
+
+def test_visitors_get_a_tighter_chat_limit_than_logged_in_users(client, monkeypatch, users, limits_on):
+    monkeypatch.setattr(agent_router, "get_llm", lambda: FakeLLM(CHIT, [says("Hello.")]))
+    assert ratelimit.anonymous_chat.limit < ratelimit.chat_requests.limit
+    for _ in range(ratelimit.anonymous_chat.limit):
+        ratelimit.anonymous_chat.hit("testclient")
+    assert client.post("/agent/chat", json={"message": "hello"}).status_code == 429
+    assert client.post("/agent/chat", json={"message": "hello"}, headers=users.student.headers).status_code == 200
 
 
 def test_chat_below_the_limit_still_works(client, monkeypatch, limits_on):
@@ -174,8 +183,8 @@ def test_chat_below_the_limit_still_works(client, monkeypatch, limits_on):
 
 
 def test_a_refusal_is_audited(client, users, limits_on):
-    for _ in range(ratelimit.chat_requests.limit):
-        ratelimit.chat_requests.hit("testclient")
+    for _ in range(ratelimit.anonymous_chat.limit):
+        ratelimit.anonymous_chat.hit("testclient")
     client.post("/agent/chat", json={"message": "hello"})
     rows = client.get("/crm/audit", params={"type": "rate_limited"}, headers=users.admin.headers).json()
     assert rows and rows[0]["tool_name"] == "/agent/chat"
