@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Literal, Optional
 
-from app.contracts.models import ApprovalRequest, BookingResult, CancelResult, KnowledgeResult, LeadScore
+from app.contracts.models import ApprovalRequest, BookingResult, CancelResult, CounsellorInfo, KnowledgeResult, LeadScore
 
 NOT_IN_KB = "[NOT_IN_KB]"
 
@@ -67,6 +67,7 @@ class TurnEvidence:
     knowledge: list[KnowledgeResult] = field(default_factory=list)
     bookings: list[BookingResult] = field(default_factory=list)
     cancellations: list[CancelResult] = field(default_factory=list)
+    counsellors: list[CounsellorInfo] = field(default_factory=list)  # from get_counsellors this turn
     approvals: list[ApprovalRequest] = field(default_factory=list)
     tool_text: list[str] = field(default_factory=list)    # slot/booking results, for outbound message checks
     profile: Optional[dict] = None                        # lead profile after this turn's upsert_lead
@@ -131,6 +132,21 @@ def _only_reports_a_request(answer: str, cited: list[str], evidence: TurnEvidenc
     return not (_numbers(answer) - ids)
 
 
+_TITLE = re.compile(r"^(?:Dr|Mr|Mrs|Ms|Prof)\.?\s+", re.IGNORECASE)
+
+
+def _answers_from_counsellor_list(answer: str, cited: list[str], evidence: TurnEvidence, question: str) -> bool:
+    """'Who is Mr. Sunil Mathur?' is answered by the counsellor list, not the KB: the answer must name a counsellor
+    that get_counsellors returned this turn, cite nothing, and use no number the list or the student didn't give."""
+    if cited or not evidence.counsellors:
+        return False
+    text = answer.lower()
+    if not any(_TITLE.sub("", c.name).lower() in text for c in evidence.counsellors):
+        return False
+    known = _numbers(" ".join(evidence.tool_text)) | _numbers(question)
+    return not (_numbers(_without_school_years(answer)) - known)
+
+
 def check_grounding(answer: str, evidence: TurnEvidence, intent: str, question: str = "") -> Verdict:
     """Institutional answers must be backed by this turn's KB results.
 
@@ -147,6 +163,8 @@ def check_grounding(answer: str, evidence: TurnEvidence, intent: str, question: 
     if not needs_grounding:
         return Verdict("grounding", True, "no institutional claims for this intent")
 
+    if _answers_from_counsellor_list(answer, cited, evidence, question):
+        return Verdict("grounding", True, "answers from the counsellor list; no institutional claims made")
     if _only_reports_a_request(answer, cited, evidence, intent):
         return Verdict("grounding", True, "reports the student's request; no institutional claims made")
     if _about_a_request(evidence, intent) and not evidence.found_chunks:     # it's on file, so only the wording needs fixing

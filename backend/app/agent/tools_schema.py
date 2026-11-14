@@ -53,6 +53,8 @@ DECLARATIONS: list[dict] = [
     _fn("get_lead", "Read the current student's CRM record.", {}, []),
     _fn("get_slots", "List free counsellor slots between two ISO dates.",
         {"date_from": {"type": "string"}, "date_to": {"type": "string"}}, ["date_from", "date_to"]),
+    _fn("get_counsellors", "List JKLU's admissions counsellors that students can book, with each one's next free "
+        "session. Use for questions about the counsellors, e.g. 'who is Mr. Sunil Mathur?'.", {}, []),
     _fn("book_slot", "Book a counsellor slot for the current student. Check `ok` in the result; if false, "
         "offer the `alternatives`.", {"slot_id": {"type": "string", "description": "The slot_id value, digits only"}},
         ["slot_id"]),
@@ -186,6 +188,7 @@ _EXECUTORS: dict[str, Callable[[dict, ToolEnv], Any]] = {
     "upsert_lead": _upsert,
     "get_lead": lambda a, e: tools.get_lead(e.lead_id),
     "get_slots": lambda a, e: tools.get_slots(str(a["date_from"]), str(a["date_to"])),
+    "get_counsellors": lambda a, e: tools.get_counsellors(),
     "book_slot": _book,
     "cancel_booking": lambda a, e: tools.cancel_booking(e.lead_id),
     "send_message": _send,

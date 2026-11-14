@@ -55,6 +55,11 @@ class BookingResult(BaseModel):
     alternatives: list[Slot] = []
 
 
+class CounsellorInfo(BaseModel):
+    name: str
+    next_free: Optional[str] = None         # ISO start of their next free session, if any this week
+
+
 class CancelResult(BaseModel):
     ok: bool
     slot: Optional[Slot] = None             # the session that was released

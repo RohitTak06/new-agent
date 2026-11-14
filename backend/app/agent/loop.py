@@ -20,7 +20,8 @@ from app.agent.prompts import INTENTS, PLAN_PROMPT, SYSTEM_PROMPT
 from app.agent.tools_schema import ToolEnv
 from app.agent.verify import NOT_IN_KB, citations, verify_answer
 from app.contracts import tools
-from app.contracts.models import ApprovalRequest, BookingResult, CancelResult, KnowledgeResult, Lead, LeadScore, Slot
+from app.contracts.models import (ApprovalRequest, BookingResult, CancelResult, CounsellorInfo, KnowledgeResult, Lead,
+                                  LeadScore, Slot)
 
 MAX_TOOL_STEPS = 8
 MAX_REPLANS = 1
@@ -244,6 +245,9 @@ class AgentLoop:
         elif isinstance(result, CancelResult):
             evidence.cancellations.append(result)
             evidence.tool_text.append(str(result.model_dump()))
+        elif isinstance(result, list) and result and isinstance(result[0], CounsellorInfo):
+            evidence.counsellors.extend(result)
+            evidence.tool_text.append(str(tools_schema.to_jsonable(result)))
         elif isinstance(result, list) and result and isinstance(result[0], Slot):
             evidence.tool_text.append(str(tools_schema.to_jsonable(result)))
         elif isinstance(result, LeadScore):

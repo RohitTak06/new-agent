@@ -354,3 +354,24 @@ def test_moving_a_session_cancels_then_books(client, monkeypatch):
     with SessionLocal() as db:
         assert db.get(SlotRow, int(held.slot_id)).status == "free"
         assert db.get(SlotRow, int(other.slot_id)).lead_id == first["lead_id"]
+
+
+def test_who_is_a_counsellor_is_answered_from_the_counsellor_list(client, monkeypatch):
+    seed_slots()
+    person = sched_service.get_counsellors()[0]
+
+    def answer(convo):
+        info = next(r for name, r, _ in llm.tool_results if name == "get_counsellors")
+        mine = next(c for c in info if c["name"] == person.name)
+        return says(f"{person.name} is one of our admissions counsellors. Their next free session starts {mine['next_free']}. "
+                    "Would you like to book it?")
+
+    llm = FakeLLM({"intent": "institutional_question", "steps": [{"goal": "look up", "tool": "get_counsellors"}]},
+                  [calls(("get_counsellors", {})), answer])
+    events = chat(client, monkeypatch, llm, f"who is {person.name}")
+
+    final = events[-1]["data"]
+    assert final["escalated"] is False and final["approval_id"] is None
+    assert person.name in final["text"]
+    grounding = [v["data"] for v in by_type(events, "verify") if v["data"]["check"] == "grounding"]
+    assert grounding[-1]["ok"] is True and "counsellor list" in grounding[-1]["reason"]

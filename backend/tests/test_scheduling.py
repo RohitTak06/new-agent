@@ -52,7 +52,7 @@ def slot_row(slot_id: str) -> SlotRow:
 
 
 # ------------------------------------------------------------------ contract
-@pytest.mark.parametrize("name", ["get_slots", "book_slot", "cancel_booking", "send_message", "schedule_followup"])
+@pytest.mark.parametrize("name", ["get_slots", "get_counsellors", "book_slot", "cancel_booking", "send_message", "schedule_followup"])
 def test_real_service_matches_stub_signature(name):
     stub, real = inspect.signature(getattr(stubs, name)), inspect.signature(getattr(service, name))
     assert [(p.name, p.default) for p in stub.parameters.values()] == \
@@ -243,3 +243,14 @@ def test_cancel_booking_frees_the_slot_and_allows_a_new_booking():
 def test_cancel_booking_with_nothing_booked_says_so():
     assert service.cancel_booking(new_lead()).reason == "no_booking"
     assert service.cancel_booking(999_999_999).reason == "lead_not_found"
+
+
+def test_get_counsellors_lists_each_active_counsellor_with_their_next_free_session():
+    found = service.get_counsellors()
+    names = [c.name for c in found]
+    assert names == sorted(names) and len(names) == len(set(names)) > 0
+    upcoming = free_slots(50)
+    for c in found:
+        theirs = [s.start for s in upcoming if s.counsellor == c.name]
+        if theirs:
+            assert c.next_free is not None and clock.parse(c.next_free) == min(clock.parse(t) for t in theirs)

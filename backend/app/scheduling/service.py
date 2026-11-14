@@ -15,7 +15,7 @@ from typing import Optional
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
-from app.contracts.models import BookingResult, CancelResult, MessageResult, Slot
+from app.contracts.models import BookingResult, CancelResult, CounsellorInfo, MessageResult, Slot
 from app.crm.db.base import SessionLocal
 from app.crm.db.models import Lead as LeadRow
 from app.crm.service import log_event
@@ -51,6 +51,19 @@ def get_slots(date_from: str, date_to: str) -> list[Slot]:
                           .where(SlotRow.start_at >= start, SlotRow.start_at < end)
                           .order_by(SlotRow.start_at, SlotRow.counsellor_id).limit(MAX_SLOTS)).all()
     return [_slot(r, name) for r, name in rows]
+
+
+def get_counsellors() -> list[CounsellorInfo]:
+    """The active admissions counsellors, with each one's next free future session (None if fully booked)."""
+    now = clock.now()
+    with SessionLocal() as db:
+        names = db.scalars(select(Counsellor.name).where(Counsellor.active.is_(True)).order_by(Counsellor.name)).all()
+        first_free = dict(db.execute(
+            select(Counsellor.name, func.min(SlotRow.start_at))
+            .join(SlotRow, SlotRow.counsellor_id == Counsellor.id)
+            .where(Counsellor.active.is_(True), SlotRow.status == "free", SlotRow.start_at > now)
+            .group_by(Counsellor.name)).all())
+    return [CounsellorInfo(name=n, next_free=clock.to_ist(first_free[n]) if n in first_free else None) for n in names]
 
 
 def _alternatives(db: Session, target: datetime, exclude: int, now: datetime) -> list[Slot]:
