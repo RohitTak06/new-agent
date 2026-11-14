@@ -130,6 +130,22 @@ Pytest was all green while these bugs existed, because a scripted model says wha
 | Asked about a hostel room and the mess together, the agent said it had no mess fee | Mess was a separate section that retrieval missed |
 | Model said "you qualify for a 100% scholarship" | Now rejected as a false grant, and it describes the band instead |
 
+## What the 14 Nov review found
+
+A second read of the code, with each case reproduced before it was fixed. Tests for each are in `test_guards.py`, `test_retrieval_guard.py`, `test_agent_verify.py`, `test_intel.py`, `test_ui_api.py` and `test_hardening.py`.
+
+| Found | Effect | Fix |
+|---|---|---|
+| "What are the instructions for the application form?" matched the injection check | A real question got the fixed refusal | Only the assistant's own instructions count |
+| "Please don't email me the brochure, WhatsApp is better" matched the opt-out check | The student was opted out of everything | Opt-out needs a sentence that is only a stop request |
+| Keyword boosts matched inside words ("mess" in "message", "room" in "classroom") and cleared the threshold alone | Unrelated questions got sections that don't answer them | Whole-word boosts; a match needs some shared words first |
+| "medical" and "stipend" were on the out-of-scope list | The campus medical centre and the M.Tech GATE stipend were refused | Narrowed to "medical college" and similar |
+| "as confirmed on the official page", "seats are reserved" counted as claiming a booking | A correct answer was rewritten, and sometimes escalated | Only sentences about a session count |
+| Lead stage never changed after the seed | A Hot lead with a booked session still showed as "new" | Scoring moves a lead to qualified, a booking to contacted; staff can set any stage |
+| Visitors who aren't logged in had the same chat limit as students | A refresh loop could use the model quota before the demo | 10 a minute for visitors |
+
+The retrieval benchmark is still 45 of 45 after these changes.
+
 ## Known gaps
 
 - **Wording varies.** The real model doesn't give identical replies each run. Code checks catch invented figures, unretrieved sources, false bookings and false grants, but not everything:

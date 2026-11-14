@@ -49,6 +49,8 @@ class SlidingWindow:
 
 login_failures = SlidingWindow(limit=5, seconds=300)
 chat_requests = SlidingWindow(limit=30, seconds=60)
+# Visitors who aren't logged in spend the same model quota, and anyone can be one, so they get less.
+anonymous_chat = SlidingWindow(limit=10, seconds=60)
 
 
 def enabled() -> bool:

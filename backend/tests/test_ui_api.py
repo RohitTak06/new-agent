@@ -157,3 +157,31 @@ def test_calendar_outage_is_a_503_not_a_crash(client, users):
     res = client.post("/scheduling/book", json={"lead_id": users.student.lead_id, "slot_id": "1"},
                       headers=users.student.headers)
     assert res.status_code == 503
+
+
+# ---------------------------------------------------------------- pipeline stage moves
+def test_scoring_moves_a_new_lead_to_qualified_but_never_overrides_a_counsellor():
+    from app.agent import tools_schema
+    lead = new_lead(program_interest="B.Tech CSE", twelfth_percent=94, entrance_exam="JEE Main 96 percentile",
+                    city="Jaipur", budget_lakh=4)
+    tools_schema.score_and_save(lead)
+    assert crm.get_lead(lead).status == "qualified"
+    crm.set_lead_status(lead, "lost")
+    tools_schema.score_and_save(lead)
+    assert crm.get_lead(lead).status == "lost"
+
+
+def test_a_booking_moves_a_new_lead_to_contacted():
+    from app.agent import tools_schema
+    lead = new_lead()
+    result = tools_schema.execute("book_slot", {"slot_id": free_slot()}, tools_schema.ToolEnv(lead_id=lead, role="student", session_id="s"))
+    assert result.ok and crm.get_lead(lead).status == "contacted"
+
+
+def test_staff_set_a_stage_and_students_cannot(client, users):
+    lead = new_lead()
+    url = f"/crm/leads/{lead}/status"
+    assert client.patch(url, json={"status": "converted"}, headers=users.student.headers).status_code == 403
+    assert client.patch(url, json={"status": "made-up"}, headers=users.counsellor.headers).status_code == 422
+    res = client.patch(url, json={"status": "converted"}, headers=users.counsellor.headers)
+    assert res.status_code == 200 and res.json()["status"] == "converted"

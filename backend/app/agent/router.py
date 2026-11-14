@@ -67,9 +67,10 @@ def chat(req: ChatRequest, request: Request, user: Optional[CurrentUser] = Depen
     """
     if ratelimit.enabled():
         ip = ratelimit.client_ip(request)
-        if ratelimit.chat_requests.blocked(ip):
-            raise ratelimit.refuse(ratelimit.chat_requests, request, "chat messages")
-        ratelimit.chat_requests.hit(ip)
+        window = ratelimit.chat_requests if user else ratelimit.anonymous_chat
+        if window.blocked(ip):
+            raise ratelimit.refuse(window, request, "chat messages")
+        window.hit(ip)
     session_id = req.session_id or uuid.uuid4().hex
     session_lead = sessions.lead_for(session_id) if req.session_id else None
     lead = _resolve_lead(req, _allowed_lead(req, user, session_lead, request), user)

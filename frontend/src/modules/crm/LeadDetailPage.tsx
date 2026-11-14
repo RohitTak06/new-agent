@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, BellOff, CalendarCheck, ScrollText } from "lucide-react";
+import { ArrowLeft, BellOff, CalendarCheck, Loader2, ScrollText } from "lucide-react";
+import { api, errorMessage } from "../../lib/api";
 import { formatDateTime, formatTime } from "../../lib/format";
 import { leadName } from "../../lib/leads";
 import { Badge, Card, EmptyState, ErrorBanner, Loading, type Tone } from "../../lib/ui";
@@ -26,6 +27,43 @@ function messageSource(m: ChannelMessage): string {
   if (m.meta?.session_id) return "agent reply";
   return "sent after a counsellor's decision";
 }
+
+const STAGES: { value: string; label: string }[] = [
+  { value: "new", label: "New" }, { value: "contacted", label: "Contacted" }, { value: "qualified", label: "Qualified" },
+  { value: "converted", label: "Converted" }, { value: "lost", label: "Lost" },
+];
+
+/** The lead's pipeline stage. The agent moves it forward; a counsellor can set any stage, and the change is audited. */
+const StageSelect: React.FC<{ lead: Lead; onChanged: () => void }> = ({ lead, onChanged }) => {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function change(status: string) {
+    setBusy(true);
+    setError(null);
+    try {
+      await api<Lead>(`/crm/leads/${lead.id}/status`, { method: "PATCH", body: { status } });
+      onChanged();
+    } catch (err) {
+      setError(errorMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <label htmlFor="lead-stage" className="text-xs text-slate-500">Stage</label>
+      <select id="lead-stage" value={lead.status} disabled={busy} onChange={(e) => void change(e.target.value)}
+        className="text-sm rounded-lg border border-slate-300 bg-white pl-2.5 pr-8 py-1 font-medium text-slate-800
+          focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60">
+        {STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+      </select>
+      {busy && <Loader2 className="w-4 h-4 animate-spin text-slate-400" aria-label="Saving" />}
+      {error && <span role="alert" className="text-xs text-rose-700">{error}</span>}
+    </span>
+  );
+};
 
 const Field: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
   <div className="flex justify-between gap-4 py-1.5 border-b border-slate-100 last:border-0 text-sm">
@@ -167,13 +205,19 @@ export const LeadDetailPage: React.FC = () => {
   return (
     <>
       {back}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        <h1 className="text-xl font-bold text-jklu-blue">{leadName(lead.data)}</h1>
-        <Badge>{lead.data.status}</Badge>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 mb-5 pb-4 border-b border-slate-200/70">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Lead #{lead.data.id}</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{leadName(lead.data)}</h1>
+        </div>
         {lead.data.opted_out && <Badge tone="violet"><BellOff className="w-3 h-3" aria-hidden /> opted out of follow-ups</Badge>}
-        <Link to={`/audit?lead_id=${leadId}`} className="ml-auto inline-flex items-center gap-1 text-sm text-jklu-blue underline">
-          <ScrollText className="w-4 h-4" /> Audit trail
-        </Link>
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          <StageSelect lead={lead.data} onChanged={() => void lead.reload()} />
+          <Link to={`/audit?lead_id=${leadId}`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            <ScrollText className="w-4 h-4" /> Audit trail
+          </Link>
+        </div>
       </div>
       {lead.error && <div className="mb-3"><ErrorBanner message={lead.error} /></div>}
 

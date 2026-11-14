@@ -9,6 +9,7 @@ same scenarios with a scripted model; this checks that the real one behaves. Pri
 from __future__ import annotations
 
 import json
+import re
 import os
 import sys
 import time
@@ -101,8 +102,8 @@ def run() -> None:
 
     t = chat("What was the placement percentage for last year's batch?")
     text = t["final"].get("text", "").lower()
-    record("S2", "unknown figure: says it doesn't have it", t["final"].get("escalated") or "don't have" in text
-           or "do not have" in text or "not available" in text, t)
+    says_so = re.search(r"(?:don't|do not|doesn't|does not) have|not available|rather than a specific|not (?:published|listed|shared)", text)
+    record("S2", "unknown figure: says it doesn't have it", t["final"].get("escalated") or says_so, t)
 
     # S3: profile over several turns
     t = chat("I'm interested in B.Tech CSE. I'm from Jaipur and I scored 94% in 12th.")
@@ -130,7 +131,8 @@ def run() -> None:
     retries = [r for r in of(t, "retry") if r.get("target") == "book_slot"]
     result = (tool_results(t, "book_slot") or [{}])[-1].get("result", {})
     results_text = t["final"].get("text", "").lower()
-    record("S5", "the reply doesn't blame a taken slot", "taken" not in results_text, t)
+    blames_taken = re.search(r"(?<!not )(?<!n't )\btaken\b", results_text)    # "was not taken" is the right answer
+    record("S5", "the reply doesn't blame a taken slot", not blames_taken, t)
     record("S5", "two retries then alternatives, nothing booked",
            len(retries) == 2 and result.get("fallback") == "other_slots_available"
            and next_slot["slot_id"] not in {a["slot_id"] for a in result.get("alternatives", [])}

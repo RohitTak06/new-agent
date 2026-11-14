@@ -192,7 +192,7 @@ export const KnowledgeAdmin: React.FC = () => {
 
   return (
     <>
-      <PageHeader title="Knowledge" subtitle="The verified facts the agent may use. Anything else, it refuses and escalates."
+      <PageHeader eyebrow="Insights" title="Knowledge base" subtitle="The verified facts the agent may use. Anything else, it refuses and escalates."
         actions={
           <div className="flex gap-2">
             {user?.role === "admin" && <Button variant="secondary" busy={reloading} onClick={() => void reloadKb()}>Reload knowledge base</Button>}

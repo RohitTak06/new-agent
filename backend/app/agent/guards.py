@@ -16,18 +16,35 @@ INJECTION_MSG = ("I can't change or bypass the admissions rules, and I can't gra
                  "counsellors decide those. I'm happy to answer questions about programs, fees, eligibility or "
                  "scholarships, or to book a counsellor session.")
 
-_CONTACT_VERBS = r"(?:messag\w*|contact\w*|email\w*|e-mail\w*|text\w*|whatsapp\w*|call\w*|send\w*|spam\w*)"
-_OPT_OUT = re.compile(
-    rf"\b(?:unsubscribe|stop\s+{_CONTACT_VERBS}|(?:don'?t|do\s+not|never)\s+{_CONTACT_VERBS}(?:\s+\w+)?\s+me"
-    rf"|remove\s+me\s+from|opt[\s-]?(?:me\s+)?out(?!\s+of\s+(?:the\s+)?(?:hostel|mess|transport|course|program)))\b",
+_CONTACT_VERBS = r"(?:messag\w*|contact\w*|email\w*|e-mail\w*|text\w*|whatsapp\w*|call\w*|send\w*|spam\w*|ping\w*)"
+_LIST_WORDS = r"(?:messages?|emails?|texts?|spam|updates?|follow[\s-]?ups?|reminders?|communications?|marketing|mailing\s+list|list|notifications?)"
+
+# Opt-out is a hard stop that only a counsellor can undo, so a "don't ... me" sentence counts only when nothing
+# narrows it: "don't email me the brochure, WhatsApp is better" and "stop texting me at night" are preferences, not opt-outs.
+_TAIL_WORDS = rf"(?:again|anymore|any\s+more|ever|at\s+all|please|pls|now|thanks|thank\s+you|thx|from\s+now\s+on|{_LIST_WORDS}|about\s+(?:admissions|this|jklu))"
+_STOP_SENTENCE = re.compile(
+    rf"^(?P<lead>.*?)\b(?:stop|(?:don'?t|do\s+not|never)(?:\s+(?:ever|again))?)\s+{_CONTACT_VERBS}(?:\s+(?:to|with))?\s+(?:me|us)"
+    rf"(?:[\s,]+{_TAIL_WORDS})*[\s,]*$",
     re.IGNORECASE,
 )
+_CONDITIONAL_LEAD = re.compile(r"\b(?:if|when|unless|until|why|want\s+you\s+to\s+keep|don'?t\s+want|do\s+not\s+want)\b", re.IGNORECASE)
+_STRONG_OPT_OUT = re.compile(
+    rf"\bunsubscribe\b"
+    rf"|\bremove\s+me\s+from\b"
+    rf"|\bopt[\s-]?(?:me\s+)?out\b(?!\s+of\b)"
+    rf"|\bopt[\s-]?(?:me\s+)?out\s+of\s+(?:your\s+|these\s+|all\s+|the\s+|jklu'?s?\s+)*{_LIST_WORDS}\b",
+    re.IGNORECASE,
+)
+_SENTENCES = re.compile(r"[.!;\n]+")
 _QUESTION = re.compile(r"^\s*(?:how|what|why|when|where|does|do|is|will|can|could|if)\b.*\?\s*$", re.IGNORECASE | re.S)
 
 _FILLER = r"(?:(?:all|any|the|your|my|previous|prior|above|earlier|these|those|of|every)\s+)*"
 _INJECTION = re.compile(
     rf"\b(?:ignore|disregard|forget|override|bypass)\s+{_FILLER}(?:rules?|instructions?|prompts?|guidelines?|polic(?:y|ies)|restrictions?)\b"
-    r"|\b(?:reveal|show|print|repeat|tell\s+me|what\s+(?:is|are))\s+(?:me\s+)?(?:your\s+|the\s+)*(?:system\s+prompt|(?:hidden\s+|secret\s+)?instructions|prompt)\b"
+    # Only the assistant's own instructions: "what are the instructions for the application form?" is a real question.
+    r"|\b(?:reveal|show|print|repeat|tell\s+me|give\s+me|what\s+(?:is|are|were))\s+(?:me\s+)?(?:all\s+)?"
+    r"(?:(?:your|the\s+assistant'?s|its)\s+(?:\w+\s+)?(?:instructions|prompt|rules)\b"
+    r"|(?:the\s+|your\s+)?(?:hidden|secret|original|initial|internal)\s+(?:instructions|prompt|rules)\b)"
     r"|\bsystem\s+prompt\b|\bdeveloper\s+mode\b|\bjailbreak\b"
     r"|\byou\s+are\s+now\s+(?:an?\s+|in\s+)"
     r"|\bpretend\s+(?:you\s+are|you'?re|to\s+be)\b"
@@ -37,10 +54,22 @@ _INJECTION = re.compile(
 )
 
 
+def _is_opt_out(message: str) -> bool:
+    if _QUESTION.match(message):
+        return False
+    if _STRONG_OPT_OUT.search(message):
+        return True
+    for sentence in _SENTENCES.split(message):
+        m = _STOP_SENTENCE.match(sentence.strip())
+        if m and not _CONDITIONAL_LEAD.search(m.group("lead")):
+            return True
+    return False
+
+
 def check_message(message: str) -> Optional[Literal["opt_out", "injection"]]:
     """Classify a message that must not reach the model. Injection wins: it may hide a fake opt-out."""
     if _INJECTION.search(message):
         return "injection"
-    if _OPT_OUT.search(message) and not _QUESTION.match(message):
+    if _is_opt_out(message):
         return "opt_out"
     return None

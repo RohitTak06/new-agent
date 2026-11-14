@@ -3,10 +3,17 @@
 @tailwind utilities;
 
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
+  font-feature-settings: "cv11", "ss01";   /* Inter's straight-sided digits read better in tables */
+  -webkit-font-smoothing: antialiased;
 }
+
+/* Quiet scrollbars inside panels (kanban columns, chat, trace) */
+.scroll-quiet { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+.scroll-quiet::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-quiet::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
 
 body {
   margin: 0;
