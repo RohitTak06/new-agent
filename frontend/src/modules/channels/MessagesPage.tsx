@@ -85,8 +85,8 @@ export const MessagesPage: React.FC = () => {
         {messages.error && <ErrorBanner message={messages.error} onRetry={() => void messages.reload()} />}
         {error && <ErrorBanner message={error} />}
         {lead.data?.opted_out && (
-          <div role="status" className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-sm text-slate-700">
-            <BellOff className="w-4 h-4 shrink-0" />
+          <div role="status" className="flex items-center gap-2 rounded-lg border border-line bg-subtle px-3 py-2 text-sm text-ink-secondary">
+            <BellOff className="w-4 h-4 shrink-0" aria-hidden />
             You've opted out, so we won't send you follow-ups. You can still write to us here.
           </div>
         )}
