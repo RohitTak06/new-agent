@@ -16,7 +16,7 @@ from typing import Any, Callable, Generator, Iterator, Optional
 
 from app.agent import guards, tools_schema
 from app.agent.llm import LLM, ToolCall
-from app.agent.prompts import INTENTS, PLAN_PROMPT, SYSTEM_PROMPT
+from app.agent.prompts import INTENTS, PLAN_PROMPT, RULES, SYSTEM_PROMPT
 from app.agent.tools_schema import ToolEnv
 from app.agent.verify import NOT_IN_KB, citations, verify_answer
 from app.contracts import tools
@@ -42,6 +42,8 @@ SENSITIVE_NOTE = ("\n\nI can't approve waivers or exceptions myself, so I've als
                   "admissions counsellor in case your situation qualifies.")
 PENDING_NOTE = "\n\nYour request is pending counsellor approval. Nothing has been applied yet."
 REQUEST_FILED_MSG = "I've sent your request to a counsellor. It's pending their approval, and nothing has been applied yet."
+SCOPE_MSG = ("I can only help with JKLU admissions: programmes, fees, eligibility, scholarships, and booking a "
+             "session with a counsellor. What would you like to know?")
 FALLBACK_MSG = ("Sorry, I couldn't complete that right now. An admissions counsellor can help you; "
                 "would you like a callback?")
 FALLBACK_ESCALATED_MSG = ("Sorry, I couldn't complete that right now, so I've passed your request to an admissions "
@@ -118,6 +120,9 @@ class AgentLoop:
         plan = yield from self._plan(context)
         intent = plan["intent"]
         yield self._event("plan", {**plan, "session_id": ctx.session_id, "lead_id": ctx.lead_id})
+        if intent == "off_topic":           # decided before any tool runs: nothing to do, nobody to escalate to
+            yield from self._respond(ctx, SCOPE_MSG, intent, None, None)
+            return
 
         env = ToolEnv(lead_id=ctx.lead_id, role=ctx.role, session_id=ctx.session_id)
         env.evidence.request_ids = {r["approval_id"] for r in ctx.requests}
@@ -144,12 +149,16 @@ class AgentLoop:
 
             draft = result.text.strip()
             failed = None
-            for verdict in verify_answer(draft, env.evidence, intent, ctx.message, context, approved_actions):
+            for verdict in verify_answer(draft, env.evidence, intent, ctx.message, context, approved_actions,
+                                         protected=RULES):
                 yield self._event("verify", verdict.as_event())
                 if not verdict.ok and failed is None:
                     failed = verdict
             if failed is None:
                 break
+            if failed.action == "refuse":     # nothing in such a reply is worth keeping or passing to a counsellor
+                yield from self._respond(ctx, SCOPE_MSG, intent, None, env)
+                return
             if failed.action == "replan" and replans < MAX_REPLANS:
                 replans += 1
                 self.llm.add_feedback(convo, self._feedback(failed))

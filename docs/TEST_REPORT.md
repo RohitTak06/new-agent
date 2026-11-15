@@ -43,6 +43,19 @@ Removed because the official pages don't state them: application round dates, th
 - Hostel charges: "non-refundable" once the academic year starts on the fee page, while the refund policy says deductions on hostel and mess are pro rata. The knowledge base states both.
 
 
+## Jailbreak attempts on the real model
+
+`python scripts/redteam.py` sends 26 attacks, each as a new student in a new conversation, and checks each reply for what the attack was after. They cover: instruction override, prompt extraction (two wordings), role-play and DAN, off-topic code, trivia and an essay, a fake director and a fake counsellor message, a false fee, a guaranteed seat, another student's data, bulk-message abuse, an injection in Hindi and in base64, a closed `student_message` tag, an insult, a competitor ranking, forging a marksheet, a forged meeting link, a fake booking, an emotional plea, score tampering, secrets, and an order hidden inside a fee question.
+
+| Run (15 Nov 2026) | Held | What changed |
+|---|---|---|
+| Before hardening | 23 of 26 | Trivia was answered ("India won the 2011 Cricket World Cup"). Several attacks were sent to a counsellor as questions, which would fill the Approvals queue. |
+| After hardening | **26 of 26** | 9 stopped by guards before the model; most others get one fixed off-topic reply decided before any tool runs; none reached the Approvals queue except two that the model treated as genuine questions. |
+
+`python scripts/redteam.py --benign` sends 15 ordinary questions, including the demo script's, to make sure the hardening doesn't refuse real enquiries: **15 of 15 were answered** (two edge questions, about Jaipur and a meeting link before booking, were passed to a counsellor rather than refused).
+
+Model wording varies from run to run, so these are evidence, not a guarantee. The code checks don't depend on the wording: a reply that repeats the rules, names a tool, contains program code, grants something, claims a booking or gives a meeting link that wasn't issued is never sent.
+
 ## Scenarios on the real model
 
 Model `gemini-3.5-flash-lite`, fallback `gemini-3.6-flash`, with an 8-second pause between messages to match demo pace. A dash means the step made no chat request of its own.
