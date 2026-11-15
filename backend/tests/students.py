@@ -6,7 +6,8 @@ that continues a conversation by session_id gets the same student back.
 """
 from __future__ import annotations
 
-import uuid
+import random
+import string
 
 from app.crm.auth import create_token
 from app.crm.db.base import SessionLocal
@@ -19,7 +20,9 @@ _BY_SESSION: dict[str, dict] = {}
 
 def fresh_student_headers() -> dict:
     """Auth headers for a brand-new student account with no lead yet."""
-    tag = uuid.uuid4().hex[:10]
+    # Letters only: digits in a name or email would count as numbers the student "said", and could let
+    # an invented figure pass the figures check by chance.
+    tag = "".join(random.choices(string.ascii_lowercase, k=12))
     with SessionLocal() as db:
         user = User(email=f"student-{tag}@example.test", full_name=f"Student {tag}", role="student",
                     password_hash=_HASH, is_active=True)
