@@ -1,7 +1,8 @@
 """In-memory sliding-window rate limits: enough for one API process, reset on restart.
 
-Login is limited on failures, so a known password never gets locked out. Chat is limited
-on every request, because it is open without login and each turn spends model quota.
+Login is limited on failures, so a known password never gets locked out. Registration is limited
+on every attempt, as each success creates an account. Chat needs a login and is limited on every
+request, because each turn spends model quota.
 """
 from __future__ import annotations
 
@@ -51,8 +52,6 @@ login_failures = SlidingWindow(limit=5, seconds=300)
 # Every registration attempt per IP counts, as each success creates an account.
 registrations = SlidingWindow(limit=5, seconds=300)
 chat_requests = SlidingWindow(limit=30, seconds=60)
-# Visitors who aren't logged in spend the same model quota, and anyone can be one, so they get less.
-anonymous_chat = SlidingWindow(limit=10, seconds=60)
 
 
 def enabled() -> bool:

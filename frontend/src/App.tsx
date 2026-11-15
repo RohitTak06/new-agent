@@ -6,7 +6,7 @@ import { ErrorBoundary } from "./lib/ErrorBoundary";
 import { ErrorBanner, Loading } from "./lib/ui";
 import { useApi } from "./lib/useApi";
 import type { Approval, Role } from "./lib/types";
-import { ChatPage } from "./modules/agent";
+import { ChatGate, ChatPage } from "./modules/agent";
 import { MessagesPage } from "./modules/channels";
 import { AnalyticsPage, APPROVALS_CHANGED, ApprovalsPage, AuditPage, LeadDetailPage, LoginPage, PipelinePage, SchedulingPage, UsersPage } from "./modules/crm";
 import { KnowledgeAdmin } from "./modules/intel";
@@ -191,8 +191,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/" element={<Navigate to={homeFor(user)} replace />} />
       <Route path="/login" element={user ? <Navigate to={homeFor(user)} replace /> : <LoginPage />} />
       {/* Remounts on login and logout, so one person's conversation never shows for the next. */}
-      <Route path="/chat" element={user?.role === "counsellor" ? <Navigate to="/pipeline" replace />
-        : <ChatPage key={user?.id ?? "anonymous"} />} />
+      <Route path="/chat" element={!user ? <ChatGate />
+        : user.role === "counsellor" ? <Navigate to="/pipeline" replace />
+        : <ChatPage key={user.id} />} />
       <Route path="/messages" element={<RequireRole roles={["student"]}><MessagesPage /></RequireRole>} />
       <Route path="/pipeline" element={<RequireRole roles={STAFF}><PipelinePage /></RequireRole>} />
       <Route path="/approvals" element={<RequireRole roles={STAFF}><ApprovalsPage /></RequireRole>} />

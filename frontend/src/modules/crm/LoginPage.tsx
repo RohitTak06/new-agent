@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { BookOpenCheck, ScrollText, ShieldCheck } from "lucide-react";
 import { homeFor, useAuth } from "../../lib/auth";
 import { errorMessage } from "../../lib/api";
@@ -130,9 +130,6 @@ export const LoginPage: React.FC = () => {
               </div>
             </div>
           )}
-          <p className="text-sm text-ink-secondary mt-6">
-            Just have a question? <Link to="/chat" className="text-navy font-medium underline underline-offset-2 hover:text-navy-hover">Chat without logging in</Link>
-          </p>
         </section>
       </div>
     </div>

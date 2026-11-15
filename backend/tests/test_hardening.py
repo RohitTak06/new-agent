@@ -122,10 +122,10 @@ def test_without_a_fallback_there_is_only_one_attempt(monkeypatch):
 @pytest.fixture
 def limits_on(monkeypatch):
     monkeypatch.setenv("RATE_LIMITS_ENABLED", "1")
-    for window in (ratelimit.login_failures, ratelimit.chat_requests, ratelimit.anonymous_chat, ratelimit.registrations):
+    for window in (ratelimit.login_failures, ratelimit.chat_requests, ratelimit.registrations):
         window.reset()
     yield
-    for window in (ratelimit.login_failures, ratelimit.chat_requests, ratelimit.anonymous_chat, ratelimit.registrations):
+    for window in (ratelimit.login_failures, ratelimit.chat_requests, ratelimit.registrations):
         window.reset()
 
 
@@ -158,28 +158,24 @@ def test_a_successful_login_clears_earlier_failures(client, users, limits_on):
     assert not ratelimit.login_failures.blocked(f"testclient|{s.email}")
 
 
-def test_chat_is_limited_before_any_model_call(client, monkeypatch, limits_on):
+def test_chat_is_limited_before_any_model_call(client, monkeypatch, users, limits_on):
     def no_model():
         raise AssertionError("the model must not be reached")
 
     monkeypatch.setattr(agent_router, "get_llm", no_model)
-    for _ in range(ratelimit.anonymous_chat.limit):
-        ratelimit.anonymous_chat.hit("testclient")
-    assert client.post("/agent/chat", json={"message": "hello"}).status_code == 429
+    for _ in range(ratelimit.chat_requests.limit):
+        ratelimit.chat_requests.hit("testclient")
+    assert client.post("/agent/chat", json={"message": "hello"}, headers=users.student.headers).status_code == 429
 
 
-def test_visitors_get_a_tighter_chat_limit_than_logged_in_users(client, monkeypatch, users, limits_on):
+def test_chat_without_a_login_is_refused_before_any_limit(client, monkeypatch, limits_on):
     monkeypatch.setattr(agent_router, "get_llm", lambda: FakeLLM(CHIT, [says("Hello.")]))
-    assert ratelimit.anonymous_chat.limit < ratelimit.chat_requests.limit
-    for _ in range(ratelimit.anonymous_chat.limit):
-        ratelimit.anonymous_chat.hit("testclient")
-    assert client.post("/agent/chat", json={"message": "hello"}).status_code == 429
+    assert client.post("/agent/chat", json={"message": "hello"}).status_code == 401
+
+
+def test_chat_below_the_limit_still_works(client, monkeypatch, users, limits_on):
+    monkeypatch.setattr(agent_router, "get_llm", lambda: FakeLLM(CHIT, [says("Hello.")]))
     assert client.post("/agent/chat", json={"message": "hello"}, headers=users.student.headers).status_code == 200
-
-
-def test_chat_below_the_limit_still_works(client, monkeypatch, limits_on):
-    monkeypatch.setattr(agent_router, "get_llm", lambda: FakeLLM(CHIT, [says("Hello.")]))
-    assert client.post("/agent/chat", json={"message": "hello"}).status_code == 200
 
 
 def test_registrations_are_limited_per_ip(client, limits_on):
@@ -193,9 +189,9 @@ def test_registrations_are_limited_per_ip(client, limits_on):
 
 
 def test_a_refusal_is_audited(client, users, limits_on):
-    for _ in range(ratelimit.anonymous_chat.limit):
-        ratelimit.anonymous_chat.hit("testclient")
-    client.post("/agent/chat", json={"message": "hello"})
+    for _ in range(ratelimit.chat_requests.limit):
+        ratelimit.chat_requests.hit("testclient")
+    client.post("/agent/chat", json={"message": "hello"}, headers=users.student.headers)
     rows = client.get("/crm/audit", params={"type": "rate_limited"}, headers=users.admin.headers).json()
     assert rows and rows[0]["tool_name"] == "/agent/chat"
 
