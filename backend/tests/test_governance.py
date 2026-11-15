@@ -344,11 +344,13 @@ def test_booking_override_moves_the_slot_and_tells_both_students(client, users):
     outcome = res.json()["outcome"]
     assert outcome["displaced_lead_id"] == holder and outcome["released_slot_ids"] == [own.slot_id]
     with SessionLocal() as db:
-        assert db.get(SlotRow, int(slot.slot_id)).lead_id == wanted_by
+        moved = db.get(SlotRow, int(slot.slot_id))
+        assert moved.lead_id == wanted_by and moved.meeting_url.startswith("https://meet.jklu.example/")
         released = db.get(SlotRow, int(own.slot_id))
-        assert released.status == "free" and released.lead_id is None
-    assert "confirmed" in sched.list_messages(wanted_by)[0]["text"]
-    assert "Free slots nearby" in sched.list_messages(holder)[0]["text"]
+        assert released.status == "free" and released.lead_id is None and released.meeting_url is None
+    # Both students got a confirmation when they first booked; the override's messages come after it.
+    assert any("confirmed" in m["text"] and moved.meeting_url in m["text"] for m in sched.list_messages(wanted_by))
+    assert any("Free slots nearby" in m["text"] for m in sched.list_messages(holder))
 
 
 def test_bulk_message_reports_opted_out_leads(client, users):

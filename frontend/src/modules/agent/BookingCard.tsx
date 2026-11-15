@@ -56,6 +56,11 @@ const SlotLine: React.FC<{ slot: Slot }> = ({ slot }) => (
   <p className="text-sm font-medium text-ink">
     {formatDateTime(slot.start)} – {formatTime(slot.end)} IST
     <span className="block text-xs font-normal text-ink-secondary">with {slot.counsellor}</span>
+    {slot.meeting_url && (
+      <span className="block mt-1 text-xs font-normal text-ink-secondary break-all">
+        Meeting link (simulated): <span className="font-mono text-ink">{slot.meeting_url}</span>
+      </span>
+    )}
   </p>
 );
 

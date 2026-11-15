@@ -85,7 +85,8 @@ def chat(req: ChatRequest, request: Request, user: CurrentUser = Depends(current
     ctx = TurnContext(message=req.message, lead_id=lead.id, session_id=session_id,
                       channel=req.channel, history=history, now_ist=clock.to_ist(clock.now()),
                       lead_profile=lead.profile.model_dump(exclude={"channel"}), lead_score=lead.score,
-                      requests=tools.lead_requests(lead.id), role=user.role)
+                      requests=tools.lead_requests(lead.id), role=user.role,
+                      sessions=[b for b in scheduling.list_bookings(lead.id) if b["upcoming"]])
     return StreamingResponse(
         _stream(ctx), media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},

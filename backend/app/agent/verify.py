@@ -40,6 +40,9 @@ _BOOKING_CONTEXT = re.compile(
     r"|\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\b",
     re.IGNORECASE,
 )
+# Any video-meeting link. A link in a reply must be one the calendar issued, never one the model wrote.
+_MEETING_LINK = re.compile(r"https?://(?:meet\.jklu\.example|meet\.google\.com|meet\.jit\.si|[\w.-]*zoom\.us)/[^\s)\]>,]*",
+                           re.IGNORECASE)
 _FOLLOWUP_ONLY = re.compile(r"\b(?:follow[\s-]?ups?|reminders?)\b", re.IGNORECASE)
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
 _NEGATION = re.compile(r"\b(not|n't|unable|couldn't|could not|cannot|can't|no longer)\b", re.IGNORECASE)
@@ -74,6 +77,7 @@ class TurnEvidence:
     score: Optional[LeadScore] = None
     escalation: Optional[Any] = None                      # approval created by a fallback path
     request_ids: set[int] = field(default_factory=set)    # this lead's requests from before this turn
+    meeting_urls: set[str] = field(default_factory=set)   # links of sessions the student already held at the start
 
     @property
     def found_chunks(self):
@@ -205,6 +209,12 @@ def _booking_claims(answer: str, claim: re.Pattern = _BOOKING_CLAIM) -> list[str
 def check_booking(answer: str, evidence: TurnEvidence) -> Verdict:
     """Never claim a booking unless a `book_slot` call this turn returned ok=True, nor a cancellation
     unless a `cancel_booking` call this turn returned ok=True."""
+    issued = evidence.meeting_urls | {b.slot.meeting_url for b in evidence.bookings if b.slot and b.slot.meeting_url}
+    links = [m.group(0).rstrip(".") for m in _MEETING_LINK.finditer(answer)]
+    unknown = [link for link in links if link not in issued]
+    if unknown:
+        return Verdict("booking", False, "answer gives a meeting link that no booking issued", "replan",
+                       {"links": unknown})
     cancelled = _booking_claims(answer, _CANCEL_CLAIM)
     if cancelled and not any(c.ok for c in evidence.cancellations):
         return Verdict("booking", False, "answer says a session was cancelled but no cancel_booking succeeded",

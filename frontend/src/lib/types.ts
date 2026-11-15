@@ -16,6 +16,8 @@ export interface Slot {
   counsellor: string;
   start: string;
   end: string;
+  /** Simulated video-meeting link, only on a booked session. */
+  meeting_url?: string | null;
 }
 
 export interface Booking extends Slot {

@@ -61,6 +61,7 @@ class TurnContext:
     lead_profile: dict = field(default_factory=dict)
     lead_score: Optional[LeadScore] = None
     requests: list[dict] = field(default_factory=list)  # this lead's approval requests and their status
+    sessions: list[dict] = field(default_factory=list)  # this lead's upcoming counsellor sessions, with meeting links
     role: str = "anonymous"
     now_ist: str = ""                                    # virtual clock, for dates in tool calls
 
@@ -120,6 +121,7 @@ class AgentLoop:
 
         env = ToolEnv(lead_id=ctx.lead_id, role=ctx.role, session_id=ctx.session_id)
         env.evidence.request_ids = {r["approval_id"] for r in ctx.requests}
+        env.evidence.meeting_urls = {s["meeting_url"] for s in ctx.sessions if s.get("meeting_url")}
         approved_actions = {r["action"] for r in ctx.requests if r["status"] == "approved"}
         convo = self.llm.start(context)
         replans = 0
@@ -375,6 +377,9 @@ class AgentLoop:
             lines.append(f"Details still missing for qualification: {', '.join(missing)}")
         if ctx.requests:
             lines.append("This student's requests: " + "; ".join(f"{r['action']}: {r['status']}" for r in ctx.requests))
+        for s in ctx.sessions:
+            lines.append(f"This student's booked session: {s['start']} IST with {s['counsellor']}, "
+                         f"meeting link (simulated): {s.get('meeting_url') or 'none'}")
         if ctx.history:
             lines.append("Conversation so far:")
             lines += [f"{'Student' if h['role'] == 'student' else 'Assistant'}: {h['text']}"

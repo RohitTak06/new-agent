@@ -251,7 +251,7 @@ export const SchedulingPage: React.FC = () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead className="text-xs text-ink-secondary bg-subtle border-b border-line">
-                    <tr><th scope="col" className={head}>When (IST)</th><th scope="col" className={head}>Counsellor</th><th scope="col" className={head}>Lead</th></tr>
+                    <tr><th scope="col" className={head}>When (IST)</th><th scope="col" className={head}>Counsellor</th><th scope="col" className={head}>Lead</th><th scope="col" className={head}>Meeting link (simulated)</th></tr>
                   </thead>
                   <tbody>
                     {upcoming.map((b) => (
@@ -259,6 +259,7 @@ export const SchedulingPage: React.FC = () => {
                         <td className={`${cell} whitespace-nowrap`}>{formatDateTime(b.start)}</td>
                         <td className={`${cell} whitespace-nowrap`}>{b.counsellor}</td>
                         <td className={cell}><Link to={`/leads/${b.lead_id}`} className="text-navy underline underline-offset-2">{name(b.lead_id)}</Link></td>
+                        <td className={`${cell} font-mono text-xs break-all`}>{b.meeting_url ?? "–"}</td>
                       </tr>
                     ))}
                   </tbody>

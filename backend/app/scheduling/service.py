@@ -9,6 +9,8 @@ Every write is audit-logged. Nothing is really sent: messages are stored rows.
 """
 from __future__ import annotations
 
+import secrets
+import string
 from datetime import datetime
 from typing import Optional
 
@@ -29,9 +31,40 @@ ALTERNATIVES = 3
 MAX_TEXT = 2000
 
 
+MEETING_BASE = "https://meet.jklu.example/"     # simulated: no real meeting service is called
+
+
+def new_meeting_url() -> str:
+    """A unique, unguessable meeting link in the shape of a video-call code (letters only, e.g. abc-defg-hij)."""
+    part = lambda n: "".join(secrets.choice(string.ascii_lowercase) for _ in range(n))  # noqa: E731
+    return f"{MEETING_BASE}{part(3)}-{part(4)}-{part(3)}"
+
+
 def _slot(row: SlotRow, counsellor: str) -> Slot:
     return Slot(slot_id=str(row.id), counsellor=counsellor,
-                start=clock.to_ist(row.start_at), end=clock.to_ist(row.end_at))
+                start=clock.to_ist(row.start_at), end=clock.to_ist(row.end_at),
+                meeting_url=row.meeting_url if row.status == "booked" else None)
+
+
+def _when(iso: str) -> str:
+    return clock.parse(iso).astimezone(clock.IST).strftime("%a %d %b, %I:%M %p IST")
+
+
+def _tell(lead_id: int, text: str) -> None:
+    """Message the student about their session on their own channel (simulated). Opted-out leads are refused."""
+    from app.scheduling.followups import pick_channel     # imported here: followups imports this module
+
+    with SessionLocal() as db:
+        lead = db.get(LeadRow, lead_id)
+        channel = pick_channel(lead) if lead is not None else "web"
+    if channel != "web":
+        send_message(channel, lead_id, text)
+
+
+def confirm_booking(lead_id: int, slot: Slot) -> None:
+    """Send the student their session time and meeting link."""
+    _tell(lead_id, f"Your counselling session with {slot.counsellor} is booked for {_when(slot.start)}. "
+                   f"Join the video meeting here: {slot.meeting_url} (a simulated link for this demo).")
 
 
 def _free_slots_query(after: datetime):
@@ -86,7 +119,9 @@ def book_slot(lead_id: int, slot_id: str) -> BookingResult:
     slot this lead already holds returns ok (safe for agent retries).
     """
     faults.check("book_slot")
-    result = _book(lead_id, slot_id)
+    result, created = _book(lead_id, slot_id)
+    if created:
+        confirm_booking(lead_id, result.slot)
     log_event(actor="system", event_type="tool_call", tool_name="book_slot",
               input={"lead_id": lead_id, "slot_id": slot_id},
               output=result.model_dump(), reasoning_step=result.reason, request_id=None,
@@ -94,46 +129,47 @@ def book_slot(lead_id: int, slot_id: str) -> BookingResult:
     return result
 
 
-def _book(lead_id: int, slot_id: str) -> BookingResult:
+def _book(lead_id: int, slot_id: str) -> tuple[BookingResult, bool]:
+    """The booking result, and whether a new booking was made just now (not a repeat of one already held)."""
     try:
         sid = int(slot_id)
     except (TypeError, ValueError):
-        return BookingResult(ok=False, reason="slot_not_found")
+        return BookingResult(ok=False, reason="slot_not_found"), False
 
     with SessionLocal() as db:
         lead = db.get(LeadRow, lead_id, with_for_update=True)
         if lead is None:
-            return BookingResult(ok=False, reason="lead_not_found")
+            return BookingResult(ok=False, reason="lead_not_found"), False
         now = clock.now()
 
         target = db.get(SlotRow, sid)
         if target is None:
-            return BookingResult(ok=False, reason="slot_not_found")
+            return BookingResult(ok=False, reason="slot_not_found"), False
         if target.status == "booked" and target.lead_id == lead_id:
-            return BookingResult(ok=True, slot=_slot(target, _counsellor_name(db, target)))
+            return BookingResult(ok=True, slot=_slot(target, _counsellor_name(db, target))), False
 
         held = db.scalars(select(SlotRow).where(SlotRow.lead_id == lead_id, SlotRow.status == "booked",
                                                 SlotRow.start_at > now)).first()
         if held is not None:
             return BookingResult(ok=False, reason="already_booked",
-                                 slot=_slot(held, _counsellor_name(db, held)))
+                                 slot=_slot(held, _counsellor_name(db, held))), False
         if target.start_at <= now:
             return BookingResult(ok=False, reason="slot_in_past",
-                                 alternatives=_alternatives(db, now, sid, now))
+                                 alternatives=_alternatives(db, now, sid, now)), False
 
         claimed = db.execute(
             update(SlotRow)
             .where(SlotRow.id == sid, SlotRow.status == "free", SlotRow.start_at > now)
-            .values(status="booked", lead_id=lead_id, booked_at=now)
+            .values(status="booked", lead_id=lead_id, booked_at=now, meeting_url=new_meeting_url())
             .returning(SlotRow.id)
         ).first()
         if claimed is None:
             db.rollback()
             return BookingResult(ok=False, reason="slot_taken",
-                                 alternatives=_alternatives(db, target.start_at, sid, now))
+                                 alternatives=_alternatives(db, target.start_at, sid, now)), False
         db.commit()
         db.refresh(target)
-        return BookingResult(ok=True, slot=_slot(target, _counsellor_name(db, target)))
+        return BookingResult(ok=True, slot=_slot(target, _counsellor_name(db, target))), True
 
 
 def cancel_booking(lead_id: int) -> CancelResult:
@@ -152,9 +188,12 @@ def cancel_booking(lead_id: int) -> CancelResult:
                 result = CancelResult(ok=False, reason="no_booking")
             else:
                 released = _slot(held, _counsellor_name(db, held))
-                held.status, held.lead_id, held.booked_at = "free", None, None
+                held.status, held.lead_id, held.booked_at, held.meeting_url = "free", None, None, None
                 db.commit()
                 result = CancelResult(ok=True, slot=released)
+    if result.ok:
+        _tell(lead_id, f"Your counselling session with {result.slot.counsellor} on {_when(result.slot.start)} "
+                       "is cancelled, and its meeting link no longer works.")
     log_event(actor="system", event_type="tool_call", tool_name="cancel_booking", input={"lead_id": lead_id},
               output=result.model_dump(), reasoning_step=result.reason, request_id=None,
               lead_id=None if result.reason == "lead_not_found" else lead_id)
@@ -183,8 +222,8 @@ def override_booking(lead_id: int, slot_id: str) -> dict:
                                                 SlotRow.start_at > now, SlotRow.id != slot.id)
                           .with_for_update()).all()
         for other in held:
-            other.status, other.lead_id, other.booked_at = "free", None, None
-        slot.status, slot.lead_id, slot.booked_at = "booked", lead_id, now
+            other.status, other.lead_id, other.booked_at, other.meeting_url = "free", None, None, None
+        slot.status, slot.lead_id, slot.booked_at, slot.meeting_url = "booked", lead_id, now, new_meeting_url()
         db.commit()
         result = {"slot": _slot(slot, _counsellor_name(db, slot)).model_dump(), "displaced_lead_id": displaced,
                   "released_slot_ids": [str(o.id) for o in held],
