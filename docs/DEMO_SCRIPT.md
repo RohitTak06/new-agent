@@ -103,6 +103,17 @@ Click **Approve**.
 
 Close: "Plan, act, verify, recover, and a human for anything sensitive."
 
+### Optional: register a new student (about 40 seconds)
+
+Use it if a judge asks how students get in, or if you have time to spare. It doesn't change the main story's data, apart from adding one lead.
+
+*Student window.* **Log out**, then **Register**. Fill in **Start your application** with a made-up student (any email ending in `@example.com`, a 10-digit mobile, a state, city and course), tick the consent box, and click **Register**.
+
+- "Only registered students can log in, and chatting needs a login. Consent to be contacted is recorded with its time, and the agent can't change it."
+- The chat opens and greets them by first name.
+
+*Staff window.* **Pipeline**: the new lead appears under **Not scored yet** with its course, city, state and a **consent** badge.
+
 In a timed run, the agent's replies added up to about 105 seconds, which leaves over 3 minutes for talking.
 
 ## If something goes wrong

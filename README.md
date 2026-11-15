@@ -30,6 +30,8 @@ python scripts/demo.py --reset
 
 On macOS or Linux, activate with `source .venv/bin/activate`. Open <http://localhost:5173>; the login page has one-click demo accounts for each role. API docs are at <http://localhost:8000/docs>.
 
+**Accounts.** Chatting needs a login. A new student registers on the login page's **Register** tab (name, email, mobile, state, city, course, lateral entry, password, and consent to be contacted) and is logged in straight away. Only registered students and the seeded accounts can log in; staff accounts come only from the seed. Nothing is sent: there is no OTP, email, SMS or WhatsApp verification.
+
 `--reset` **erases the local `admissions` database** and rebuilds the demo data, including resetting the virtual clock. It refuses to touch any other database. Leave it off to start the servers on your existing data.
 
 To run the pieces yourself:
@@ -103,11 +105,12 @@ Paths are under `backend/app/`.
 
 - **No invented facts.** Numbers and citations are checked by code against what was retrieved in that turn. Questions the knowledge base can't answer go to a counsellor, whose own words are what the student receives.
 - **The agent can't grant anything.** It has no tool that does. Fee waivers, booking overrides and bulk messages become pending approvals, and run only when staff approve, under a row lock so they can't run twice. Claims of approval in a draft are rejected unless an approval of that kind exists for that lead.
-- **Roles on the server.** Every route checks the role, and a test fails if a new route is left open by accident. The UI only hides what a role can't use.
+- **Roles on the server.** Every route checks the role, and a test fails if a new route is left open by accident. The UI only hides what a role can't use. The only open routes are health checks, login and registration.
+- **Consent is the student's.** Registration records consent to be contacted, with its time. It isn't part of the profile the agent can write, so the agent can never set it. Registration validates every field on the server and is audited without the password.
 - **Append-only audit.** Every agent step, tool call, decision and refused request is logged. A database trigger rejects updates, deletes and truncation, even from direct SQL.
 - **Opt-out is a hard stop**, applied immediately and without the model. Later sends are refused in code.
 - **Secrets.** `.env` is ignored by git, and the app refuses to issue logins with a placeholder or short `JWT_SECRET`.
-- **Limits.** Failed logins and chat messages are rate limited, per process.
+- **Limits.** Failed logins, registrations and chat messages are rate limited per IP, per process.
 
 ## Tests
 
@@ -139,7 +142,6 @@ Design details are in [docs/SPEC.md](docs/SPEC.md).
 - **Single process.** Rate limits and the failure demo live in memory, so they reset on restart and aren't shared between API processes.
 - **Tokens in `localStorage`.** Fine for a demo; production should use httpOnly cookies. One browser profile holds one login, so use an incognito window to show two roles side by side.
 - **Closing the tab mid-reply** can lose that reply, because the turn stops when the connection drops.
-- **Anonymous visitors can't see counsellor replies**, since they have no inbox. Staff get a warning first.
 - **The knowledge base is a snapshot** of the official pages, so it can fall behind them.
 - **Students can see their own lead score** if they open the panel showing the agent's work. It's hidden until opened.
 - **Retrieval is TF-IDF with a relevance threshold**, not embeddings. It's simple and easy to test, but matches wording more than meaning. The Postgres image includes pgvector, which isn't used.
