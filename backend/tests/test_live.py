@@ -16,7 +16,8 @@ pytestmark = pytest.mark.live
 
 
 def _chat(client, message):
-    res = client.post("/agent/chat", json={"message": message})
+    from students import headers_for
+    res = client.post("/agent/chat", json={"message": message}, headers=headers_for(None, {}))
     return [json.loads(line[6:]) for line in res.text.splitlines() if line.startswith("data: ")]
 
 

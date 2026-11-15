@@ -63,11 +63,13 @@ export interface LeadProfile {
   phone: string | null;
   email: string | null;
   city: string | null;
+  state: string | null;
   program_interest: string | null;
   twelfth_percent: number | null;
   entrance_exam: string | null;
   budget_lakh: number | null;
   asked_scholarship: boolean;
+  lateral_entry: boolean;
   channel: Channel;
 }
 
@@ -77,6 +79,30 @@ export interface Lead {
   score: LeadScore | null;
   status: string;
   opted_out: boolean;
+  contact_consent: boolean;
+  consent_at: string | null;
+}
+
+/** What the register form sends to POST /crm/auth/register. */
+export interface Registration {
+  first_name: string;
+  last_name: string;
+  email: string;
+  country_code: string;
+  phone: string;
+  state: string;
+  city: string;
+  course: string;
+  lateral_entry: boolean;
+  password: string;
+  consent: boolean;
+}
+
+export interface RegisterOptions {
+  country_codes: string[];
+  states: string[];
+  courses: string[];
+  min_password: number;
 }
 
 export interface Approval {

@@ -13,6 +13,7 @@ from app.main import app
 from app.scheduling import faults, seed
 from app.scheduling import service as sched
 from fakes import FakeLLM, calls, says
+from students import headers_for
 
 CHIT = {"intent": "chitchat", "needs_clarification": False, "clarifying_question": None, "steps": []}
 
@@ -45,6 +46,7 @@ def free_slot() -> str:
 
 def post_chat(client, monkeypatch, message, reply="Happy to help.", headers=None, **body):
     monkeypatch.setattr(agent_router, "get_llm", lambda: FakeLLM(CHIT, [says(reply)]))
+    headers = headers_for(headers, body)
     res = client.post("/agent/chat", json={"message": message, **body}, headers=headers)
     assert res.status_code == 200, res.text
     return [json.loads(line[6:]) for line in res.text.splitlines() if line.startswith("data: ")]
@@ -141,7 +143,7 @@ def test_book_slot_accepts_the_id_however_the_model_echoes_it(client, monkeypatc
     plan = {**CHIT, "intent": "booking"}
     llm = FakeLLM(plan, [calls(("book_slot", {"slot_id": spoken.format(slot)})), says("Your session is booked.")])
     monkeypatch.setattr(agent_router, "get_llm", lambda: llm)
-    res = client.post("/agent/chat", json={"message": f"Please book slot {slot}"})
+    res = client.post("/agent/chat", json={"message": f"Please book slot {slot}"}, headers=headers_for(None, {}))
     events = [json.loads(line[6:]) for line in res.text.splitlines() if line.startswith("data: ")]
     result = next(e["data"]["result"] for e in events if e["type"] == "tool_result" and e["data"]["name"] == "book_slot")
     assert result["ok"] and result["slot"]["slot_id"] == slot

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { BellOff, Globe, Mail, MessageCircle, Search, Sparkles, X } from "lucide-react";
+import { BellOff, Globe, Mail, MessageCircle, Search, ShieldCheck, Sparkles, X } from "lucide-react";
 import { isAnonymous, leadName, TIER_TONE } from "../../lib/leads";
 import { Badge, Card, EmptyState, ErrorBanner, Loading, PageHeader, type Tone } from "../../lib/ui";
 import { useApi } from "../../lib/useApi";
@@ -80,11 +80,12 @@ const LeadCard: React.FC<{ lead: Lead; highlighted: boolean }> = ({ lead, highli
           {lead.score && <span className="text-sm font-semibold tabular-nums text-ink">{lead.score.score}</span>}
         </div>
         <p className="text-xs text-ink-secondary truncate">
-          {[lead.profile.program_interest, lead.profile.city].filter(Boolean).join(" · ") || "No details yet"}
+          {[lead.profile.program_interest, lead.profile.city, lead.profile.state].filter(Boolean).join(" · ") || "No details yet"}
         </p>
         <div className="mt-1.5 flex flex-wrap items-center gap-1">
           <Badge><Icon className="w-3 h-3" aria-hidden /> {lead.profile.channel}</Badge>
           <Badge>{lead.status}</Badge>
+          {lead.contact_consent && <Badge tone="success"><ShieldCheck className="w-3 h-3" aria-hidden /> consent</Badge>}
           {lead.opted_out && <Badge tone="optout"><BellOff className="w-3 h-3" aria-hidden /> opted out</Badge>}
           {highlighted && <Badge tone="info"><Sparkles className="w-3 h-3" aria-hidden /> just updated</Badge>}
         </div>

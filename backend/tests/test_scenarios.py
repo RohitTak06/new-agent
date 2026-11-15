@@ -27,6 +27,7 @@ from app.scheduling import service as sched
 from app.scheduling.models import FollowupRow, SlotRow, VirtualClock
 from app.scheduling.seed import seed_slots
 from fakes import FakeLLM, calls, says
+from students import headers_for, remember
 
 FEES = "programs_and_fees.md#bachelor-of-technology-b-tech"
 ELIG = "admissions_and_eligibility.md#b-tech-eligibility-criteria"
@@ -66,11 +67,14 @@ def clear_faults():
 
 
 def chat(client, monkeypatch, llm, message, headers=None, **body):
+    """One turn. With no headers it chats as a new student, or as the student who owns `session_id`."""
     monkeypatch.setattr(agent_router, "get_llm", lambda: llm)
+    headers = headers_for(headers, body)
     res = client.post("/agent/chat", json={"message": message, **body}, headers=headers)
     assert res.status_code == 200, res.text
     events = [json.loads(line[6:]) for line in res.text.splitlines() if line.startswith("data: ")]
     assert events[-1]["type"] == "final"
+    remember(events[-1]["data"].get("session_id"), headers)
     return events
 
 
@@ -142,7 +146,8 @@ def test_s3_profile_gathered_over_turns_is_saved_scored_and_explained(client, mo
         says("Nice to meet you, Priya! What did you score in Class 12, and which entrance exam did you take?"),
     ]), "I'm Priya from Jaipur, interested in B.Tech CSE")[-1]["data"]
     lead_id, sid = first["lead_id"], first["session_id"]
-    assert set(first["missing_fields"]) == {"twelfth_percent", "entrance_exam", "budget_lakh", "phone or email"}
+    # Chat needs a login, so the lead already has the account's email: a contact is never missing.
+    assert set(first["missing_fields"]) == {"twelfth_percent", "entrance_exam", "budget_lakh"}
     assert first["lead_score"] is None
 
     second_llm = FakeLLM({"intent": "qualification", "steps": []}, [
@@ -154,7 +159,7 @@ def test_s3_profile_gathered_over_turns_is_saved_scored_and_explained(client, mo
     second = chat(client, monkeypatch, second_llm, "95.5 percent, JEE Main 92 percentile", session_id=sid)[-1]["data"]
     assert second["lead_id"] == lead_id
     assert "program_interest" not in prompts["ctx"].split("Details still missing")[1].split("\n")[0]    # told what's left
-    assert set(second["missing_fields"]) == {"budget_lakh", "phone or email"}
+    assert set(second["missing_fields"]) == {"budget_lakh"}
 
     third = chat(client, monkeypatch, FakeLLM({"intent": "qualification", "steps": []}, [
         calls(("upsert_lead", {"profile": {"budget_lakh": 8, "email": f"{uuid.uuid4().hex[:8]}@example.test"}})),

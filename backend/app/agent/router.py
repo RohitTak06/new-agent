@@ -17,7 +17,7 @@ from app.contracts import tools
 from app.contracts.models import Lead, LeadProfile
 from app.crm import ratelimit, reports
 from app.crm import service as crm
-from app.crm.auth import CurrentUser, current_user, deny, ensure_lead_access, optional_user
+from app.crm.auth import CurrentUser, current_user, deny, ensure_lead_access
 from app.scheduling import clock
 from app.scheduling import service as scheduling
 
@@ -59,18 +59,17 @@ def get_session(session_id: str, request: Request, user: CurrentUser = Depends(c
 
 
 @router.post("/chat")
-def chat(req: ChatRequest, request: Request, user: Optional[CurrentUser] = Depends(optional_user)):
+def chat(req: ChatRequest, request: Request, user: CurrentUser = Depends(current_user)):
     """Run one agent turn and stream its events (`text/event-stream`, SPEC 2.2).
 
-    Open without login so prospects can chat. Anonymous callers only reach their own
-    anonymous session; students always act as their own lead; staff may name any lead.
+    Needs a login: a new student registers first (POST /crm/auth/register). Students always act
+    as their own lead; an admin's test chat may name any lead.
     """
     if ratelimit.enabled():
         ip = ratelimit.client_ip(request)
-        window = ratelimit.chat_requests if user else ratelimit.anonymous_chat
-        if window.blocked(ip):
-            raise ratelimit.refuse(window, request, "chat messages")
-        window.hit(ip)
+        if ratelimit.chat_requests.blocked(ip):
+            raise ratelimit.refuse(ratelimit.chat_requests, request, "chat messages")
+        ratelimit.chat_requests.hit(ip)
     session_id = req.session_id or uuid.uuid4().hex
     session_lead = sessions.lead_for(session_id) if req.session_id else None
     lead = _resolve_lead(req, _allowed_lead(req, user, session_lead, request), user)
@@ -86,20 +85,16 @@ def chat(req: ChatRequest, request: Request, user: Optional[CurrentUser] = Depen
     ctx = TurnContext(message=req.message, lead_id=lead.id, session_id=session_id,
                       channel=req.channel, history=history, now_ist=clock.to_ist(clock.now()),
                       lead_profile=lead.profile.model_dump(exclude={"channel"}), lead_score=lead.score,
-                      requests=tools.lead_requests(lead.id), role=user.role if user else "anonymous")
+                      requests=tools.lead_requests(lead.id), role=user.role)
     return StreamingResponse(
         _stream(ctx), media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
 
 
-def _allowed_lead(req: ChatRequest, user: Optional[CurrentUser], session_lead: Optional[int],
+def _allowed_lead(req: ChatRequest, user: CurrentUser, session_lead: Optional[int],
                   request: Request) -> Optional[int]:
-    """Which existing lead this caller may chat as (None = a new one). Raises 401/403 otherwise."""
-    if user is None:
-        if req.lead_id is not None or (session_lead is not None and crm.lead_owner(session_lead) is not None):
-            raise HTTPException(status_code=401, detail="Log in to use this lead or session")
-        return session_lead
+    """Which existing lead this caller may chat as (None = a new one). Raises 403 otherwise."""
     if user.is_staff:
         if user.role != "admin":                  # counsellors talk to students on the record, not through the agent
             raise deny(user, request, "staff test chat is for admins")
@@ -110,13 +105,13 @@ def _allowed_lead(req: ChatRequest, user: Optional[CurrentUser], session_lead: O
     return user.lead_id
 
 
-def _resolve_lead(req: ChatRequest, lead_id: Optional[int], user: Optional[CurrentUser]) -> Lead:
+def _resolve_lead(req: ChatRequest, lead_id: Optional[int], user: CurrentUser) -> Lead:
     if lead_id is None:
-        if user is not None and not user.is_staff:             # a student's first chat: their own lead
+        if not user.is_staff:             # a seeded student's first chat: their own lead (registering creates one)
             lead = tools.upsert_lead(LeadProfile(name=user.full_name, email=user.email, channel=req.channel))
             crm.link_lead_to_user(lead.id, user.id)
             return lead
-        return tools.upsert_lead(LeadProfile(channel=req.channel))   # anonymous lead for a new chat
+        return tools.upsert_lead(LeadProfile(channel=req.channel))   # an admin's test chat: a new lead
     try:
         return tools.get_lead(lead_id)
     except ValueError:

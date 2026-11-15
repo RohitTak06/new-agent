@@ -24,6 +24,7 @@ from app.scheduling import service as sched_service
 from app.scheduling.models import SlotRow
 from app.scheduling.seed import seed_slots
 from fakes import FakeLLM, calls, says
+from students import headers_for, remember
 
 FEES = "programs_and_fees.md#bachelor-of-technology-b-tech"
 ELIG = "admissions_and_eligibility.md#b-tech-eligibility-criteria"
@@ -41,12 +42,15 @@ def client():
 
 
 def chat(client, monkeypatch, llm, message, headers=None, **body):
+    """One turn. With no headers it chats as a new student, or as the student who owns `session_id`."""
     monkeypatch.setattr(agent_router, "get_llm", lambda: llm)
+    headers = headers_for(headers, body)
     res = client.post("/agent/chat", json={"message": message, **body}, headers=headers)
     assert res.status_code == 200, res.text
     assert res.headers["content-type"].startswith("text/event-stream")
     events = [json.loads(line[6:]) for line in res.text.splitlines() if line.startswith("data: ")]
     assert events[-1]["type"] == "final"
+    remember(events[-1]["data"].get("session_id"), headers)
     return events
 
 
@@ -240,7 +244,7 @@ def test_missing_llm_config_streams_an_error(client, monkeypatch):
         raise RuntimeError("Set LLM_API_KEY and LLM_MODEL in .env")
 
     monkeypatch.setattr(agent_router, "get_llm", broken)
-    res = client.post("/agent/chat", json={"message": "hi"})
+    res = client.post("/agent/chat", json={"message": "hi"}, headers=headers_for(None, {}))
     assert res.status_code == 200 and '"type": "error"' in res.text and '"type": "final"' in res.text
 
 

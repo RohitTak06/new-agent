@@ -25,10 +25,15 @@ from app.scheduling import service as sched
 from app.scheduling.models import SlotRow
 from app.scheduling.seed import seed_slots
 from fakes import FakeLLM, says
+from students import headers_for, remember
 
 PUBLIC_ROUTES = {
     ("get", "/health"), ("get", "/agent/health"), ("get", "/crm/health"), ("get", "/intel/health"),
-    ("get", "/scheduling/health"), ("post", "/crm/auth/login"), ("post", "/agent/chat"),
+    ("get", "/scheduling/health"), ("post", "/crm/auth/login"),
+    # A new student has no token yet: registering is how they get one. Rate-limited per IP and audited.
+    ("post", "/crm/auth/register"),
+    # The register form's lists (states, courses); the same data is validated on the server. Holds no personal data.
+    ("get", "/crm/auth/register/options"),
 }
 
 
@@ -178,17 +183,24 @@ def test_s8_admin_can_manage_the_kb(client, users):
 
 # ---------------------------------------------------------------- chat access
 def _chat(client, monkeypatch, message="Hello", headers=None, **body):
+    """One turn. With no headers it chats as a new student, or as the student who owns `session_id`."""
     monkeypatch.setattr(agent_router, "get_llm", lambda: FakeLLM({"intent": "chitchat", "steps": []}, [says("Hi!")]))
-    return client.post("/agent/chat", json={"message": message, **body}, headers=headers)
+    headers = headers_for(headers, body)
+    res = client.post("/agent/chat", json={"message": message, **body}, headers=headers)
+    if res.status_code == 200:
+        remember(_final(res).get("session_id"), headers)
+    return res
 
 
 def _final(res) -> dict:
     return [json.loads(l[6:]) for l in res.text.splitlines() if l.startswith("data: ")][-1]["data"]
 
 
-def test_anonymous_chat_works_but_cannot_name_a_lead(client, monkeypatch, users):
-    assert _chat(client, monkeypatch).status_code == 200
-    assert _chat(client, monkeypatch, lead_id=users.student.lead_id).status_code == 401
+def test_chat_needs_a_login(client, monkeypatch, users):
+    monkeypatch.setattr(agent_router, "get_llm", lambda: FakeLLM({"intent": "chitchat", "steps": []}, [says("Hi!")]))
+    assert client.post("/agent/chat", json={"message": "Hello"}).status_code == 401
+    assert client.post("/agent/chat", json={"message": "Hello", "lead_id": users.student.lead_id}).status_code == 401
+    assert _chat(client, monkeypatch).status_code == 200                                # a logged-in student can
 
 
 def test_student_chat_always_uses_their_own_lead(client, monkeypatch, users):
@@ -199,7 +211,7 @@ def test_student_chat_always_uses_their_own_lead(client, monkeypatch, users):
 
 def test_account_sessions_cannot_be_taken_over(client, monkeypatch, users):
     sid = _final(_chat(client, monkeypatch, headers=users.student.headers))["session_id"]
-    assert _chat(client, monkeypatch, session_id=sid).status_code == 401
+    assert client.post("/agent/chat", json={"message": "Hello", "session_id": sid}).status_code == 401   # no token
     assert _chat(client, monkeypatch, headers=users.other_student.headers, session_id=sid).status_code == 403
     assert _chat(client, monkeypatch, headers=users.student.headers, session_id=sid).status_code == 200
 

@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { api, ApiError, errorFrom, getToken, send, setToken, setUnauthorizedHandler } from "./api";
-import type { User } from "./types";
+import type { Registration, User } from "./types";
 
 interface AuthValue {
   user: User | null;
@@ -8,6 +8,8 @@ interface AuthValue {
   /** A token exists but the server couldn't be reached to check it, so we don't know who this is yet. */
   unreachable: boolean;
   login: (email: string, password: string) => Promise<User>;
+  /** Create a student account and log straight in. */
+  register: (form: Registration) => Promise<User>;
   logout: () => void;
   refresh: () => Promise<void>;
 }
@@ -58,14 +60,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return me;
   }, []);
 
+  const register = useCallback(async (form: Registration) => {
+    const { access_token } = await api<{ access_token: string }>("/crm/auth/register", { body: form });
+    setToken(access_token);
+    const me = await api<User>("/crm/auth/me");
+    setUser(me);
+    return me;
+  }, []);
+
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     setUnreachable(false);
   }, []);
 
-  const value = useMemo(() => ({ user, ready, unreachable, login, logout, refresh }),
-    [user, ready, unreachable, login, logout, refresh]);
+  const value = useMemo(() => ({ user, ready, unreachable, login, register, logout, refresh }),
+    [user, ready, unreachable, login, register, logout, refresh]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 

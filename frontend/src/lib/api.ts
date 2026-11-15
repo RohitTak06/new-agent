@@ -39,7 +39,7 @@ export function authHeaders(): Record<string, string> {
 
 function detailText(detail: unknown, status: number): string {
   if (typeof detail === "string") return detail;
-  if (Array.isArray(detail)) return detail.map((d) => d?.msg ?? String(d)).join("; ");
+  if (Array.isArray(detail)) return detail.map((d) => String(d?.msg ?? d).replace(/^Value error, /, "")).join("; ");
   if (detail && typeof detail === "object" && "error" in detail) return String((detail as { error: unknown }).error);
   return `Request failed (HTTP ${status})`;
 }

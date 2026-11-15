@@ -83,11 +83,15 @@ const Profile: React.FC<{ lead: Lead }> = ({ lead }) => {
         <Field label="Email" value={p.email} />
         <Field label="Phone" value={p.phone} />
         <Field label="City" value={p.city} />
+        <Field label="State" value={p.state} />
         <Field label="Program" value={p.program_interest} />
         <Field label="12th marks" value={p.twelfth_percent === null ? null : `${p.twelfth_percent}%`} />
         <Field label="Entrance exam" value={p.entrance_exam} />
         <Field label="Budget" value={p.budget_lakh === null ? null : `${p.budget_lakh} lakh`} />
+        <Field label="Lateral entry" value={p.lateral_entry ? "Yes" : "No"} />
         <Field label="Asked about scholarship" value={p.asked_scholarship ? "Yes" : "No"} />
+        <Field label="Consent to contact" value={lead.contact_consent
+          ? `Yes${lead.consent_at ? `, given ${formatDateTime(lead.consent_at)}` : ""}` : "No"} />
         <Field label="Channel" value={p.channel} />
       </dl>
     </Card>

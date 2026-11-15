@@ -28,11 +28,13 @@ _PROFILE = {
         "phone": {"type": "string"},
         "email": {"type": "string"},
         "city": {"type": "string"},
+        "state": {"type": "string", "description": "Indian state or union territory"},
         "program_interest": {"type": "string", "description": "e.g. B.Tech CSE, MBA, B.Des"},
         "twelfth_percent": {"type": "number", "description": "Class 12 percentage, 0-100"},
         "entrance_exam": {"type": "string", "description": "Exam and score, e.g. JEE Main 92 percentile"},
         "budget_lakh": {"type": "number", "description": "Yearly budget in lakh INR"},
         "asked_scholarship": {"type": "boolean"},
+        "lateral_entry": {"type": "boolean", "description": "Joining in the second year (lateral entry)"},
     },
 }
 

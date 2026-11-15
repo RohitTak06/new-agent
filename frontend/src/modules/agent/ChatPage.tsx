@@ -250,6 +250,7 @@ export const ChatPage: React.FC = () => {
         <div ref={list} className="flex-1 overflow-y-auto bg-canvas px-5 py-5 space-y-4 scroll-quiet" aria-live="polite">
           {messages.length === 0 && (
             <div className="py-6">
+              {student && <p className="text-base font-semibold text-ink mb-1">Hi {student.full_name.split(" ")[0]}, welcome to JKLU Admissions.</p>}
               <p className="text-sm text-ink-secondary mb-3">Ask about programs, fees, eligibility or scholarships, or book a counsellor session.</p>
               <div className="flex flex-wrap gap-2">
                 {SUGGESTIONS.map((s) => (
