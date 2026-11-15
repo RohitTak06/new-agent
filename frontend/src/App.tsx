@@ -169,7 +169,7 @@ const Header: React.FC<{ staff: boolean }> = ({ staff }) => {
               </button>
             </>
           ) : (
-            <NavLink to="/login"
+            <NavLink to="/login?tab=login"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-line-strong text-ink-secondary hover:text-ink hover:bg-subtle focus:outline-none focus-visible:ring-2 focus-visible:ring-navy">
               <LogIn className="w-4 h-4" aria-hidden /> Log in
             </NavLink>
