@@ -182,6 +182,7 @@ Paths are under `backend/app/`.
 ## Safety design
 
 - **No invented facts.** Numbers and sources are checked by code against what was retrieved for that message. Questions the knowledge base can't answer go to a counsellor, whose own words are what the student receives.
+- **Jailbreaks are stopped in layers.** Known attack patterns ("ignore your rules", DAN, role-play, fake system or counsellor turns, decode-and-obey, the same in Hindi) get a fixed refusal before the model runs. Anything not about JKLU admissions (trivia, code, essays, other universities, cheating) gets one polite fixed reply, decided before any tool runs and without troubling a counsellor. Every reply is then checked in code: it must not repeat the assistant's rules, name its tools, or contain program code. `python scripts/redteam.py` runs 26 attacks on the real model: all 26 held on 15 Nov 2026, and 15 of 15 ordinary questions were still answered (`--benign`).
 - **The agent can't grant anything.** It has no tool that does. Fee waivers, booking overrides and bulk messages become pending requests, and run only when staff approve, under a row lock so they can't run twice.
 - **Roles on the server.** Every route checks the role, and a test fails if a new route is left open by accident. The only routes open without a login are health checks, login and registration.
 - **Staff can't sign themselves up.** Registration always creates a student. Counsellor and admin accounts are created only from the server's command line.
@@ -200,9 +201,10 @@ pytest -q
 
 | Check | Result |
 |---|---|
-| Automated tests (`pytest -q`), scripted model and a throwaway database | **337 passed** (15 Nov 2026) |
+| Automated tests (`pytest -q`), scripted model and a throwaway database | **381 passed** (15 Nov 2026) |
 | Retrieval benchmark (Knowledge base page, or `GET /intel/benchmark`) | **45 of 45** (14 Nov 2026) |
 | All scenarios on the real model (`python scripts/live_scenarios.py`) | **20 of 20** checks (7 Nov 2026) |
+| Jailbreak attempts on the real model (`python scripts/redteam.py`) | **26 of 26** held; 15 of 15 ordinary questions still answered (15 Nov 2026) |
 | Frontend | `npm run build` passes; every screen checked for contrast and layout at 1280px and 390px |
 
 Details, including the knowledge base's corrections and the timed demo, are in [docs/TEST_REPORT.md](docs/TEST_REPORT.md).

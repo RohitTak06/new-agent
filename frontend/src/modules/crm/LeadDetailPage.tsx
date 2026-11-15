@@ -109,6 +109,7 @@ const Bookings: React.FC<{ bookings: Booking[] | null }> = ({ bookings }) => (
             <span>
               <span className="tabular-nums">{formatDateTime(b.start)} – {formatTime(b.end)} IST</span>
               <span className="block text-xs text-ink-muted">with {b.counsellor}{b.upcoming ? "" : " · past"}</span>
+              {b.meeting_url && b.upcoming && <span className="block text-xs text-ink-secondary break-all">Meeting link (simulated): <span className="font-mono">{b.meeting_url}</span></span>}
             </span>
           </li>
         ))}

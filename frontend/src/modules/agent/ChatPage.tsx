@@ -244,6 +244,7 @@ export const ChatPage: React.FC = () => {
           <div className="px-5 py-2 border-b border-success/20 bg-success-soft text-13 font-medium text-success flex items-center gap-2">
             <CalendarCheck className="w-4 h-4 shrink-0" />
             Your session: {formatDateTime(upcoming.start)} IST with {upcoming.counsellor}
+            {upcoming.meeting_url && <span className="font-normal break-all">· Meeting link (simulated): <span className="font-mono">{upcoming.meeting_url}</span></span>}
           </div>
         )}
 

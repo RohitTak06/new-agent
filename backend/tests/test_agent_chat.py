@@ -156,7 +156,7 @@ def test_s2_question_not_in_kb_is_escalated_without_guessing(client, monkeypatch
 
     assert streamed_text(events) == final["text"] == ESCALATED_MSG
     assert final["escalated"] is True and final["citations"] == []
-    verify = by_type(events, "verify")[0]["data"]
+    verify = next(v["data"] for v in by_type(events, "verify") if v["data"]["check"] == "grounding")
     assert verify["ok"] is False and verify["action"] == "escalate"
     assert rows(Approval, id=final["approval_id"])[0].action == "escalate_question"
 

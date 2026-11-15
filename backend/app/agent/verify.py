@@ -40,6 +40,9 @@ _BOOKING_CONTEXT = re.compile(
     r"|\b(?:mon|tues|wednes|thurs|fri|satur|sun)day\b",
     re.IGNORECASE,
 )
+# Any video-meeting link. A link in a reply must be one the calendar issued, never one the model wrote.
+_MEETING_LINK = re.compile(r"https?://(?:meet\.jklu\.example|meet\.google\.com|meet\.jit\.si|[\w.-]*zoom\.us)/[^\s)\]>,]*",
+                           re.IGNORECASE)
 _FOLLOWUP_ONLY = re.compile(r"\b(?:follow[\s-]?ups?|reminders?)\b", re.IGNORECASE)
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+|\n+")
 _NEGATION = re.compile(r"\b(not|n't|unable|couldn't|could not|cannot|can't|no longer)\b", re.IGNORECASE)
@@ -74,6 +77,7 @@ class TurnEvidence:
     score: Optional[LeadScore] = None
     escalation: Optional[Any] = None                      # approval created by a fallback path
     request_ids: set[int] = field(default_factory=set)    # this lead's requests from before this turn
+    meeting_urls: set[str] = field(default_factory=set)   # links of sessions the student already held at the start
 
     @property
     def found_chunks(self):
@@ -91,7 +95,7 @@ class Verdict:
     check: str
     ok: bool
     reason: str
-    action: Literal["none", "replan", "escalate"] = "none"
+    action: Literal["none", "replan", "escalate", "refuse"] = "none"
     details: dict = field(default_factory=dict)
 
     def as_event(self) -> dict:
@@ -205,6 +209,12 @@ def _booking_claims(answer: str, claim: re.Pattern = _BOOKING_CLAIM) -> list[str
 def check_booking(answer: str, evidence: TurnEvidence) -> Verdict:
     """Never claim a booking unless a `book_slot` call this turn returned ok=True, nor a cancellation
     unless a `cancel_booking` call this turn returned ok=True."""
+    issued = evidence.meeting_urls | {b.slot.meeting_url for b in evidence.bookings if b.slot and b.slot.meeting_url}
+    links = [m.group(0).rstrip(".") for m in _MEETING_LINK.finditer(answer)]
+    unknown = [link for link in links if link not in issued]
+    if unknown:
+        return Verdict("booking", False, "answer gives a meeting link that no booking issued", "replan",
+                       {"links": unknown})
     cancelled = _booking_claims(answer, _CANCEL_CLAIM)
     if cancelled and not any(c.ok for c in evidence.cancellations):
         return Verdict("booking", False, "answer says a session was cancelled but no cancel_booking succeeded",
@@ -266,8 +276,47 @@ def check_outbound(text: str, evidence: TurnEvidence) -> Verdict:
     return Verdict("outbound", True, "message passes checks")
 
 
+# The assistant's own internals: tool names and the tag around the student's words. A reply naming them is
+# describing how it works inside, which is what a prompt-extraction attack is after.
+_INTERNALS = re.compile(
+    r"\b(?:search_knowledge|score_lead|upsert_lead|get_lead|get_slots|get_counsellors|book_slot|cancel_booking|"
+    r"send_message|schedule_followup|request_fee_waiver|request_booking_override|request_bulk_message|"
+    r"student_message|system\s+prompt|enforced\s+by\s+code)\b", re.IGNORECASE)
+# Off-topic work an admissions assistant never produces: program code.
+_CODE = re.compile(r"```|^\s*(?:def|class|import|from\s+\S+\s+import|function|public\s+static|#include)\b",
+                   re.IGNORECASE | re.MULTILINE)
+_WORD = re.compile(r"\w+")
+LEAK_WINDOW = 8          # this many consecutive words of the instructions in a reply count as a leak
+
+
+def _leaks(answer: str, protected: str) -> bool:
+    if not protected:
+        return False
+    words = _WORD.findall(protected.lower())
+    text = " ".join(_WORD.findall(answer.lower()))
+    return any(" ".join(words[i:i + LEAK_WINDOW]) in text for i in range(len(words) - LEAK_WINDOW + 1))
+
+
+def check_scope(answer: str, protected: str = "") -> Verdict:
+    """Any intent: the reply must not reveal the assistant's instructions or tools, or write program code.
+
+    A failure is refused with a fixed message, not rewritten: there is nothing in such a reply to keep.
+    """
+    if _leaks(answer, protected):
+        return Verdict("scope", False, "answer repeats the assistant's own instructions", "refuse")
+    unbracketed = re.sub(r"\[\s*[a-z_]+\s*\]", " ", answer)     # a "[tool_name]" citation is stripped before sending
+    named = sorted({m.group(0).lower() for m in _INTERNALS.finditer(unbracketed)})
+    if named:
+        return Verdict("scope", False, "answer names the assistant's internal tools", "refuse", {"named": named})
+    if _CODE.search(answer):
+        return Verdict("scope", False, "answer contains program code, which is outside admissions", "refuse")
+    return Verdict("scope", True, "within admissions")
+
+
 def verify_answer(answer: str, evidence: TurnEvidence, intent: str, question: str = "",
-                  known_text: str = "", approved_actions: Optional[set[str]] = None) -> list[Verdict]:
-    """Run every verifier; the loop acts on the first failure."""
-    return [check_grounding(answer, evidence, intent, question), check_booking(answer, evidence),
-            check_no_false_grant(answer, approved_actions), check_figures(answer, evidence, known_text or question)]
+                  known_text: str = "", approved_actions: Optional[set[str]] = None,
+                  protected: str = "") -> list[Verdict]:
+    """Run every verifier; the loop acts on the first failure. `protected` is text a reply must never repeat."""
+    return [check_scope(answer, protected), check_grounding(answer, evidence, intent, question),
+            check_booking(answer, evidence), check_no_false_grant(answer, approved_actions),
+            check_figures(answer, evidence, known_text or question)]

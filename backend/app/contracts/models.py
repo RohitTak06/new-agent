@@ -50,6 +50,7 @@ class Slot(BaseModel):
     counsellor: str
     start: str           # ISO datetime
     end: str
+    meeting_url: Optional[str] = None   # simulated video-meeting link, only on a booked session
 
 
 class BookingResult(BaseModel):

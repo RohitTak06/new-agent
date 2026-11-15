@@ -41,6 +41,7 @@ class SlotRow(Base):
     status: Mapped[str] = mapped_column(String(10), nullable=False, server_default=text("'free'"))
     lead_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("leads.id"), nullable=True)
     booked_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    meeting_url: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)   # simulated; set while booked (0008)
 
 
 class MessageRow(Base):

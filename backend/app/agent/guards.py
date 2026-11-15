@@ -49,9 +49,19 @@ _INJECTION = re.compile(
     r"|\byou\s+are\s+now\s+(?:an?\s+|in\s+)"
     r"|\bpretend\s+(?:you\s+are|you'?re|to\s+be)\b"
     r"|\bact\s+as\s+(?:an?\s+|the\s+)?(?:admin\w*|counsell?or|dean|director|developer)\b"
-    r"|\bas\s+(?:an?\s+|the\s+)?(?:admin\w*|dean|director|counsell?or)\b.{0,60}\b(?:approve|grant|waive)\b",
-    re.IGNORECASE | re.S,
+    r"|\bas\s+(?:an?\s+|the\s+)?(?:admin\w*|dean|director|counsell?or)\b.{0,60}\b(?:approve|grant|waive)\b"
+    # Personas and "modes" that claim to drop the rules (DAN and its cousins).
+    r"|\bdo\s+anything\s+now\b|\b(?:with|has|have|without)\s+(?:no|any)\s+(?:rules|restrictions|limits|filters|guidelines)\b"
+    r"|\b(?:let'?s|we'?ll|we\s+will)\s+play\s+a\s+game\b|\brole[\s-]?play\b|\bunfiltered\b|\buncensored\b"
+    # Fake turns and tags: the student's words can't close their own tag or speak as the system.
+    r"|</?\s*student_message\s*>|^\s*(?:system|assistant|developer)\s*:"
+    # Hidden orders: decode-and-obey, and notes addressed to the AI inside a question.
+    r"|\bdecode\b.{0,60}\b(?:follow|do|execute|obey|run)\b|\bnote\s+to\s+the\s+(?:ai|assistant|bot|model)\b"
+    # "Ignore the instructions" in Hindi.
+    r"|(?:निर्देश|नियम)\S*.{0,30}(?:अनदेखा|नज़रअंदाज़|नजरअंदाज|भूल)",
+    re.IGNORECASE | re.S | re.M,
 )
+_DAN = re.compile(r"\bDAN\b")          # the persona's name; case-sensitive so the name "Dan" isn't caught
 
 
 def _is_opt_out(message: str) -> bool:
@@ -68,7 +78,7 @@ def _is_opt_out(message: str) -> bool:
 
 def check_message(message: str) -> Optional[Literal["opt_out", "injection"]]:
     """Classify a message that must not reach the model. Injection wins: it may hide a fake opt-out."""
-    if _INJECTION.search(message):
+    if _INJECTION.search(message) or _DAN.search(message):
         return "injection"
     if _is_opt_out(message):
         return "opt_out"

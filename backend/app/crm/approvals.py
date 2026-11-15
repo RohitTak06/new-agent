@@ -100,8 +100,8 @@ def _booking_override(payload: dict, approval_id: int, note: Optional[str], repl
     lead_id = _lead_id(payload)
     moved = scheduling.override_booking(lead_id, str(payload.get("slot_id")))
     slot = moved["slot"]
-    notified = _notify(lead_id, f"Your session with {slot['counsellor']} is confirmed for {_when(slot['start'])}.",
-                       approval_id)
+    notified = _notify(lead_id, f"Your session with {slot['counsellor']} is confirmed for {_when(slot['start'])}. "
+                       f"Join the video meeting here: {slot['meeting_url']} (a simulated link for this demo).", approval_id)
     displaced = moved["displaced_lead_id"]
     displaced_notified = None
     if displaced is not None:
