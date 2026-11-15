@@ -7,7 +7,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, Field
 
 from app.contracts.models import Lead, LeadProfile
-from app.crm import approvals, auth, ratelimit, reports, service
+from app.crm import approvals, auth, ratelimit, registration, reports, service
 from app.crm.auth import (CurrentUser, audit_action, current_user, require_admin, require_lead_access,
                           require_staff)
 
@@ -71,6 +71,27 @@ def login(request: Request, form: OAuth2PasswordRequestForm = Depends()):
         raise HTTPException(status_code=401, detail="Incorrect email or password",
                             headers={"WWW-Authenticate": "Bearer"})
     ratelimit.login_failures.reset(key)
+    return TokenOut(access_token=auth.create_token(user.id, user.role), role=user.role)
+
+
+@router.get("/auth/register/options")
+def register_options():
+    """Country codes, states and courses for the register form: the same lists the server validates against."""
+    return registration.options()
+
+
+@router.post("/auth/register", response_model=TokenOut, status_code=201)
+def register(body: registration.RegisterIn, request: Request):
+    """Create a student account and its lead, then log them in. Public; rate-limited per IP and audited."""
+    ip = ratelimit.client_ip(request)
+    if ratelimit.enabled():
+        if ratelimit.registrations.blocked(ip):
+            raise ratelimit.refuse(ratelimit.registrations, request, "registration attempts")
+        ratelimit.registrations.hit(ip)
+    try:
+        user, _, _ = registration.register(body)
+    except registration.EmailTaken:
+        raise HTTPException(status_code=409, detail="An account with this email already exists. Log in instead.")
     return TokenOut(access_token=auth.create_token(user.id, user.role), role=user.role)
 
 

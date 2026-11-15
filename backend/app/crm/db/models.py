@@ -86,6 +86,8 @@ class Lead(Base):
     phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     city: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    state: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)                     # migration 0007
+    lateral_entry: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")  # migration 0007
     program_interest: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     twelfth_percent: Mapped[Optional[float]] = mapped_column(Numeric(5, 2), nullable=True)
     entrance_exam: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
@@ -105,6 +107,10 @@ class Lead(Base):
     score_tier: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)   # hot | warm | cold
     score_reasons: Mapped[Optional[list]] = mapped_column(JSONB, nullable=True)     # migration 0005
     opted_out: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    # Consent to be contacted, given only by the student when registering. Not in LeadProfile, so the agent
+    # can never set it (migration 0007).
+    contact_consent: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    consent_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     assigned_to: Mapped[Optional[int]] = mapped_column(
         Integer, ForeignKey("users.id"), nullable=True
     )

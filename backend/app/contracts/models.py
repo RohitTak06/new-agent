@@ -19,11 +19,13 @@ class LeadProfile(BaseModel):
     phone: Optional[str] = None
     email: Optional[str] = None
     city: Optional[str] = None
+    state: Optional[str] = None             # Indian state or union territory
     program_interest: Optional[str] = None
     twelfth_percent: Optional[float] = None
     entrance_exam: Optional[str] = None
     budget_lakh: Optional[float] = None
     asked_scholarship: bool = False
+    lateral_entry: bool = False             # joining in the second year
     channel: Literal["web", "whatsapp", "email"] = "web"
 
 
@@ -39,6 +41,8 @@ class Lead(BaseModel):
     score: Optional[LeadScore] = None
     status: str = "new"
     opted_out: bool = False
+    contact_consent: bool = False           # set only by registration; deliberately not in LeadProfile
+    consent_at: Optional[str] = None        # ISO time the consent was given
 
 
 class Slot(BaseModel):

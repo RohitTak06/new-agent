@@ -130,11 +130,13 @@ def _row_to_lead(row: LeadRow) -> Lead:
         phone=row.phone,
         email=row.email,
         city=row.city,
+        state=row.state,
         program_interest=row.program_interest,
         twelfth_percent=float(row.twelfth_percent) if row.twelfth_percent is not None else None,
         entrance_exam=row.entrance_exam,
         budget_lakh=float(row.budget_lakh) if row.budget_lakh is not None else None,
         asked_scholarship=row.asked_scholarship,
+        lateral_entry=row.lateral_entry,
         channel=row.channel,
     )
     score_obj: Optional[LeadScore] = None
@@ -144,7 +146,9 @@ def _row_to_lead(row: LeadRow) -> Lead:
             tier=row.score_tier,
             reasons=row.score_reasons or ["stored score"],
         )
-    return Lead(id=row.id, profile=profile, score=score_obj, status=row.status, opted_out=row.opted_out)
+    return Lead(id=row.id, profile=profile, score=score_obj, status=row.status, opted_out=row.opted_out,
+                contact_consent=row.contact_consent,
+                consent_at=row.consent_at.isoformat() if row.consent_at else None)
 
 
 # ---------------------------------------------------------------------------
@@ -188,11 +192,13 @@ def upsert_lead(data: LeadProfile, lead_id: Optional[int] = None) -> Lead:
                 phone=data.phone,
                 email=data.email,
                 city=data.city,
+                state=data.state,
                 program_interest=data.program_interest,
                 twelfth_percent=data.twelfth_percent,
                 entrance_exam=data.entrance_exam,
                 budget_lakh=data.budget_lakh,
                 asked_scholarship=data.asked_scholarship,
+                lateral_entry=data.lateral_entry,
                 channel=data.channel,
                 status="new",
             )
@@ -202,13 +208,13 @@ def upsert_lead(data: LeadProfile, lead_id: Optional[int] = None) -> Lead:
             # Only touch fields that were explicitly provided by the caller
             sent = data.model_fields_set
             updatable = {
-                "name", "phone", "email", "city", "program_interest",
+                "name", "phone", "email", "city", "state", "program_interest",
                 "twelfth_percent", "entrance_exam", "budget_lakh",
-                "asked_scholarship", "channel",
+                "asked_scholarship", "lateral_entry", "channel",
             }
             for field in sent & updatable:
                 value = getattr(data, field)
-                if value is not None or field in ("asked_scholarship",):
+                if value is not None or field in ("asked_scholarship", "lateral_entry"):
                     setattr(row, field, value)
             action = "update"
 

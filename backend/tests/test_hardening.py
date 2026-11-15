@@ -122,10 +122,10 @@ def test_without_a_fallback_there_is_only_one_attempt(monkeypatch):
 @pytest.fixture
 def limits_on(monkeypatch):
     monkeypatch.setenv("RATE_LIMITS_ENABLED", "1")
-    for window in (ratelimit.login_failures, ratelimit.chat_requests, ratelimit.anonymous_chat):
+    for window in (ratelimit.login_failures, ratelimit.chat_requests, ratelimit.anonymous_chat, ratelimit.registrations):
         window.reset()
     yield
-    for window in (ratelimit.login_failures, ratelimit.chat_requests, ratelimit.anonymous_chat):
+    for window in (ratelimit.login_failures, ratelimit.chat_requests, ratelimit.anonymous_chat, ratelimit.registrations):
         window.reset()
 
 
@@ -180,6 +180,16 @@ def test_visitors_get_a_tighter_chat_limit_than_logged_in_users(client, monkeypa
 def test_chat_below_the_limit_still_works(client, monkeypatch, limits_on):
     monkeypatch.setattr(agent_router, "get_llm", lambda: FakeLLM(CHIT, [says("Hello.")]))
     assert client.post("/agent/chat", json={"message": "hello"}).status_code == 200
+
+
+def test_registrations_are_limited_per_ip(client, limits_on):
+    for _ in range(ratelimit.registrations.limit):
+        ratelimit.registrations.hit("testclient")
+    form = {"first_name": "Rate", "last_name": "Limit", "email": "rate.limit@example.test", "phone": "9876543210",
+            "state": "Rajasthan", "city": "Jaipur", "course": "Bachelor of Design (B.Des)", "password": "long-enough-1",
+            "consent": True}
+    res = client.post("/crm/auth/register", json=form)
+    assert res.status_code == 429 and "Retry-After" in res.headers
 
 
 def test_a_refusal_is_audited(client, users, limits_on):

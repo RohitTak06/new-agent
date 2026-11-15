@@ -29,6 +29,10 @@ from fakes import FakeLLM, says
 PUBLIC_ROUTES = {
     ("get", "/health"), ("get", "/agent/health"), ("get", "/crm/health"), ("get", "/intel/health"),
     ("get", "/scheduling/health"), ("post", "/crm/auth/login"), ("post", "/agent/chat"),
+    # A new student has no token yet: registering is how they get one. Rate-limited per IP and audited.
+    ("post", "/crm/auth/register"),
+    # The register form's lists (states, courses); the same data is validated on the server. Holds no personal data.
+    ("get", "/crm/auth/register/options"),
 }
 
 
