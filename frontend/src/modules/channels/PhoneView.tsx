@@ -37,7 +37,9 @@ export const PhoneView: React.FC<Props> = ({ messages, title, onSend, pendingTex
       className="w-full max-w-[340px] mx-auto rounded-[2rem] bg-navy p-2 shadow-card">
       <div className="rounded-[1.6rem] overflow-hidden flex flex-col h-[560px] bg-subtle">
         <div className="bg-navy-hover text-white px-4 pt-3 pb-2.5 flex items-center gap-2.5">
-          <span className="w-8 h-8 rounded-full bg-white text-navy text-xs font-bold flex items-center justify-center shrink-0" aria-hidden>JK</span>
+          <span className="w-9 h-9 rounded-full bg-white flex items-center justify-center shrink-0" aria-hidden>
+            <img src="/brand/jklu-logo.png" alt="" className="h-7 w-auto" width={25} height={28} />
+          </span>
           <span className="min-w-0">
             <span className="block text-sm font-semibold truncate">{title}</span>
             <span className="block text-xs text-white/75 truncate">{status ?? "WhatsApp (simulated)"}</span>

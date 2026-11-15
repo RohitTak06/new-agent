@@ -51,9 +51,12 @@ export const LoginPage: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto pt-4 sm:pt-10">
       <div className="grid md:grid-cols-[0.85fr_1.15fr] overflow-hidden rounded-xl border border-line bg-surface shadow-card">
-        <section className="hidden md:flex flex-col bg-navy text-white p-8">
-          <span className="w-10 h-10 rounded-lg bg-white text-navy font-bold flex items-center justify-center" aria-hidden>JK</span>
-          <h2 className="mt-6 text-2xl font-semibold tracking-tight">JKLU Admissions</h2>
+        <section className="hidden md:flex flex-col bg-navy text-white">
+          <img src="/brand/campus.webp" alt="Students gathered in front of a JKLU campus building" width={858} height={700}
+            className="w-full h-44 object-cover border-b-4 border-gold" />
+          <div className="flex flex-col flex-1 p-8">
+          <img src="/brand/jklu-logo-white.png" alt="JK Lakshmipat University" width={55} height={62} className="h-14 w-auto self-start" />
+          <h2 className="mt-5 text-2xl font-semibold tracking-tight">JKLU Admissions</h2>
           <p className="mt-1 text-sm text-white/75">From a student's first question to a counsellor session.</p>
           <ul className="mt-8 space-y-5">
             {points.map((pt) => (
@@ -66,7 +69,8 @@ export const LoginPage: React.FC = () => {
               </li>
             ))}
           </ul>
-          <p className="mt-auto pt-8 text-xs text-white/70">Synthetic student data. WhatsApp, email and calendar are simulated.</p>
+          <p className="mt-auto pt-8 text-xs text-white/75">Synthetic student data. WhatsApp, email and calendar are simulated.</p>
+          </div>
         </section>
 
         <section className="p-6 sm:p-8">

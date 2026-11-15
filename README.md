@@ -151,3 +151,5 @@ Design details are in [docs/SPEC.md](docs/SPEC.md).
 ## Credits
 
 Started by a four-person team (Rohit, Dev, Guru, Riya) and completed by Rohit with Claude Code. The first versions of the `intel` and `crm` modules came from that team.
+
+The JKLU logo, favicon and campus photo in `frontend/public/brand/` belong to JK Lakshmipat University and were taken from <https://jklu.edu.in> for this JKLU AI-Buildathon entry. The colours (royal blue `#0036A1`, orange `#F56C1F`, periwinkle `#6686C6`) and fonts (Roboto, Roboto Condensed) follow the same site.

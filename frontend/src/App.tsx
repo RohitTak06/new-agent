@@ -55,24 +55,25 @@ const PendingCount: React.FC = () => {
   }, [reload]);
   if (!data?.length) return null;
   return (
-    <span aria-label={`${data.length} pending`} className="ml-auto min-w-[20px] rounded-full bg-gold px-1.5 text-center text-xs font-semibold leading-5 text-navy tabular-nums">
+    <span aria-label={`${data.length} pending`} className="ml-auto min-w-[20px] rounded-full bg-gold px-1.5 text-center text-xs font-semibold leading-5 text-ink tabular-nums">
       {data.length}
     </span>
   );
 };
 
+/** JKLU's own logo from jklu.edu.in: the colour one on white, the white one on JKLU blue. */
 const LogoMark: React.FC<{ onNavy?: boolean }> = ({ onNavy }) => (
-  <span aria-hidden className={`w-8 h-8 rounded-lg font-bold text-13 flex items-center justify-center ${
-    onNavy ? "bg-white text-navy" : "bg-navy text-white"}`}>JK</span>
+  <img src={onNavy ? "/brand/jklu-logo-white.png" : "/brand/jklu-logo.png"} alt="" aria-hidden
+    className="h-11 w-auto shrink-0" width={39} height={44} />
 );
 
 const Brand: React.FC<{ subtitle?: string; onNavy?: boolean }> = ({ subtitle, onNavy }) => (
-  <NavLink to="/" className={`flex items-center gap-2.5 shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 ${
+  <NavLink to="/" aria-label="JKLU Admissions, home" className={`flex items-center gap-3 shrink-0 rounded-lg focus:outline-none focus-visible:ring-2 ${
     onNavy ? "focus-visible:ring-gold" : "focus-visible:ring-navy"}`}>
     <LogoMark onNavy={onNavy} />
-    <span className="leading-tight">
-      <span className={`block font-semibold text-sm ${onNavy ? "text-white" : "text-ink"}`}>JKLU Admissions</span>
-      {subtitle && <span className={`block text-xs ${onNavy ? "text-white/70" : "text-ink-muted"}`}>{subtitle}</span>}
+    <span className={`leading-tight border-l pl-3 ${onNavy ? "border-white/25" : "border-line"}`}>
+      <span className={`block font-display font-semibold text-base tracking-wide ${onNavy ? "text-white" : "text-navy"}`}>Admissions</span>
+      {subtitle && <span className={`block text-xs ${onNavy ? "text-white/75" : "text-ink-muted"}`}>{subtitle}</span>}
     </span>
   </NavLink>
 );
@@ -94,7 +95,7 @@ const Sidebar: React.FC = () => {
   const groups = Array.from(new Set(items.map((i) => i.group ?? "")));
   return (
     <aside className="hidden lg:flex fixed inset-y-0 left-0 z-40 w-60 flex-col bg-navy text-white">
-      <div className="px-4 h-16 flex items-center border-b border-white/10">
+      <div className="px-4 py-4 flex items-center border-b border-white/10 border-t-4 border-t-gold">
         <Brand subtitle="Counsellor workspace" onNavy />
       </div>
       <nav aria-label="Main" className="flex-1 overflow-y-auto px-3 py-5 space-y-6 scroll-quiet">
@@ -140,7 +141,7 @@ const Header: React.FC<{ staff: boolean }> = ({ staff }) => {
   const { user, logout } = useAuth();
   const viewer: Viewer = user?.role ?? "anonymous";
   return (
-    <header className={`bg-surface border-b border-line sticky top-0 z-50 ${staff ? "lg:hidden" : ""}`}>
+    <header className={`bg-surface border-b border-line border-t-4 border-t-gold sticky top-0 z-50 ${staff ? "lg:hidden" : ""}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center gap-x-6 gap-y-2 py-3 min-h-16">
         <Brand subtitle={staff ? undefined : "Admissions assistant"} />
 
